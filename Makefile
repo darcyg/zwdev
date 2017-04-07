@@ -1,18 +1,36 @@
 include ./make/arch.mk
 
-targets := main
-midobjs	:= ./*.o ./*.d ./src/*.o ./src/*.d ./test/*.o ./test/*.d ./product/src/*.o ./product/src/*.d
+targets := testlockqueue testlog testtimer
+
+testobjs					:= ./test/test.o
+testobjs					+= ./src/list.o
+testobjs					+= ./src/mutex.o
+testobjs					+= ./src/cond.o
+testobjs					+= ./src/lockqueue.o
+
+testlogobjs				:= ./test/logtest.o
+testlogobjs				+= ./src/ayla/log.o
+testlogobjs				+= ./src/ayla/lookup_by_name.o
+
+testtimerobjs			:=
+testtimerobjs			+= ./test/timertest.o
+testtimerobjs			+= ./src/ayla/log.o
+testtimerobjs			+= ./src/ayla/lookup_by_name.o
+testtimerobjs			+= ./src/ayla/timer.o
+testtimerobjs			+= ./src/ayla/time_utils.o
+testtimerobjs			+= ./src/ayla/assert.o
+testtimerobjs			+= ./src/ayla/file_event.o
+
+midobjs	:= 
+midobjs += $(testobjs)			$(testobjs:%.o=%.d) 
+midobjs += $(testlogobjs)		$(testlogobjs:%.o=%.d)
+midobjs += $(testtimerobjs) $(testtimerobjs:%.o=%.d) 
 
 include ./make/rules.mk
 
-
-
-# test
-#$(eval $(call LinkApp, $(targets), ./test/test.o ./src/list.o ./src/mutex.o ./src/cond.o ./src/lockqueue.o ./src/ayla/log.o ./src/ayla/lookup_by_name.o))
-$(eval $(call LinkApp, $(targets), ./test/logtest.o ./src/ayla/log.o ./src/ayla/lookup_by_name.o))
-
-# app
-#$(eval $(call LinkApp, $(targets), ./test/test.o ./src/list.o ./src/mutex.o ./src/cond.o ./src/lockqueue.o))
+$(eval $(call LinkApp, testlockqueue, $(testobjs)))
+$(eval $(call LinkApp, testlog, $(testlogobjs)))
+$(eval $(call LinkApp, testtimer, $(testtimerobjs)))
 
 scp :
 	scp -P 22 ./main root@192.168.10.101:/tmp

@@ -9,6 +9,8 @@
 #ifndef __AYLA_TIMER_H__
 #define __AYLA_TIMER_H__
 
+#include "utypes.h"
+
 /*
  * Simple timer structure modified for device client.
  */
