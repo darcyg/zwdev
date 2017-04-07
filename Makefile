@@ -1,6 +1,8 @@
 include ./make/arch.mk
 
-targets := testlockqueue testlog testtimer
+targets := main testlockqueue testlog testtimer
+
+objs							:= ./main.o
 
 testobjs					:= ./test/test.o
 testobjs					+= ./src/list.o
@@ -22,12 +24,14 @@ testtimerobjs			+= ./src/ayla/assert.o
 testtimerobjs			+= ./src/ayla/file_event.o
 
 midobjs	:= 
+midobjs += $(objs)					$(objs:%.o=%.d) 
 midobjs += $(testobjs)			$(testobjs:%.o=%.d) 
 midobjs += $(testlogobjs)		$(testlogobjs:%.o=%.d)
 midobjs += $(testtimerobjs) $(testtimerobjs:%.o=%.d) 
 
 include ./make/rules.mk
 
+$(eval $(call LinkApp, main, $(objs)))
 $(eval $(call LinkApp, testlockqueue, $(testobjs)))
 $(eval $(call LinkApp, testlog, $(testlogobjs)))
 $(eval $(call LinkApp, testtimer, $(testtimerobjs)))
