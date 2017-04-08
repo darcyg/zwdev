@@ -55,7 +55,23 @@ testjsonobjs		+= ./src/ayla/assert.o
 testjsonobjs		+= ./src/ayla/file_event.o
 testjsonobjs		+= ./src/ayla/json_parser.o
 
+testjsonobjs		+= ./src/ayla/async.o
+testjsonobjs		+= ./src/ayla/buffer.o
+testjsonobjs		+= ./src/ayla/conf_io.o
+testjsonobjs		+= ./src/ayla/conf_rom.o
+testjsonobjs		+= ./src/ayla/crc8.o
+testjsonobjs		+= ./src/ayla/crc16.o
+testjsonobjs		+= ./src/ayla/crc32.o
+testjsonobjs		+= ./src/ayla/crypto.o
+testjsonobjs		+= ./src/ayla/hex.o
+testjsonobjs		+= ./src/ayla/network_utils.o
+testjsonobjs		+= ./src/ayla/parse_argv.o
+testjsonobjs		+= ./src/platform/crypto.o
+testjsonobjs		+= ./src/platform/ota.o
+testjsonobjs		+= ./src/platform/system.o
+testjsonobjs		+= ./src/platform/conf.o
 
+testjsonobjs		+= ./src/ayla/file_io.o
 
 
 midobjs	:= 

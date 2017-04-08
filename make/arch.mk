@@ -11,7 +11,7 @@ CROSS		:=
 endif
 
 ifeq ($(ARCH),mt7620a)
-SELF_CFLAGS		+= -I./inc -I./product/inc -I./inc/ayla
+SELF_CFLAGS		+= -I./inc -I./product/inc -I./inc/ayla -I./inc/platform
 SELF_LDFLAGS	+= -L./lib -ljansson
 OPENWRT_DIR	:= /opt/au/openwrt_7620
 STAGING_DIR		:= $(OPENWRT_DIR)/staging_dir
