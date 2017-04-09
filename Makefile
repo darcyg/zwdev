@@ -1,8 +1,14 @@
 include ./make/arch.mk
 
-targets := main testlockqueue testlog testtimer hashmap filemonitorio jsontest
+#targets := main testlockqueue testlog testtimer hashmap filemonitorio jsontest
+targets := testserial
+#targets := main
 
 objs							:= ./main.o
+objs							+= ./src/ayla/log.o
+objs							+= ./src/ayla/lookup_by_name.o
+objs							+= ./product/zwave/src/serial.o
+
 
 testobjs					:= ./test/test.o
 testobjs					+= ./src/list.o
@@ -73,6 +79,13 @@ testjsonobjs		+= ./src/platform/conf.o
 
 testjsonobjs		+= ./src/ayla/file_io.o
 
+testserialobjs	:= ./main.o
+testserialobjs	+= ./src/ayla/log.o
+testserialobjs	+= ./src/ayla/lookup_by_name.o
+testserialobjs	+= ./product/zwave/src/serial.o
+
+
+
 
 midobjs	:= 
 midobjs += $(objs)					$(objs:%.o=%.d) 
@@ -82,6 +95,7 @@ midobjs += $(testtimerobjs) $(testtimerobjs:%.o=%.d)
 midobjs += $(hashmapobjs)		$(hashmapobjs:%.o=%.d) 
 midobjs += $(filemonitorioobjs)	$(filemonitorioobjs:%.o=%.d) 
 midobjs += $(testjsonobjs)	$(testjsonobjs:%.o=%.d) 
+midobjs += $(testserialobjs) $(testserialobjs:%.o=%.d) 
 
 include ./make/rules.mk
 
@@ -92,7 +106,19 @@ $(eval $(call LinkApp, testtimer, $(testtimerobjs)))
 $(eval $(call LinkApp, hashmap, $(hashmapobjs)))
 $(eval $(call LinkApp, filemonitorio, $(filemonitorioobjs)))
 $(eval $(call LinkApp, jsontest, $(testjsonobjs)))
+$(eval $(call LinkApp, testserial, $(testserialobjs)))
 
 scp :
 	scp -P 22 ./main root@192.168.10.101:/tmp
+
+startvc :
+	(cd ./utils/VirtualCom;\
+		./StartVirtualComServer.sh start; \
+		cd -; \
+	)
+stopvc :
+	(cd ./utils/VirtualCom;\
+		./StartVirtualComServer.sh stop; \
+		cd -;\
+	)
 

@@ -136,5 +136,5 @@ int platform_ota_apply(void)
 	system(buf);
 
 	log_debug("OAT -------> [%s] complate...", __func__);
-	return -1;
+	return 0;
 }

@@ -12,8 +12,11 @@
 #include <signal.h>
 #include <string.h>
 
+#include "log.h"
 
-int serial_open(const char *dev, int buadrate) {
+static struct termios options;			//place for settings for serial port
+
+int serial_open(const char *dev, int baud) {
   int fd;
   switch (baud) {
   case (50):          baud = B50;         break;
@@ -51,9 +54,9 @@ int serial_open(const char *dev, int buadrate) {
   }
   
   //open the device(com port) to be non-blocking (read will return immediately)
-  fd = open(name, O_RDWR | O_NOCTTY);
+  fd = open(dev, O_RDWR | O_NOCTTY);
   if (fd < 0) {
-    log_debug("Couldn't open serial device \"%s\"(%s)", name, strerror(errno));
+    log_debug("Couldn't open serial device \"%s\"(%s)", dev, strerror(errno));
     return -1;
   }
   
