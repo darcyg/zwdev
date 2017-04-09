@@ -79,10 +79,11 @@ testjsonobjs		+= ./src/platform/conf.o
 
 testjsonobjs		+= ./src/ayla/file_io.o
 
-testserialobjs	:= ./main.o
+testserialobjs	:= ./test/testserial.o
 testserialobjs	+= ./src/ayla/log.o
 testserialobjs	+= ./src/ayla/lookup_by_name.o
 testserialobjs	+= ./product/zwave/src/serial.o
+testserialobjs	+= ./product/zwave/src/transport.o
 
 
 

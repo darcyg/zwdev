@@ -1,6 +1,23 @@
 #include "transport.h"
+#include "log.h"
+#include "serial.h"
 
-static stTransport_t tp;
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+static stTransport_t tp = {
+	.fd = -1,
+};
+
+static int valid_dev(const char *dev) {
+	return 1;
+}
+
+
+static int valid_buadrate(int buadrate) {
+	return 1;
+}
 
 int transport_open(const char *dev, int buadrate) {
 
@@ -9,7 +26,7 @@ int transport_open(const char *dev, int buadrate) {
     return -1;
   }
   
-  if (valid_buadrate(buadrate)) {
+  if (!valid_buadrate(buadrate)) {
     log_debug("invalid buadrate: %d", buadrate);
     return -2;
   }
@@ -33,7 +50,7 @@ int transport_open(const char *dev, int buadrate) {
     return -4;
   }
 
-  log_debug("serial open success : %d", tp.fd);
+  //log_debug("serial open success : %d", tp.fd);
   return 0;
 }
 int transport_close() {

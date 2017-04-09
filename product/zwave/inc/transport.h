@@ -1,5 +1,5 @@
 #ifndef _TRANSPORT_H_
-#endif _TRANSPORT_H_
+#define _TRANSPORT_H_
 
 #define DEV_NAME_MAX_LEN    32
 
