@@ -1,14 +1,20 @@
 include ./make/arch.mk
 
 #targets := main testlockqueue testlog testtimer hashmap filemonitorio jsontest
-targets := testserial
+#targets := testserial
+targets := frame
 #targets := main
 
 objs							:= ./main.o
 objs							+= ./src/ayla/log.o
 objs							+= ./src/ayla/lookup_by_name.o
 objs							+= ./product/zwave/src/serial.o
-
+objs							+= ./product/zwave/src/transport.o
+objs							+= ./product/zwave/src/frame.o
+objs							+= ./src/ayla/timer.o
+objs							+= ./src/ayla/time_utils.o
+objs							+= ./src/ayla/assert.o
+objs							+= ./src/ayla/file_event.o
 
 testobjs					:= ./test/test.o
 testobjs					+= ./src/list.o
@@ -85,6 +91,17 @@ testserialobjs	+= ./src/ayla/lookup_by_name.o
 testserialobjs	+= ./product/zwave/src/serial.o
 testserialobjs	+= ./product/zwave/src/transport.o
 
+frameobjs							:= ./test/testframe.o
+frameobjs							+= ./src/ayla/log.o
+frameobjs							+= ./src/ayla/lookup_by_name.o
+frameobjs							+= ./product/zwave/src/serial.o
+frameobjs							+= ./product/zwave/src/transport.o
+frameobjs							+= ./product/zwave/src/frame.o
+frameobjs							+= ./src/ayla/timer.o
+frameobjs							+= ./src/ayla/time_utils.o
+frameobjs							+= ./src/ayla/assert.o
+frameobjs							+= ./src/ayla/file_event.o
+
 
 
 
@@ -97,6 +114,7 @@ midobjs += $(hashmapobjs)		$(hashmapobjs:%.o=%.d)
 midobjs += $(filemonitorioobjs)	$(filemonitorioobjs:%.o=%.d) 
 midobjs += $(testjsonobjs)	$(testjsonobjs:%.o=%.d) 
 midobjs += $(testserialobjs) $(testserialobjs:%.o=%.d) 
+midobjs += $(frameobjs) $(frameobjs:%.o=%.d) 
 
 include ./make/rules.mk
 
@@ -108,6 +126,7 @@ $(eval $(call LinkApp, hashmap, $(hashmapobjs)))
 $(eval $(call LinkApp, filemonitorio, $(filemonitorioobjs)))
 $(eval $(call LinkApp, jsontest, $(testjsonobjs)))
 $(eval $(call LinkApp, testserial, $(testserialobjs)))
+$(eval $(call LinkApp, frame, $(frameobjs)))
 
 scp :
 	scp -P 22 ./main root@192.168.10.101:/tmp

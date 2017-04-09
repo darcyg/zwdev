@@ -1,31 +1,40 @@
-#include "frame.c"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
-typedef strcut stFrameState {
-  void **receive_queue;
-  int receive_queue_size;
-  int receive_head;
-  int receive_tail;
+#include "common.h"
 
-  void **send_queue;
-  int send_head;
-  int send_tail;
-  int send_queue_size;
+#include "log.h"
+#include "timer.h"
+#include "frame.h"
+#include "transport.h"
 
-  stDataFrame *df;
+#define DEV "/dev/pts/2"
+#define BAUD 115200
 
-  struct timer frame_send_state_timer;
-  struct timer frame_receive_state_timer;
+typedef struct stFrameState {
+  stDataFrame_t *frameSend;
+	stDataFrame_t *frameRecv;
 
-  int frame_state_init_flag;
+  struct timer timerRecv;
+  struct timer timerSend;
 
-  int frame_state_receive_state;
-  int frame_state_send_state;
+  int initFlag;
 
-  
+  int stateRecv;
+  int stateSend;
+
+	struct timer_head *th;
 } stFrameState_t;
 
 static stFrameState_t fs = {
-  .frame_state_init_flag = 0,
+	.frameSend = NULL,
+	.frameRecv = NULL,
+	.timerRecv = {},
+	.timerSend = {},
+	.initFlag = 0,
+	.stateRecv = FRS_SOF_HUNT,
+	.stateSend = FSS_READY,
 };
 
 int frame_len(stDataFrame_t *df) {
@@ -101,277 +110,301 @@ int frame_calculate_checksum(stDataFrame_t *df) {
   for (i = 0; i < df->len; i++)
     calcChksum ^= df->payload[i];      // Data
 
-  df->checksum = calcChksum;
+  df->checksum_cal = calcChksum;
 
   return 0;
 }
 
-int frame_state_init(int receive_queue_max_size, int send_queue_max_size) {
-  int ret;
+static FRAME_SEND_OVER_CALLBACK send_over_cb = NULL;
+static FRAME_RECV_COMP_CALLBACK recv_over_cb = NULL;
 
-  if (fs.frame_state_init_flag != 0) {
+static void frame_receive_timer_callback(struct timer *timer);
+static void frame_send_timer_callback(struct timer *timer);
+
+int frame_init(void *_th, FRAME_SEND_OVER_CALLBACK _send_over_cb, 
+										 FRAME_RECV_COMP_CALLBACK _recv_over_cb) {
+  if (fs.initFlag != 0) {
     log_debug("frame state has been init!");
     return 0;
   }
-  
-  if (receive_queue_max_size < 10) {
-    log_debug("frame state receive queue too small");
-    return -1;
-  }
-  if (send_queue_max_size < 10) {
-    log_debug("frame state receive queue too small");
+
+	if (_send_over_cb == NULL || _recv_over_cb == NULL || _th == NULL) {
+		log_debug("argments error!");
+		return -1;
+	}
+	send_over_cb = _send_over_cb;
+	recv_over_cb = _recv_over_cb;
+	fs.th = (struct timer_head *)_th;
+
+  if (transport_open(DEV, BAUD) != 0) {
+    log_debug("transport open failed!");
     return -2;
   }
-
-  if (transport_open() != 0) {
-    log_debug("transport open failed!");
-    return -3;
-  }
   
-  fs.receive_queue_size = receive_queue_max_size;
-  fs.send_queue_size = send_queue_max_size;
-  fs.receive_queue = MALLOC(sizeof(void *) * receive_queue_size);
-  fs.send_queue     = MALLOC(sizeof(void*) * send_queue_size);
-  if (fs.receive_queue == NULL || fs.send_queue == NULL) {
-    log_debug("frame state memory out!");
-    ret = -3;
-    goto fail;
-  }
-  fs.receive_head = fs.receive_tail = 0;
-  fs.send_tail = fs.send_tail = 0;
+  timer_init(&fs.timerRecv, frame_receive_timer_callback);
+  timer_init(&fs.timerSend, frame_send_timer_callback);
 
-  
-  timer_init(&fs.frame_send_state_timer);
-  timer_init(&fs.frame_receive_state_timer);
+	fs.stateRecv = FRS_SOF_HUNT;
+	fs.stateSend = FSS_READY;
 
-  fs.frame_state_init_flag = 1;
+	fs.initFlag = 1;
 
-  ret = 0;
- fail:
-    if (receive_queue != NULL) {
-      FREE(receive_queue);
-      receive_queue = NULL;
-    }
-    if (send_queue != NULL) {
-      FREE(send_queue);
-      send_queue = NULL;
-    }
-    if (transport_is_open()) {
-      transport_close();
-    }
- done:
-    
-  return ret;
+	return 0;
 }
 
-int frame_state_getfd() {
+int frame_getfd() {
   return transport_getfd();
 }
 
-int frame_receive_state_reset() {
-  timer_reset(&fs.frame_send_state_timer);
-  timer_reset(&fs.frame_receive_state_timer);
-  frame_send_state_queue_free();
-  frame_receive_state_queue_free();
-  
-  fs.frame_state_receive_state = FRS_SOF_HUNT;
-  fs.frame_state_send_state = FSS_WAIT_SEND;
+int frame_receive_reset() {
+  timer_cancel(fs.th, &fs.timerRecv);
+  timer_cancel(fs.th, &fs.timerSend);
+
+	fs.stateRecv = FRS_SOF_HUNT;
+	fs.stateSend = FSS_READY;
+
+	return 0;
 }
 
-int frame_state_free() {
-  timer_cancle(&fs.frame_send_state_timer);
-  timer_cancle(&fs.frame_receive_state_timer);
-  
+int frame_free() {
+  timer_cancel(fs.th, &fs.timerRecv);
+  timer_cancel(fs.th, &fs.timerSend);
+
+	fs.stateRecv = FRS_SOF_HUNT;
+	fs.stateSend = FSS_READY;
+
   if (transport_close() != 0) {
     log_debug("transport_close failed!");
     return -1;
   }
   
-  frame_send_state_queue_free();
-  frame_receive_state_queue_free();
-  FREE(fs.receive_queue);
-  FREE(fs.send_queue);
-  
-  fs.frame_state_receive_state = FRS_SOF_HUNT;
-  fs.frame_state_send_state = FSS_WAIT_SEND;
-  
-
-  
-  fs.frame_state_init_flag = 0;
+  fs.initFlag = 0;
   return 0;
 }
 
 
+int frame_receive_step() {
+	char ch;
+	int ret;
 
-stDataFrame_t * frame_receive_state_get_frame() {
-  if (fs.receive_head == fs.receive_tail) {
-    return NULL;
-  }
-  int idx = fs.receive_tail;
-  fs.receive_tail++;
-  if (fs.receive_tail == fs.receive_queue_size) {
-    fs.receive_tail = 0;
-  }
+	do {
+		ret = transport_read(&ch, 1, 8000);
+		//log_debug("ch is %02x", ch&0xff);
+		switch (fs.stateRecv) {
+			case FRS_SOF_HUNT:
+				if ((ch&0xff) == SOF_CHAR) {
+					//log_debug("%d: %02x, %02x", __LINE__, ch, SOF_CHAR);
+					fs.stateRecv = FRS_LENGTH;
+					timer_set(fs.th, &fs.timerRecv, FRAME_RECV_NEXT_CH_TIMEOUT);
+				} else if ((ch&0xff) == ACK_CHAR) {
+					//log_debug("%d", __LINE__);
+					if (fs.frameSend != NULL) {
+						fs.frameSend->error = FE_SEND_ACK;
+						fs.frameSend->trycnt++;
+					}
+					if (send_over_cb != NULL) {
+						send_over_cb(fs.frameSend);
+					}
+					timer_cancel(fs.th, &fs.timerSend);
+					fs.frameSend = NULL;
+					fs.stateSend = FSS_READY;
+				} else if ((0xff&ch) == NAK_CHAR) {
+					//log_debug("%d", __LINE__);
+					if (fs.frameSend != NULL) {
+						fs.frameSend->error = FE_SEND_NAK;
+						fs.frameSend->trycnt++;
+					}
+					if (send_over_cb != NULL) {
+						send_over_cb(fs.frameSend);
+					}
+					timer_cancel(fs.th, &fs.timerSend);
+					fs.frameSend = NULL;
+					fs.stateSend = FSS_READY;
+				} else if ((0xff&ch) == CAN_CHAR) {
+					//log_debug("%d", __LINE__);
+					if (fs.frameSend != NULL) {
+						fs.frameSend->error = FE_SEND_CAN;
+						fs.frameSend->trycnt++;
+					}
+					if (send_over_cb != NULL) {
+						send_over_cb(fs.frameSend);
+					}
+					timer_cancel(fs.th, &fs.timerSend);
+					fs.frameSend = NULL;
+					fs.stateSend = FSS_READY;
+				} else {
+					//log_debug("%d", __LINE__);
+					;
+				}
+				break;
+			case FRS_LENGTH:
+				if ((ch&0xff) <= MIN_FRAME_SIZE || (ch&0xff) >= MAX_FRAME_SIZE) {
+					fs.stateRecv = FRS_SOF_HUNT;
+					timer_cancel(fs.th, &fs.timerRecv);
+				} else {
+					fs.stateRecv = FRS_TYPE;
 
-  return fs.receive_queue[fs.receive_tail];
+					fs.frameRecv = MALLOC(sizeof(stDataFrame_t) + ch);
+					if (fs.frameRecv != NULL) {
+						memset(fs.frameRecv, 0, sizeof(stDataFrame_t) + ch);
+						fs.frameRecv->sof = SOF_CHAR;
+						fs.frameRecv->len = ch;
+						fs.frameRecv->size = 0;
+						fs.frameRecv->payload = (char*)(fs.frameRecv + 1);
+						timer_set(fs.th, &fs.timerRecv, FRAME_RECV_NEXT_CH_TIMEOUT);
+					} else {
+						timer_cancel(fs.th, &fs.timerRecv);
+					}
+				}
+				break;
+			case FRS_TYPE:
+				if ((ch&0xff) == REQUEST_CHAR || (ch&0xff) == RESPONSE_CHAR) {
+					fs.frameRecv->type = ch;
+					fs.stateRecv = FRS_COMMAND;
+					timer_set(fs.th, &fs.timerRecv, FRAME_RECV_NEXT_CH_TIMEOUT);
+				}  else {
+					fs.stateRecv = FRS_SOF_HUNT;
+
+					fs.frameRecv->error = FE_RECV_TIMEOUT;
+
+					if (recv_over_cb != NULL) {
+						recv_over_cb(fs.frameRecv);
+						fs.frameRecv = NULL;
+					}
+
+					timer_cancel(fs.th, &fs.timerRecv);
+				}
+				break;
+			case FRS_COMMAND:
+				if (frame_payload_full(fs.frameRecv)) {
+					fs.stateRecv = FRS_CHECKSUM;
+					timer_set(fs.th, &fs.timerRecv, FRAME_RECV_NEXT_CH_TIMEOUT);
+				} else {
+					fs.stateRecv = FRS_DATA;
+					timer_set(fs.th, &fs.timerRecv, FRAME_RECV_NEXT_CH_TIMEOUT);
+				}
+				break;
+			case FRS_DATA:
+				fs.frameRecv->payload[fs.frameRecv->size++] = ch;
+				if (frame_payload_full(fs.frameRecv)) {
+					timer_set(fs.th, &fs.timerRecv, FRAME_RECV_NEXT_CH_TIMEOUT);
+					fs.stateRecv = FRS_CHECKSUM;
+				} else {
+					timer_set(fs.th, &fs.timerRecv, FRAME_RECV_NEXT_CH_TIMEOUT);
+					fs.stateRecv = FRS_DATA;
+				}
+				break;
+			case FRS_CHECKSUM:
+				fs.frameRecv->checksum = ch;
+				if (frame_checksum_valid(fs.frameRecv)) {
+					fs.frameRecv->error = FE_NONE;
+				} else {
+					fs.frameRecv->error = FE_RECV_CHECKSUM;
+				}
+
+				if (recv_over_cb != NULL) {
+					recv_over_cb(fs.frameRecv);
+				} else {
+					FREE(fs.frameRecv);
+				}
+
+				fs.frameRecv = NULL;
+			
+				fs.stateRecv = FRS_SOF_HUNT;
+				timer_cancel(fs.th, &fs.timerRecv);
+				break;
+			default:
+				fs.stateRecv = FRS_SOF_HUNT;
+				timer_cancel(fs.th, &fs.timerRecv);
+				if (fs.frameRecv != NULL) {
+					FREE(fs.frameRecv);
+					fs.frameRecv = NULL;
+				}
+				break;
+		}
+	} while (ret != 1);
+
+	return 0;
 }
 
+static void frame_receive_timer_callback(struct timer *timer) {
+	fs.stateRecv = FRS_SOF_HUNT;
+	timer_cancel(fs.th, &fs.timerRecv);
 
+	if (fs.frameRecv != NULL) {
+		fs.frameRecv->error = FE_RECV_TIMEOUT;
 
-int frame_receive_state_step() {
-  char ch;
-
-  do {
-    int ret = transport_read(&ch, 1, 8000);
-    switch (fs.frame_state_receive_state) {
-    case FRS_SOF_HUNT:
-      if (ch == SOF_CHAR) {
-	fs.frame_state_receive_state = FRS_LENGTH;
-      } else if (ch == ACK_CHAR) {
-	frame_ack_received();
-      } else if (ch == NAK_CHAR) {
-	frame_nak_received();
-      } else if (ch == CAN_CHAR) {
-	frame_can_received();
-      } else {
-	;
-      }
-      break;
-    case FRS_LENGTH:
-      if (ch <= MIN_FRAME_SIZE || ch >= MAX_FRAME_SIZE) {
-	fs.frame_state_receive_state = FRS_SOF_HUNT;
-      } else {
-	fs.frame_state_receive_state = FRS_TYPE;
-
-	fs.df = MALLOC(sizeof(stDataFrame_t) + ch);
-	if (fs.df != NULL) {
-	  memset(&fs.df, sizeof(fs.df));
-	  fs.df->sof = SOF_CHAR;
-	  fs.df->len = ch;
-	  fs.df->size = 0;
-	  fs.df->state = fs.frame_state_receive_state;
-	  fs.df->payload = fs.df + 1;
+		if (recv_over_cb != NULL) {
+			recv_over_cb(fs.frameRecv);
+		} else {
+			FREE(fs.frameRecv);
+		}
+		fs.frameRecv = NULL;
 	}
-      }
-      break;
-    case FRS_TYPE:
-      if (ch == REQUEST_CHAR || ch == RESPONSE_CHAR) {
-	fs.frame_state_receive_state = FRS_COMMAND;
-      }  else {
-	fs.frame_state_receive_state = FRS_SOF_HUNT;
-      }
-      break;
-    case FRS_COMMAND:
-      if (frame_payload_full(fs.df)) {
-	fs.frame_state_receive_state = FRS_CHECKSUM;
-      } else {
-	fs.frame_state_receive_state = FRS_DATA;
-      }
-      break;
-    case FRS_DATA:
-      fs.df->payload[size++] = ch;
-      if (frame_payload_full(fs.df)) {
-	fs.frame_state_receive_state = FRS_CHECKSUM;
-      } else {
-	fs.frame_state_receive_state = FRS_DATA;
-      }
-      break;
-    case FRS_CHECKSUM:
-      fs.df->checksum = ch;
-      if (frame_checksum_valid(fs.df)) {
-	frame_send_ack();
-	frame_received(fs.df);
-      } else {
-	frame_send_nak();
-	FREE(fs.df);
-	fs.df = NULL;
-      }
-      fs.frame_state_receive_state = FRS_SOF_HUNT;
-      break;
-    default:
-      fs.frame_state_receive_state = FRS_SOF_HUNT;
-      if (fs.df != NULL) {
-	FREE(fs.df);
-	fs.df = NULL;
-      }
-      break;
-    }
-  }
-  /* receive and parse */
 }
 
-void frame_receive_state_timer_callback(void *timer) {
-  ;
-}
-
-int frame_send_state_send(stDataFrame_t *df) {
-  int ret;
-  
-  if (fs.send_head + 1 == fs.send_tail) {
-    log_debug("send queue full!");
-    ret = -1;
-    goto send_done;
-  }
-  if ( ((fs.send_head+1)%fs.send_queue_size) == fs.send_tail) {
-    log_debug("send queue full!");
-    goto send_done;
-  }
-  fs.send_queue[fs.send_head] = df;
-  fs.send_head = (fs.send_head + 1)%fs.send_queue_size;
-
- send_done:
-  if (fs.send_head != fs.send_tail) {
-    stDataFrame_t *sdf = fs.send_queue[fs.send_head];
-    if (sdf->state == FSS_WAIT_SEND) {
-      frame_send(sdf);
-      sdf->state = FSS_SENDDED_AND_WAIT_ACK_NAK;
-      timer_reset(&fs.frame_send_state_timer);
-    }
-  }
-}
-
-void frame_send_state_timer_callback(void *timer) {
-  if (fs.send_head == fs.send_tail) {
-    return;
-  }
-
-  stDataFrame_t *sdf = fs.send_queue[fs.send_head];
-  fs.send_head = (fs.send_head + 1) % fs.send_queue_size;
-  
-  if (sdf->state == FSS_SENDDED_AND_WAIT_ACK_NAK) {
-    sdf->state == FSS_TX_TIMEOUT;
-    session_send_callback(sdf);
-  }
-
-  if (fs.send_head != fs.send_tail) {
-    stDataFrame_t *sdf = fs.send_queue[fs.send_head];
-    if (sdf->state == FSS_WAIT_SEND) {
-      frame_send(sdf);
-      sdf->state = FSS_SENDDED_AND_WAIT_ACK_NAK;
-      timer_reset(&fs.frame_send_state_timer);
-    }
-  }  
-}
-
-
+//////////////////////////////////////////////////////////////////
 int frame_send(stDataFrame_t *df) {
-  frame_calculate_checksum(df);
+	if (fs.initFlag == 0) {
+		log_err("frame layer not initted!");
+		return -1;
+	}
+
+	if (fs.stateSend != FSS_READY) {
+		log_warn("frame state busy!");
+		return -2;
+	}
+
+	if (df == NULL) {
+		log_warn("frame send argments error: null data frame.");
+		return -3;
+	}
+
+	if (!frame_checksum_valid(df)) {
+		frame_calculate_checksum(df);
+		df->checksum = df->checksum_cal;
+	}
+
   char x;
 
   x = SOF_CHAR;
-  transport_write(&x, 1);
+  transport_write(&x, 1, 80);
   x = df->len&0xff;
-  transport_write(&x, 1);
+  transport_write(&x, 1, 80);
   x = df->type;
-  transport_write(&x, 1);
+  transport_write(&x, 1, 80);
   x = df->cmd;
-  transport_write(&x, 1);
+  transport_write(&x, 1, 80);
   
-  transport_write(df->payload, df->size);
+  transport_write(df->payload, df->size, 80);
 
-  transport_write(df->checksum);
+	x = df->checksum;
+  transport_write(&x, 1, 80);
+
+	timer_set(fs.th, &fs.timerSend, FRAME_WAIT_NAK_ACK_TIMEOUT);
+
+
+	fs.frameSend = df;
+
+	fs.stateSend = FSS_WAIT_ACK_NAK;
+
+	return 0;
 }
 
-int frame_received(stDataFrame_t *df) {
-  //session_recv_callback(df);
+static void frame_send_timer_callback(struct timer *timer) {
+
+	if (fs.frameSend != NULL) {
+		fs.frameSend->error = FE_SEND_TIMEOUT;
+		fs.frameSend->trycnt++;
+	}
+
+	if (send_over_cb == NULL) {
+		return;
+	}
+
+	send_over_cb(fs.frameSend);
+	fs.frameSend = NULL;
+	fs.stateSend = FSS_READY;
 }
+
+

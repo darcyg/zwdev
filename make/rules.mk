@@ -37,7 +37,7 @@ clean:
 define LinkApp
 $1: $2
 	$(LD) $2 $(LDFLAGS) $(OUT) $1
-	$(STRIP) $1
+	#$(STRIP) $1
 endef
 
 define Stage

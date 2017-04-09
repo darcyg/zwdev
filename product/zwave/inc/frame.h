@@ -10,10 +10,11 @@ typedef struct stDataFrame {
   int size; /* payload size */
   unsigned char checksum;
   int timestamp;
-  int state;
-  int error;
   unsigned char checksum_cal;
   int do_checksum;
+	
+	int trycnt;
+	int error;
 }stDataFrame_t;
 
 int frame_len(stDataFrame_t *df);
@@ -34,37 +35,49 @@ enum emFrameReceiveState {
   FRS_COMMAND = 0x03,
   FRS_DATA = 0x04,
   FRS_CHECKSUM = 0x05,
-  FRS_RX_TIMEOUT = 0x06,
-  FRS_RX_DONE = 0x07,
 }emFrameReceiveState_t;
 
 enum emFrameSendState {
-  FSS_WAIT_SEND = 0x00,
-  FSS_SENDDED_AND_WAIT_ACK_NAK = 0x01,
-  FSS_TX_TIMEOUT = 0x02,
-  FSS_TX_DONE = 0x03,
+  FSS_READY = 0x00,
+  FSS_WAIT_ACK_NAK = 0x01,
 };
 
 enum emFrameError {
   FE_NONE = 0x00,
+	FE_SEND_TIMEOUT = 0x01,
+	FE_SEND_ACK = 0x02,
+	FE_SEND_NAK = 0x03,
+	FE_SEND_CAN = 0x04,
+	FE_RECV_CHECKSUM = 0x05,
+	FE_RECV_TIMEOUT = 0x06,
 };
 
 #define SOF_CHAR 0xfe
+#define ACK_CHAR 0x06
+#define NAK_CHAR 0x15
+#define CAN_CHAR 0x18
 
+#define FRAME_WAIT_NAK_ACK_TIMEOUT 1000
+#define FRAME_RECV_NEXT_CH_TIMEOUT 200
 
-int frame_state_init(int receive_queue_max_size, int send_queue_max_size);
-int frame_state_getfd();
+#define MIN_FRAME_SIZE 1 
+#define MAX_FRAME_SIZE 233
 
-int frame_receive_state_reset();
-int frame_receive_state_step();
-stDataFrame_t * frame_receive_state_get_frame();
-void frame_receive_state_timer_callback(void *timer);
+#define REQUEST_CHAR  0x00
+#define RESPONSE_CHAR 0x01
 
-int frame_send_state_send(stDataFrame_t *df);
-void frame_send_state_timer_callback(void *timer);
+typedef void (*FRAME_SEND_OVER_CALLBACK)(stDataFrame_t *sf);
+typedef void (*FRAME_RECV_COMP_CALLBACK)(stDataFrame_t *sf);
+int frame_init(void *_th, FRAME_SEND_OVER_CALLBACK _send_over_cb, 
+										 FRAME_RECV_COMP_CALLBACK _recv_over_cb);
+int frame_getfd();
 
-int frame_state_free();
+int frame_receive_reset();
+int frame_receive_step();
+
 
 int frame_send(stDataFrame_t *df);
-int frame_received(stDataFrame_t df);
+
+int frame_free();
+
 #endif
