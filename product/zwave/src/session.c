@@ -80,29 +80,43 @@ static void session_send_over_callback(stDataFrame_t *_sf) {
 	stDataFrame_t *sf = (stDataFrame_t *)_sf;
 	if (sf != NULL) {
 		if (sf->error == FE_NONE || sf->error == FE_SEND_ACK || sf->error == FE_SEND_CAN) {
-			void *x = NULL;
-			lockqueue_pop(&ss.qSend, &x);
-			if (x != NULL) {
-				sf->trycnt = 0;
-				frame_send(sf);
+			stDataFrame_t *x = NULL;
+			lockqueue_pop(&ss.qSend, (void **)&x);
+
+			if (lockqueue_pop(&ss.qSend, (void **)&x)) {
+				x->trycnt = 0;
+				frame_send((stDataFrame_t *)x);
 			}
+
 			send_cb(sf);
 		} else if (sf->error == FE_SEND_TIMEOUT) {
-			if (sf->trycnt < 3) {
+			if (sf->trycnt < SESSION_MAX_SEND_TRY_CNT) {
 				log_debug("send timeout, retry : %d", sf->trycnt);
 				frame_send(sf);
 			} else {
-				void *x = NULL;
-				lockqueue_pop(&ss.qSend, &x);
+				stDataFrame_t *x = NULL;
+				lockqueue_pop(&ss.qSend, (void **)&x);
+
+				if (lockqueue_pop(&ss.qSend, (void **)&x)) {
+					x->trycnt = 0;
+					frame_send((stDataFrame_t *)x);
+				}
+
 				send_cb(sf);
 			}
 		} else if (sf->error == FE_SEND_NAK) {
-			if (sf->trycnt < 3) {
+			if (sf->trycnt < SESSION_MAX_SEND_TRY_CNT) {
 				log_debug("send nak, retry : %d", sf->trycnt);
 				frame_send(sf);
 			} else {
-				void *x = NULL;
-				lockqueue_pop(&ss.qSend, &x);
+				stDataFrame_t *x = NULL;
+				lockqueue_pop(&ss.qSend, (void **)&x);
+
+				if (lockqueue_pop(&ss.qSend, (void **)&x)) {
+					x->trycnt = 0;
+					frame_send((stDataFrame_t *)x);
+				}
+
 				send_cb(sf);
 			}
 		} 

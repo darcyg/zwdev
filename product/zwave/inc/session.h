@@ -1,7 +1,7 @@
 #ifndef _SESSION_H_
 #define _SESSION_H_
 
-
+#define SESSION_MAX_SEND_TRY_CNT 4
 
 typedef void (*SESSION_SEND_OVER_CALLBACK)(void *sf);
 typedef void (*SESSION_RECV_COMP_CALLBACK)(void *sf);

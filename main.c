@@ -90,7 +90,7 @@ void print_hex_buffer(char *buf, int size) {
 }
 
 void send_callback(stDataFrame_t *sf) {
-	log_info("-");
+	log_info("---");
 	if (sf != NULL) {
 		if (sf->error == FE_NONE) {
 			log_debug("ok frame");
@@ -107,7 +107,7 @@ void send_callback(stDataFrame_t *sf) {
 		} else if (sf->error == FE_RECV_TIMEOUT) {
 			log_debug("frame recv timeout");
 		}
-		log_info("size is %02x, %02x, retrycnt:%d", sf->size, sf->len, sf->trycnt);
+		log_info("size is %02x, %02x, trycnt:%d", sf->size, sf->len, sf->trycnt);
 
 		log_debug_hex("Read:", sf->payload, sf->size);
 
@@ -117,11 +117,7 @@ void send_callback(stDataFrame_t *sf) {
 }
 
 void recv_callback(stDataFrame_t *sf) {
-	printf("------------ 1x\n");
-	log_debug("-");
-	printf("------------ 2x\n");
-	log_debug("=");
-	printf("------------ 3x\n");
+	log_info("---");
 
 	if (sf != NULL) {
 		if (sf->error == FE_NONE) {
@@ -148,7 +144,7 @@ void recv_callback(stDataFrame_t *sf) {
 
 stDataFrame_t df = {
 	.sof = SOF_CHAR,
-	.len = 0,
+	.len = 3,
 	.type = 0x00,
 	.cmd = 0x15,
 	.payload = "\x33\x33\x33",
@@ -163,8 +159,8 @@ stDataFrame_t df = {
 
 
 void timerout_cb(struct timer *t) {
-	log_debug("timer out!");
-	timer_set(&th, t, 15000);
+	log_info("========================session test==================");
+	timer_set(&th, t, 5000);
 
 	df.trycnt= 0;
 	session_send(&df);

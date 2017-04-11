@@ -1,6 +1,6 @@
 include ./make/arch.mk
 
-#targets := main
+targets := main
 #targets := testlockqueue 
 #targets := testlog 
 #targets := testtimer
@@ -8,7 +8,7 @@ include ./make/arch.mk
 #targets := filemonitorio
 #targets := jsontest
 #targets := testserial
-targets := frame
+#targets := frame
 
 objs							:= ./main.o
 objs							+= ./src/ayla/log.o

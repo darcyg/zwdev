@@ -125,6 +125,7 @@ static FRAME_RECV_COMP_CALLBACK recv_over_cb = NULL;
 
 static void frame_receive_timer_callback(struct timer *timer);
 static void frame_send_timer_callback(struct timer *timer);
+static void frame_ack();
 
 int frame_init(void *_th, FRAME_SEND_OVER_CALLBACK _send_over_cb, 
 										 FRAME_RECV_COMP_CALLBACK _recv_over_cb) {
@@ -315,6 +316,7 @@ int frame_receive_step() {
 				fs.frameRecv->checksum = ch;
 				if (frame_checksum_valid(fs.frameRecv)) {
 					fs.frameRecv->error = FE_NONE;
+					frame_ack();
 				} else {
 					fs.frameRecv->error = FE_RECV_CHECKSUM;
 				}
@@ -458,5 +460,11 @@ static void frame_send_timer_callback(struct timer *timer) {
 
 	send_over_cb(tmp);;
 }
+
+static void frame_ack() {
+	char x = ACK_CHAR;
+	transport_write(&x, 1, 80);
+}
+
 
 
