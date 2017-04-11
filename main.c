@@ -17,12 +17,13 @@
 #include "frame.h"
 #include "timer.h"
 #include "file_event.h"
+#include "session.h"
 
 
 ///////////////////////////////////////////////////////////////
 //test module
 void print_hex_buffer(char *buf, int size);		
-void frame_test();
+void session_test();
 
 ///////////////////////////////////////////////////////////////
 static int ds_child_died = 0;
@@ -70,7 +71,7 @@ int main(int argc, char *argv[]) {
 	log_init(argv[0], LOG_OPT_DEBUG | LOG_OPT_CONSOLE_OUT | LOG_OPT_TIMESTAMPS | LOG_OPT_FUNC_NAMES);
 
 	while (1) {
-		frame_test();
+		session_test();
 	}
 	return 0;
 }
@@ -106,7 +107,7 @@ void send_callback(stDataFrame_t *sf) {
 		} else if (sf->error == FE_RECV_TIMEOUT) {
 			log_debug("frame recv timeout");
 		}
-		log_info("size is %02x, %02x", sf->size, sf->len);
+		log_info("size is %02x, %02x, retrycnt:%d", sf->size, sf->len, sf->trycnt);
 		print_hex_buffer(sf->payload, sf->size);
 		//FREE(sf);
 	}
@@ -141,11 +142,11 @@ void recv_callback(stDataFrame_t *sf) {
 
 stDataFrame_t df = {
 	.sof = SOF_CHAR,
-	.len = 3,
+	.len = 0,
 	.type = 0x00,
-	.cmd = 0x08,
+	.cmd = 0x15,
 	.payload = "\x33\x33\x33",
-	.size = 3,
+	.size = 0,
 	.checksum = 0,
 	.timestamp = 0,
 	.trycnt = 0,
@@ -157,16 +158,17 @@ stDataFrame_t df = {
 
 void timerout_cb(struct timer *t) {
 	log_debug("timer out!");
-	timer_set(&th, t, 3000);
-	frame_send(&df);
+	timer_set(&th, t, 15000);
+	df.trycnt= 0;
+	session_send(&df);
 }
 
-void frame_in(void *arg, int fd) {
-	frame_receive_step();
+void session_in(void *arg, int fd) {
+	session_receive_step();
 }
 
 
-void frame_test() {
+void session_test() {
 
 	struct timer tr;
 	timer_init(&tr, timerout_cb);
@@ -177,12 +179,12 @@ void frame_test() {
 
 
 	int ret = -1;
-	ret = frame_init(&th, send_callback, recv_callback);
+	ret = session_init(&th, (void*)send_callback, (void*)recv_callback);
 	if (ret != 0) {
-		log_debug("frame init failed!");
+		log_debug("session init failed!");
 		exit(-1);
 	}
-	file_event_reg(&fet, frame_getfd(), frame_in, NULL, NULL);
+	file_event_reg(&fet, session_getfd(), session_in, NULL, NULL);
 
 	while (1) {
 		s64 next_timeout_ms;
@@ -192,3 +194,4 @@ void frame_test() {
 		}
 	}
 }
+

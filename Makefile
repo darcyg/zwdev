@@ -1,9 +1,14 @@
 include ./make/arch.mk
 
-#targets := main testlockqueue testlog testtimer hashmap filemonitorio jsontest
-#targets := testserial
-targets := frame
 #targets := main
+#targets := testlockqueue 
+#targets := testlog 
+#targets := testtimer
+#targets := hashmap
+#targets := filemonitorio
+#targets := jsontest
+targets := testserial
+#targets := frame
 
 objs							:= ./main.o
 objs							+= ./src/ayla/log.o
@@ -11,10 +16,15 @@ objs							+= ./src/ayla/lookup_by_name.o
 objs							+= ./product/zwave/src/serial.o
 objs							+= ./product/zwave/src/transport.o
 objs							+= ./product/zwave/src/frame.o
+objs							+= ./product/zwave/src/session.o
 objs							+= ./src/ayla/timer.o
 objs							+= ./src/ayla/time_utils.o
 objs							+= ./src/ayla/assert.o
 objs							+= ./src/ayla/file_event.o
+objs							+= ./src/lockqueue.o
+objs							+= ./src/mutex.o
+objs							+= ./src/cond.o
+objs							+= ./src/list.o
 
 testobjs					:= ./test/test.o
 testobjs					+= ./src/list.o
