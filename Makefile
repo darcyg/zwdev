@@ -7,8 +7,8 @@ include ./make/arch.mk
 #targets := hashmap
 #targets := filemonitorio
 #targets := jsontest
-targets := testserial
-#targets := frame
+#targets := testserial
+targets := frame
 
 objs							:= ./main.o
 objs							+= ./src/ayla/log.o

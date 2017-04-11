@@ -3,10 +3,10 @@
 
 typedef struct stDataFrame {
   unsigned char sof;
-  int len;
+  int len;	 /* cmd, type, len + payload size */
   unsigned char type;
   unsigned char cmd;
-  char *payload;
+  char *payload;			
   int size; /* payload size */
   unsigned char checksum;
   int timestamp;

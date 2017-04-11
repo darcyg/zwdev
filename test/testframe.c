@@ -76,18 +76,6 @@ int main(int argc, char *argv[]) {
 }
 
 ////////////////////////////////////////////////////////////////
-void print_hex_buffer(char *buf, int size) {
-	int i = 0;
-	for (i = 0; i < size; i++) {
-		printf("[%02X] ", buf[i]&0xff);
-		
-		if ( (i+1) % 20 == 0) {
-			printf("\n");
-		}
-	}	
-	printf("\n");
-}
-
 void send_callback(stDataFrame_t *sf) {
 	log_info("-");
 	if (sf != NULL) {
@@ -106,8 +94,9 @@ void send_callback(stDataFrame_t *sf) {
 		} else if (sf->error == FE_RECV_TIMEOUT) {
 			log_debug("frame recv timeout");
 		}
-		log_info("size is %02x, %02x", sf->size, sf->len);
-		print_hex_buffer(sf->payload, sf->size);
+		log_debug("size is %02x, len %02x", sf->size, sf->len);
+
+		log_debug_hex("payload:", sf->payload, sf->size);
 		//FREE(sf);
 	}
 	return;
@@ -133,7 +122,8 @@ void recv_callback(stDataFrame_t *sf) {
 			log_debug("frame recv timeout");
 		}
 
-		print_hex_buffer(sf->payload, sf->size);
+		log_debug_hex("payload:", sf->payload, sf->size);
+
 		FREE(sf);
 	}
 	return;
@@ -141,7 +131,7 @@ void recv_callback(stDataFrame_t *sf) {
 
 stDataFrame_t df = {
 	.sof = SOF_CHAR,
-	.len = 3,
+	.len = 6,
 	.type = 0x00,
 	.cmd = 0x08,
 	.payload = "\x33\x33\x33",
@@ -156,8 +146,8 @@ stDataFrame_t df = {
 
 
 void timerout_cb(struct timer *t) {
-	log_debug("timer out!");
 	timer_set(&th, t, 3000);
+	log_info("===============test===============");
 	frame_send(&df);
 }
 

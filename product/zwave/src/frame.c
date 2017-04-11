@@ -87,7 +87,7 @@ int frame_payload_full(stDataFrame_t *df) {
   if (df == NULL) {
     return 0;
   }
-  return !!(df->size == df->len);
+  return !!(df->size == df->len - 3);
 }
 int frame_checksum_valid(stDataFrame_t *df) {
   if (df == NULL) {
@@ -97,19 +97,21 @@ int frame_checksum_valid(stDataFrame_t *df) {
     frame_calculate_checksum(df);
     df->do_checksum= 1;
   }
-	log_debug("checksum is %02x,cacl: %02x", df->checksum_cal, df->checksum);
+	if (df->checksum != df->checksum_cal) {
+		log_debug("checksum is %02x,cacl: %02x", df->checksum, df->checksum_cal);
+	}
   return (df->checksum_cal == df->checksum);
 }
 
 int frame_calculate_checksum(stDataFrame_t *df) {
   unsigned char calcChksum = 0xFF;
   
-  calcChksum ^= (unsigned char)((df->len+3)&0xff); // Length
+  calcChksum ^= (unsigned char)((df->len)&0xff); // Length
   calcChksum ^= df->type;     // Type
   calcChksum ^= df->cmd;      // Command
 
   int i = 0;
-  for (i = 0; i < df->len; i++) {
+  for (i = 0; i < df->size; i++) {
     calcChksum ^= df->payload[i];      // Data
 	}
 
@@ -191,11 +193,10 @@ int frame_receive_step() {
 	int ret;
 
 	do {
-		ret = transport_read(&ch, 1, 8000);
+		ret = transport_read(&ch, 1, 4080);
 		if (ret != 1) {
 			break;
 		}
-		log_debug("ch is %02x", ch&0xff);
 		switch (fs.stateRecv) {
 			case FRS_SOF_HUNT:
 				if ((ch&0xff) == SOF_CHAR) {
@@ -291,6 +292,7 @@ int frame_receive_step() {
 				}
 				break;
 			case FRS_COMMAND:
+					fs.frameRecv->cmd = ch;
 				if (frame_payload_full(fs.frameRecv)) {
 					fs.stateRecv = FRS_CHECKSUM;
 					timer_set(fs.th, &fs.timerRecv, FRAME_RECV_NEXT_CH_TIMEOUT);
@@ -392,7 +394,10 @@ int frame_send(stDataFrame_t *df) {
 	debug_buf[debug_len++] = x;
 #endif
 
-  x = (df->len+3)&0xff;
+	if (df->len != df->size + 3) {
+		df->len = df->size + 3;
+	}
+  x = (df->len)&0xff;
   transport_write(&x, 1, 80);
 #if 1
 	debug_buf[debug_len++] = x;

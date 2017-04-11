@@ -108,14 +108,20 @@ void send_callback(stDataFrame_t *sf) {
 			log_debug("frame recv timeout");
 		}
 		log_info("size is %02x, %02x, retrycnt:%d", sf->size, sf->len, sf->trycnt);
-		print_hex_buffer(sf->payload, sf->size);
+
+		log_debug_hex("Read:", sf->payload, sf->size);
+
 		//FREE(sf);
 	}
 	return;
 }
 
 void recv_callback(stDataFrame_t *sf) {
-	log_info("-");
+	printf("------------ 1x\n");
+	log_debug("-");
+	printf("------------ 2x\n");
+	log_debug("=");
+	printf("------------ 3x\n");
 
 	if (sf != NULL) {
 		if (sf->error == FE_NONE) {
@@ -134,7 +140,7 @@ void recv_callback(stDataFrame_t *sf) {
 			log_debug("frame recv timeout");
 		}
 
-		print_hex_buffer(sf->payload, sf->size);
+		log_debug_hex("Read:", sf->payload, sf->size);
 		FREE(sf);
 	}
 	return;
@@ -159,6 +165,7 @@ stDataFrame_t df = {
 void timerout_cb(struct timer *t) {
 	log_debug("timer out!");
 	timer_set(&th, t, 15000);
+
 	df.trycnt= 0;
 	session_send(&df);
 }
