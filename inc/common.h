@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <utypes.h>
 
 #define MAJOR    0
 #define MINOR    0
@@ -26,5 +27,6 @@
 //#define false (!!0)
 //#endif
 
+#define ASSERT(x) do { if (!(x)) exit(0); } while (0)
 
 #endif

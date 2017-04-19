@@ -9,7 +9,8 @@
 #include "frame.h"
 #include "transport.h"
 
-#define DEV "/dev/pts/2"
+//#define DEV "/dev/pts/3"
+#define DEV "/dev/ttyUSB0"
 #define BAUD 115200
 
 typedef struct stFrameState {
@@ -86,7 +87,7 @@ int frame_payload_full(stDataFrame_t *df) {
   if (df == NULL) {
     return 0;
   }
-  return !!(df->size == df->len);
+  return !!(df->size == df->len - 3);
 }
 int frame_checksum_valid(stDataFrame_t *df) {
   if (df == NULL) {
@@ -96,19 +97,23 @@ int frame_checksum_valid(stDataFrame_t *df) {
     frame_calculate_checksum(df);
     df->do_checksum= 1;
   }
+	if (df->checksum != df->checksum_cal) {
+		log_debug("checksum is %02x,cacl: %02x", df->checksum, df->checksum_cal);
+	}
   return (df->checksum_cal == df->checksum);
 }
 
 int frame_calculate_checksum(stDataFrame_t *df) {
   unsigned char calcChksum = 0xFF;
   
-  calcChksum ^= (unsigned char)(df->len&0xff); // Length
+  calcChksum ^= (unsigned char)((df->len)&0xff); // Length
   calcChksum ^= df->type;     // Type
   calcChksum ^= df->cmd;      // Command
 
   int i = 0;
-  for (i = 0; i < df->len; i++)
+  for (i = 0; i < df->size; i++) {
     calcChksum ^= df->payload[i];      // Data
+	}
 
   df->checksum_cal = calcChksum;
 
@@ -120,6 +125,7 @@ static FRAME_RECV_COMP_CALLBACK recv_over_cb = NULL;
 
 static void frame_receive_timer_callback(struct timer *timer);
 static void frame_send_timer_callback(struct timer *timer);
+static void frame_ack();
 
 int frame_init(void *_th, FRAME_SEND_OVER_CALLBACK _send_over_cb, 
 										 FRAME_RECV_COMP_CALLBACK _recv_over_cb) {
@@ -188,8 +194,10 @@ int frame_receive_step() {
 	int ret;
 
 	do {
-		ret = transport_read(&ch, 1, 8000);
-		//log_debug("ch is %02x", ch&0xff);
+		ret = transport_read(&ch, 1, 4080);
+		if (ret != 1) {
+			break;
+		}
 		switch (fs.stateRecv) {
 			case FRS_SOF_HUNT:
 				if ((ch&0xff) == SOF_CHAR) {
@@ -202,36 +210,45 @@ int frame_receive_step() {
 						fs.frameSend->error = FE_SEND_ACK;
 						fs.frameSend->trycnt++;
 					}
-					if (send_over_cb != NULL) {
-						send_over_cb(fs.frameSend);
-					}
+
 					timer_cancel(fs.th, &fs.timerSend);
+					stDataFrame_t *tmp = fs.frameSend;
 					fs.frameSend = NULL;
 					fs.stateSend = FSS_READY;
+
+					if (send_over_cb != NULL) {
+						send_over_cb(tmp);
+					}
 				} else if ((0xff&ch) == NAK_CHAR) {
 					//log_debug("%d", __LINE__);
 					if (fs.frameSend != NULL) {
 						fs.frameSend->error = FE_SEND_NAK;
 						fs.frameSend->trycnt++;
 					}
-					if (send_over_cb != NULL) {
-						send_over_cb(fs.frameSend);
-					}
+
 					timer_cancel(fs.th, &fs.timerSend);
+					stDataFrame_t *tmp = fs.frameSend;
 					fs.frameSend = NULL;
 					fs.stateSend = FSS_READY;
+
+					if (send_over_cb != NULL) {
+						send_over_cb(tmp);
+					}
 				} else if ((0xff&ch) == CAN_CHAR) {
 					//log_debug("%d", __LINE__);
 					if (fs.frameSend != NULL) {
 						fs.frameSend->error = FE_SEND_CAN;
 						fs.frameSend->trycnt++;
 					}
-					if (send_over_cb != NULL) {
-						send_over_cb(fs.frameSend);
-					}
+
 					timer_cancel(fs.th, &fs.timerSend);
 					fs.frameSend = NULL;
+					stDataFrame_t *tmp = fs.frameSend;
 					fs.stateSend = FSS_READY;
+
+					if (send_over_cb != NULL) {
+						send_over_cb(tmp);
+					}
 				} else {
 					//log_debug("%d", __LINE__);
 					;
@@ -244,9 +261,9 @@ int frame_receive_step() {
 				} else {
 					fs.stateRecv = FRS_TYPE;
 
-					fs.frameRecv = MALLOC(sizeof(stDataFrame_t) + ch);
+					fs.frameRecv = MALLOC(sizeof(stDataFrame_t) + ch-3);
 					if (fs.frameRecv != NULL) {
-						memset(fs.frameRecv, 0, sizeof(stDataFrame_t) + ch);
+						memset(fs.frameRecv, 0, sizeof(stDataFrame_t) + ch-3);
 						fs.frameRecv->sof = SOF_CHAR;
 						fs.frameRecv->len = ch;
 						fs.frameRecv->size = 0;
@@ -276,6 +293,7 @@ int frame_receive_step() {
 				}
 				break;
 			case FRS_COMMAND:
+					fs.frameRecv->cmd = ch;
 				if (frame_payload_full(fs.frameRecv)) {
 					fs.stateRecv = FRS_CHECKSUM;
 					timer_set(fs.th, &fs.timerRecv, FRAME_RECV_NEXT_CH_TIMEOUT);
@@ -298,6 +316,7 @@ int frame_receive_step() {
 				fs.frameRecv->checksum = ch;
 				if (frame_checksum_valid(fs.frameRecv)) {
 					fs.frameRecv->error = FE_NONE;
+					frame_ack();
 				} else {
 					fs.frameRecv->error = FE_RECV_CHECKSUM;
 				}
@@ -366,20 +385,49 @@ int frame_send(stDataFrame_t *df) {
 	}
 
   char x;
+#if 1
+	char debug_buf[256];
+	int  debug_len = 0;
+#endif
 
   x = SOF_CHAR;
   transport_write(&x, 1, 80);
-  x = df->len&0xff;
+#if 1
+	debug_buf[debug_len++] = x;
+#endif
+
+	if (df->len != df->size + 3) {
+		df->len = df->size + 3;
+	}
+  x = (df->len)&0xff;
   transport_write(&x, 1, 80);
+#if 1
+	debug_buf[debug_len++] = x;
+#endif
+
   x = df->type;
   transport_write(&x, 1, 80);
+#if 1
+	debug_buf[debug_len++] = x;
+#endif
+
   x = df->cmd;
   transport_write(&x, 1, 80);
+#if 1
+	debug_buf[debug_len++] = x;
+#endif
   
-  transport_write(df->payload, df->size, 80);
+	if (df->size > 0) {
+		transport_write(df->payload, df->size, 80);
+#if 1
+		memcpy(debug_buf + debug_len, df->payload, df->size);
+		debug_len += df->size;
+#endif
+	}
 
 	x = df->checksum;
   transport_write(&x, 1, 80);
+	debug_buf[debug_len++] = x;
 
 	timer_set(fs.th, &fs.timerSend, FRAME_WAIT_NAK_ACK_TIMEOUT);
 
@@ -387,6 +435,10 @@ int frame_send(stDataFrame_t *df) {
 	fs.frameSend = df;
 
 	fs.stateSend = FSS_WAIT_ACK_NAK;
+
+#if 1
+	log_debug_hex("SerialData:", debug_buf,  debug_len);
+#endif
 
 	return 0;
 }
@@ -402,9 +454,17 @@ static void frame_send_timer_callback(struct timer *timer) {
 		return;
 	}
 
-	send_over_cb(fs.frameSend);
+	stDataFrame_t *tmp = fs.frameSend;
 	fs.frameSend = NULL;
 	fs.stateSend = FSS_READY;
+
+	send_over_cb(tmp);;
 }
+
+static void frame_ack() {
+	char x = ACK_CHAR;
+	transport_write(&x, 1, 80);
+}
+
 
 

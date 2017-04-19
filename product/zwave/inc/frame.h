@@ -3,10 +3,10 @@
 
 typedef struct stDataFrame {
   unsigned char sof;
-  int len;
+  int len;	 /* cmd, type, len + payload size */
   unsigned char type;
   unsigned char cmd;
-  char *payload;
+  char *payload;			
   int size; /* payload size */
   unsigned char checksum;
   int timestamp;
@@ -52,7 +52,7 @@ enum emFrameError {
 	FE_RECV_TIMEOUT = 0x06,
 };
 
-#define SOF_CHAR 0xfe
+#define SOF_CHAR 0x01
 #define ACK_CHAR 0x06
 #define NAK_CHAR 0x15
 #define CAN_CHAR 0x18

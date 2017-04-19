@@ -1,9 +1,15 @@
 include ./make/arch.mk
 
-#targets := main testlockqueue testlog testtimer hashmap filemonitorio jsontest
-#targets := testserial
-targets := frame
 #targets := main
+#targets := testlockqueue 
+#targets := testlog 
+#targets := testtimer
+#targets := hashmap
+#targets := filemonitorio
+#targets := jsontest
+#targets := testserial
+#targets := frame
+targets := testsession
 
 objs							:= ./main.o
 objs							+= ./src/ayla/log.o
@@ -11,10 +17,15 @@ objs							+= ./src/ayla/lookup_by_name.o
 objs							+= ./product/zwave/src/serial.o
 objs							+= ./product/zwave/src/transport.o
 objs							+= ./product/zwave/src/frame.o
+objs							+= ./product/zwave/src/session.o
 objs							+= ./src/ayla/timer.o
 objs							+= ./src/ayla/time_utils.o
 objs							+= ./src/ayla/assert.o
 objs							+= ./src/ayla/file_event.o
+objs							+= ./src/lockqueue.o
+objs							+= ./src/mutex.o
+objs							+= ./src/cond.o
+objs							+= ./src/list.o
 
 testobjs					:= ./test/test.o
 testobjs					+= ./src/list.o
@@ -103,6 +114,23 @@ frameobjs							+= ./src/ayla/assert.o
 frameobjs							+= ./src/ayla/file_event.o
 
 
+testsessionobjs							:= ./main.o
+testsessionobjs							+= ./src/ayla/log.o
+testsessionobjs							+= ./src/ayla/lookup_by_name.o
+testsessionobjs							+= ./product/zwave/src/serial.o
+testsessionobjs							+= ./product/zwave/src/transport.o
+testsessionobjs							+= ./product/zwave/src/frame.o
+testsessionobjs							+= ./product/zwave/src/session.o
+testsessionobjs							+= ./src/ayla/timer.o
+testsessionobjs							+= ./src/ayla/time_utils.o
+testsessionobjs							+= ./src/ayla/assert.o
+testsessionobjs							+= ./src/ayla/file_event.o
+testsessionobjs							+= ./src/lockqueue.o
+testsessionobjs							+= ./src/mutex.o
+testsessionobjs							+= ./src/cond.o
+testsessionobjs							+= ./src/list.o
+
+
 
 
 midobjs	:= 
@@ -115,6 +143,7 @@ midobjs += $(filemonitorioobjs)	$(filemonitorioobjs:%.o=%.d)
 midobjs += $(testjsonobjs)	$(testjsonobjs:%.o=%.d) 
 midobjs += $(testserialobjs) $(testserialobjs:%.o=%.d) 
 midobjs += $(frameobjs) $(frameobjs:%.o=%.d) 
+midobjs += $(testsessionobjs) $(testsessionobjs:%.o=%.d) 
 
 include ./make/rules.mk
 
@@ -127,6 +156,7 @@ $(eval $(call LinkApp, filemonitorio, $(filemonitorioobjs)))
 $(eval $(call LinkApp, jsontest, $(testjsonobjs)))
 $(eval $(call LinkApp, testserial, $(testserialobjs)))
 $(eval $(call LinkApp, frame, $(frameobjs)))
+$(eval $(call LinkApp, testsession, $(testsessionobjs)))
 
 scp :
 	scp -P 22 ./main root@192.168.10.101:/tmp

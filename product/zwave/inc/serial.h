@@ -13,6 +13,6 @@ int serial_write(int fd, char *buf, int size, int timeout_ms);
 
 int serial_read(int fd, char *buf, int size, int timeout_ms);
 
-int serial_clear(int fd);
+int serial_flush(int fd);
 
 #endif

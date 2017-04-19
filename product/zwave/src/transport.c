@@ -50,6 +50,8 @@ int transport_open(const char *dev, int buadrate) {
     return -4;
   }
 
+	serial_flush(tp.fd);
+
   //log_debug("serial open success : %d", tp.fd);
   return 0;
 }

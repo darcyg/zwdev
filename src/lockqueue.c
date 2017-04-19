@@ -1,4 +1,5 @@
 #include "lockqueue.h"
+#include "common.h"
 
 
 void lockqueue_init(stLockQueue_t *lq) {
