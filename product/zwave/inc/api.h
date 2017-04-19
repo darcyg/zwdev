@@ -172,7 +172,48 @@ typedef emApi {
 	CmdZWaveReplaceFailedNode = 0x63,
 }emApi_t;
 
-typedef struct stParam {
+typedef union stParam {
+	stVersion_t version;
+	
+	stInitData_t initData;
+
+	stNodeProtoInfoIn_t nodeProtoInfoIn;
+	stNodeProtoInfo_t nodeProtoInfo;
+
+	stCapabilities capabilities;	
+
+	stControllerCapabilities controllerCapabilities;
+
+	stId_t id;
+
+	stSucNodeId_t sucNodeId;
+
+	stNodeInformation_t nodeInformation;
+	
+	stAddNodeToNetworkIn_t addNodeToNetworkIn;
+	stAddNodeToNetwork addNodeToNetwork;
+
+	stNodeInfoIn_t nodeInfoIn;
+	stNodeInfo nodeInfo;
+
+	stControlleUpdateIn_t controlleUpdateIn;
+
+	stRemoveNodeFromNetworkIn_t removeNodeFromNetworkIn;
+	stRemoveNodeFromNetwork removeNodeFromNetwork;
+
+	stSetSucNodeIdIn_t setSucNodeIdIn;
+	stSetSucNodeId setSucNodeId;
+
+	stSendDataIn_t sendDataIn;
+	stSendData sendData;
+	stSendDataSts_t sendDataSts;	
+
+	stIsFailedNodeIn isFailNodeIn;
+	stIsFailedNode isFailNode;
+
+	stReplaceFailedNodeIn_t replaceFailedNodeIn;
+	stReplaceFailedNode replaceFailedNode;
+	stReplaceFailedNodeSts_t replaceFailedNodeSts;
 }stParam_t;
 
 
@@ -181,9 +222,6 @@ typedef void (*API_CALLBACK)(emApi_t api, stParam_t param);
 int api_init(API_CALLBACK _acb);
 int api_exec(emApi_t api, stParam_t param);
 int api_free();
-
-
-
 
 
 

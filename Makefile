@@ -1,6 +1,6 @@
 include ./make/arch.mk
 
-#targets := main
+targets := main
 #targets := testlockqueue 
 #targets := testlog 
 #targets := testtimer
@@ -9,7 +9,7 @@ include ./make/arch.mk
 #targets := jsontest
 #targets := testserial
 #targets := frame
-targets := testsession
+#targets := testsession
 
 objs							:= ./main.o
 objs							+= ./src/ayla/log.o
@@ -26,6 +26,7 @@ objs							+= ./src/lockqueue.o
 objs							+= ./src/mutex.o
 objs							+= ./src/cond.o
 objs							+= ./src/list.o
+objs							+= ./product/zwave/src/api.o
 
 testobjs					:= ./test/test.o
 testobjs					+= ./src/list.o
