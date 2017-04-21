@@ -3,6 +3,7 @@
 
 /* this file contains zwave static controller serial api interfaces */
 
+#pragma pack(1)
 typedef struct stVersion {
 	char ver[32];
 	char type;
@@ -116,7 +117,7 @@ typedef struct stSendDataSts {
 
 typedef struct stIsFailedNodeIn {
 	char funcID;
-}stIsFailedNodeIn_t
+}stIsFailedNodeIn_t;
 typedef struct stIsFailedNode {
 	char retVal;
 }stIsFailedNode_t;
@@ -132,9 +133,9 @@ typedef struct stReplaceFailedNodeSts {
 	char funcID;
 	char txStatus;
 }stReplaceFailedNodeSts_t;
+#pragma pack(4)
 
-
-typedef emApi {
+typedef enum emApi {
 	CmdZWaveGetVersion = 0x15,
 
 	CmdSerialApiGetInitData = 0x02,
@@ -159,7 +160,6 @@ typedef emApi {
 
 	CmdZWaveRemoveNodeFromNetwork = 0x4B,
 
-	CmdZWaveRequestNodeInfo = 0x60,
 
 	CmdZWaveSetSucNodeId = 0x54,
 
@@ -180,9 +180,9 @@ typedef union stParam {
 	stNodeProtoInfoIn_t nodeProtoInfoIn;
 	stNodeProtoInfo_t nodeProtoInfo;
 
-	stCapabilities capabilities;	
+	stCapabilities_t capabilities;	
 
-	stControllerCapabilities controllerCapabilities;
+	stControllerCapabilities_t controllerCapabilities;
 
 	stId_t id;
 
@@ -191,42 +191,58 @@ typedef union stParam {
 	stNodeInformation_t nodeInformation;
 	
 	stAddNodeToNetworkIn_t addNodeToNetworkIn;
-	stAddNodeToNetwork addNodeToNetwork;
+	stAddNodeToNetwork_t addNodeToNetwork;
 
 	stNodeInfoIn_t nodeInfoIn;
-	stNodeInfo nodeInfo;
+	stNodeInfo_t nodeInfo;
 
 	stControlleUpdateIn_t controlleUpdateIn;
 
 	stRemoveNodeFromNetworkIn_t removeNodeFromNetworkIn;
-	stRemoveNodeFromNetwork removeNodeFromNetwork;
+	stRemoveNodeFromNetwork_t removeNodeFromNetwork;
 
 	stSetSucNodeIdIn_t setSucNodeIdIn;
-	stSetSucNodeId setSucNodeId;
+	stSetSucNodeId_t setSucNodeId;
 
 	stSendDataIn_t sendDataIn;
-	stSendData sendData;
+	stSendData_t sendData;
 	stSendDataSts_t sendDataSts;	
 
-	stIsFailedNodeIn isFailNodeIn;
-	stIsFailedNode isFailNode;
+	stIsFailedNodeIn_t isFailNodeIn;
+	stIsFailedNode_t isFailNode;
 
 	stReplaceFailedNodeIn_t replaceFailedNodeIn;
-	stReplaceFailedNode replaceFailedNode;
+	stReplaceFailedNode_t replaceFailedNode;
 	stReplaceFailedNodeSts_t replaceFailedNodeSts;
 }stParam_t;
 
 
-typedef void (*API_CALLBACK)(emApi_t api, stParam_t param);
+typedef enum emApiError{
+	AE_NONE = 0,
+	AE_SEND_TIMEOUT = 1,
+	AE_NAK = 2,
+	AE_CAN = 3,
+	AE_CHECKSUM = 4,
+	AE_RECV_TIMEOUT = 5,
+}emApiError_t;
 
-int api_init(API_CALLBACK _acb);
-int api_exec(emApi_t api, stParam_t param);
+typedef enum emApiState {
+	AS_Send = 0,
+	AS_Recv = 1,
+	AS_Sts  = 2,
+}emApiState_t;
+
+typedef void (*API_CALL_CALLBACK)(emApi_t api, stParam_t *param, emApiError_t error);
+typedef void (*API_RETURN_CALLBACK)(emApi_t api, stParam_t *param, emApiError_t error);
+
+int api_init(void *_th, API_CALL_CALLBACK _accb, API_RETURN_CALLBACK _arcb);
+int api_exec(emApi_t api, stParam_t *param);
 int api_free();
+int api_getfd();
+int api_step();
 
-
-
-
-
+const char *api_name(emApi_t api);
+void api_param_view(emApi_t api, stParam_t *param, emApiState_t state);
 
 
 #endif

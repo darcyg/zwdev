@@ -18,12 +18,12 @@
 #include "timer.h"
 #include "file_event.h"
 #include "session.h"
+#include "api.h"
 
 
 ///////////////////////////////////////////////////////////////
 //test module
-void print_hex_buffer(char *buf, int size);		
-void session_test();
+void api_test();
 
 ///////////////////////////////////////////////////////////////
 static int ds_child_died = 0;
@@ -71,109 +71,45 @@ int main(int argc, char *argv[]) {
 	log_init(argv[0], LOG_OPT_DEBUG | LOG_OPT_CONSOLE_OUT | LOG_OPT_TIMESTAMPS | LOG_OPT_FUNC_NAMES);
 
 	while (1) {
-		session_test();
+		api_test();
 	}
 	return 0;
 }
 
 ////////////////////////////////////////////////////////////////
-void print_hex_buffer(char *buf, int size) {
-	int i = 0;
-	for (i = 0; i < size; i++) {
-		printf("[%02X] ", buf[i]&0xff);
-		
-		if ( (i+1) % 20 == 0) {
-			printf("\n");
-		}
-	}	
-	printf("\n");
-}
-
-void send_callback(stDataFrame_t *sf) {
-	log_info("---");
-	if (sf != NULL) {
-		if (sf->error == FE_NONE) {
-			log_debug("ok frame");
-		} else if (sf->error == FE_SEND_TIMEOUT) {
-			log_debug("frame send time out");
-		} else if (sf->error == FE_SEND_ACK) {
-			log_debug("frame send ok");
-		} else if (sf->error == FE_SEND_NAK) {
-			log_debug("frame send nak");
-		} else if (sf->error == FE_SEND_CAN) {
-			log_debug("frame send can");
-		} else if (sf->error == FE_RECV_CHECKSUM) {
-			log_debug("frame recv checksum error");
-		} else if (sf->error == FE_RECV_TIMEOUT) {
-			log_debug("frame recv timeout");
-		}
-		log_info("size is %02x, %02x, trycnt:%d", sf->size, sf->len, sf->trycnt);
-
-		log_debug("type : %02X, cmd : %02x", sf->type, sf->cmd);
-		log_debug_hex("send payload:", sf->payload, sf->size);
-
-		//FREE(sf);
+void api_call_callback(emApi_t api, stParam_t *param, emApiError_t error) {
+	log_debug("api [%s] call over with ret : %d", api_name(api), error);
+	if (param != NULL) {
+		FREE(param);
 	}
 	return;
 }
+void api_return_callback(emApi_t api, stParam_t *param, emApiError_t error) {
+	log_debug("api [%s] return with ret : %d", api_name(api), error);
 
-void recv_callback(stDataFrame_t *sf) {
-	log_info("---");
-
-	if (sf != NULL) {
-		if (sf->error == FE_NONE) {
-			log_debug("ok frame");
-		} else if (sf->error == FE_SEND_TIMEOUT) {
-			log_debug("frame send time out");
-		} else if (sf->error == FE_SEND_ACK) {
-			log_debug("frame send ok");
-		} else if (sf->error == FE_SEND_NAK) {
-			log_debug("frame send nak");
-		} else if (sf->error == FE_SEND_CAN) {
-			log_debug("frame send can");
-		} else if (sf->error == FE_RECV_CHECKSUM) {
-			log_debug("frame recv checksum error: %02x(correct:%02x)", sf->checksum, sf->checksum_cal);
-		} else if (sf->error == FE_RECV_TIMEOUT) {
-			log_debug("frame recv timeout");
-		}
-
-		log_debug("type : %02X, cmd : %02x", sf->type, sf->cmd);
-		log_debug_hex("recv payload:", sf->payload, sf->size);
-		FREE(sf);
+	if (api == CmdZWaveGetVersion && param != NULL) {
+		api_param_view(api, param, 1);
+	}
+	
+	if (param != NULL) {
+		FREE(param);
 	}
 	return;
 }
-
-stDataFrame_t df = {
-	.sof = SOF_CHAR,
-	.len = 3,
-	.type = 0x00,
-	.cmd = 0x15,
-	.payload = "\x33\x33\x33",
-	.size = 0,
-	.checksum = 0,
-	.timestamp = 0,
-	.trycnt = 0,
-	.error = 0,
-	.do_checksum = 0,
-	.checksum_cal = 0,
-};
-
 
 void timerout_cb(struct timer *t) {
-	log_info("========================session test==================");
+	log_info("========================api test==================");
 	timer_set(&th, t, 5000);
-
-	df.trycnt= 0;
-	session_send(&df);
+	
+	api_exec(CmdZWaveGetVersion, NULL);
 }
 
-void session_in(void *arg, int fd) {
-	session_receive_step();
+void api_in(void *arg, int fd) {
+	api_step();
 }
 
 
-void session_test() {
+void api_test() {
 
 	struct timer tr;
 	timer_init(&tr, timerout_cb);
@@ -184,12 +120,12 @@ void session_test() {
 
 
 	int ret = -1;
-	ret = session_init(&th, (void*)send_callback, (void*)recv_callback);
+	ret = api_init(&th, api_call_callback, api_return_callback);
 	if (ret != 0) {
 		log_debug("session init failed!");
 		exit(-1);
 	}
-	file_event_reg(&fet, session_getfd(), session_in, NULL, NULL);
+	file_event_reg(&fet, api_getfd(), api_in, NULL, NULL);
 
 	while (1) {
 		s64 next_timeout_ms;

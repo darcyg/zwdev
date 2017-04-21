@@ -1,6 +1,6 @@
 include ./make/arch.mk
 
-targets := main
+targets	 += main
 #targets := testlockqueue 
 #targets := testlog 
 #targets := testtimer
@@ -9,7 +9,7 @@ targets := main
 #targets := jsontest
 #targets := testserial
 #targets := frame
-#targets := testsession
+#targets  += testsession
 
 objs							:= ./main.o
 objs							+= ./src/ayla/log.o
@@ -18,6 +18,7 @@ objs							+= ./product/zwave/src/serial.o
 objs							+= ./product/zwave/src/transport.o
 objs							+= ./product/zwave/src/frame.o
 objs							+= ./product/zwave/src/session.o
+objs							+= ./product/zwave/src/api.o
 objs							+= ./src/ayla/timer.o
 objs							+= ./src/ayla/time_utils.o
 objs							+= ./src/ayla/assert.o
@@ -26,7 +27,6 @@ objs							+= ./src/lockqueue.o
 objs							+= ./src/mutex.o
 objs							+= ./src/cond.o
 objs							+= ./src/list.o
-objs							+= ./product/zwave/src/api.o
 
 testobjs					:= ./test/test.o
 testobjs					+= ./src/list.o
@@ -115,7 +115,7 @@ frameobjs							+= ./src/ayla/assert.o
 frameobjs							+= ./src/ayla/file_event.o
 
 
-testsessionobjs							:= ./main.o
+testsessionobjs							:= ./test/testsession.o
 testsessionobjs							+= ./src/ayla/log.o
 testsessionobjs							+= ./src/ayla/lookup_by_name.o
 testsessionobjs							+= ./product/zwave/src/serial.o
