@@ -8,158 +8,97 @@
 #include "common.h"
 
 #include "session.h"
+#include "lockqueue.h"
+
+typedef struct stApiEnv {
+	stLockQueue_t qSend;
+	stApiCall_t apicall;
+	int initFlag;
+}stApiEnv_t;
 
 static API_CALL_CALLBACK api_ccb = NULL;
 static API_RETURN_CALLBACK api_crb = NULL;
 
 
-static const char *cmdStringMap[256] =  {
-	[CmdZWaveGetVersion] = "CmdZWaveGetVersion", 
-
-	[CmdSerialApiGetInitData] = "CmdSerialApiGetInitData",
-
-	[CmdZWaveGetNodeProtoInfo] = "CmdZWaveGetNodeProtoInfo",
-
-	[CmdSerialApiGetCapabilities] = "CmdSerialApiGetCapabilities",
-
-	[CmdZWaveGetControllerCapabilities] = "CmdZWaveGetControllerCapabilities",
-
-	[CmdMemoryGetId] = "CmdMemoryGetId",
-
-	[CmdZWaveGetSucNodeId] = "CmdZWaveGetSucNodeId",
-
-	[CmdSerialApiApplNodeInformation] = "CmdSerialApiApplNodeInformation",
-
-	[CmdZWaveAddNodeToNetwork] = "CmdZWaveAddNodeToNetwork",
-
-	[CmdZWaveRequestNodeInfo] = "CmdZWaveRequestNodeInfo",
-
-	[CmdApplicationControllerUpdate] = "CmdApplicationControllerUpdate",
-
-	[CmdZWaveRemoveNodeFromNetwork] = "CmdZWaveRemoveNodeFromNetwork",
-
-	[CmdZWaveSetSucNodeId] = "CmdZWaveSetSucNodeId",
-
-	[CmdZWaveSendData] = "CmdZWaveSendData",
-
-	[CmdZWaveSendDataAbort] = "CmdZWaveSendDataAbort",
-
-	[CmdZWaveIsFailedNode] = "CmdZWaveIsFailedNode",
-
-	[CmdZWaveReplaceFailedNode] = "CmdZWaveReplaceFailedNode",
-
+static stApiEnv_t env = {
+	.qSend = {},
+	.apicall = {},
+	.initFlag = 0,
 };
 
-static int inParamSizeMap[256] = {
-	[CmdZWaveGetVersion] = 0, 
 
-	[CmdSerialApiGetInitData] = 0,
+static stApiStateMachine_t asms[] = {
+	[CmdZWaveGetVersion] = {
+		CmdZWaveGetVersion, "CmdZWaveGetVersion", 0, 2, {
+			{CmdZWaveGetVersion_parse_input, CmdZWaveGetVersion_view_input},
+			{CmdZWaveGetVersion_parse_version},
+		},
+	},
+	[CmdSerialApiGetInitData] = {
+		CmdSerialApiGetInitData, "CmdSerialApiGetInitData", 0, 2, {
+			{CmdSerialApiGetInitData_parse_input}，
+			{CmdSerialApiGetInitData_parse_initdata},
+		},
+	},
+	[CmdZWaveGetNodeProtoInfo] = {
+		CmdZWaveGetNodeProtoInfo, "CmdZWaveGetNodeProtoInfo", sizeof(stNodeProtoInfoIn_t), 2, {
+			{CmdZWaveGetNodeProtoInfo_parse_input},
+			{CmdZWaveGetNodeProtoInfo_parse_nodeprotoinfo},
+		},
+	},
+	[CmdZWaveGetControllerCapabilities] = {
+			CmdZWaveGetControllerCapabilities, "CmdZWaveGetControllerCapabilities", 0, 3, {
+			{CmdZWaveGetControllerCapabilities_parse_input},
+			{CmdZWaveGetControllerCapabilities_parse_capalities},
+			{CmdZWaveGetControllerCapabilities_parse_controllercapalities},
+		},
+	},
+	[CmdMemoryGetId] = {
+		CmdMemoryGetId, "CmdMemoryGetId", 0, 2, {
+			{CmdMemoryGetId_parse_input},
+			{CmdMemoryGetId_parse_id},
+		},
+	},
+	[CmdZWaveGetSucNodeId] ={
+		CmdZWaveGetSucNodeId, "CmdZWaveGetSucNodeId", 0, 2, {
+			{CmdZWaveGetSucNodeId_parse_input},
+			{CmdZWaveGetSucNodeId_parse_sucnodeid},
+		},
+	},
+	[CmdSerialApiApplNodeInformation] = {
+		CmdSerialApiApplNodeInformation, "CmdSerialApiApplNodeInformation", 0, 2, {
+			{CmdSerialApiApplNodeInformation_parse_input},
+			{CmdSerialApiApplNodeInformation_parse_nodeinformation},
+		},
+	},
 
-	[CmdZWaveGetNodeProtoInfo] = sizeof(stNodeProtoInfoIn_t),
+	[CmdZWaveAddNodeToNetwork] = {
+		CmdZWaveAddNodeToNetwork, "CmdZWaveAddNodeToNetwork", 0, 2, {
+			{CmdZWaveAddNodeToNetwork_parse_input},
+			{CmdZWaveAddNodeToNetwork_parse_addnodetonetwork},
+		}
+	},
 
-	[CmdSerialApiGetCapabilities] = 0,
-
-	[CmdZWaveGetControllerCapabilities] = 0,
-
-	[CmdMemoryGetId] = 0,
-
-	[CmdZWaveGetSucNodeId] = 0,
-
-	[CmdSerialApiApplNodeInformation] = 0,
-
-	[CmdZWaveAddNodeToNetwork] = sizeof(stAddNodeToNetworkIn_t),
-
-	[CmdZWaveRequestNodeInfo] = sizeof(stNodeInfoIn_t),
-
-	[CmdApplicationControllerUpdate] = sizeof(stControlleUpdateIn_t),
-
-	[CmdZWaveRemoveNodeFromNetwork] = sizeof(stRemoveNodeFromNetworkIn_t),
-
-	[CmdZWaveSetSucNodeId] = sizeof(stRemoveNodeFromNetworkIn_t),
-
-	[CmdZWaveSendData] = sizeof(stSendDataIn_t),
-
-	[CmdZWaveSendDataAbort] = 0,
-
-	[CmdZWaveIsFailedNode] = sizeof(stIsFailedNodeIn_t),
-
-	[CmdZWaveReplaceFailedNode] = sizeof(stReplaceFailedNodeIn_t),
 };
-
 
 void api_param_view(emApi_t api, stParam_t *param, emApiState_t state) {
-	switch (api) {
-	case CmdZWaveGetVersion:
-		switch (state) {
-		case AS_Recv: {
-				stVersion_t *ver = (stVersion_t*)param;
-				log_debug("version:%s,type:%d", ver->ver, ver->type);
-			} break;
-		default:
-			break;
-		}
-		break;
+	int num_state = asms[api].num_state;
+	if (state > num_state || state < 1) {
+		log_debug("api state error!");
+		return;
 	}
-}
 
-static stParam_t* parse_param(stDataFrame_t* df) {
-	switch (df->cmd) {
-	case CmdZWaveGetVersion:
-		switch (df->type) {
-		case 0:
-			return NULL;
-		case 1: {
-			stVersion_t *ver = MALLOC(sizeof(stVersion_t));
-			if (ver != NULL) {
-				strcpy(ver->ver, df->payload);
-				ver->type = df->payload[strlen(ver->ver) + 1];
-			}
-			return (stParam_t*)ver;}
-		default:
-			break;
-		}
-		break;
-	case CmdSerialApiGetInitData:
-		break;
-	case CmdZWaveGetNodeProtoInfo:
-		break;
-	case CmdSerialApiGetCapabilities:
-		break;
-	case CmdZWaveGetControllerCapabilities:
-		break;
-	case CmdMemoryGetId:
-		break;
-	case CmdZWaveGetSucNodeId:
-		break;
-	case CmdSerialApiApplNodeInformation:
-		break;
-	case CmdZWaveAddNodeToNetwork:
-		break;
-	case CmdZWaveRequestNodeInfo:
-		break;
-	case CmdApplicationControllerUpdate:
-		break;
-	case CmdZWaveRemoveNodeFromNetwork:
-		break;
-	case CmdZWaveSetSucNodeId:
-		break;
-	case CmdZWaveSendData:
-		break;
-	case CmdZWaveSendDataAbort:
-		break;
-	case CmdZWaveIsFailedNode:
-		break;
-	case CmdZWaveReplaceFailedNode:
-		break;
-	default:
-		break;
+	void (*view)(emApi_t,stParam_t*) = asms[api].states[state].view;
+	if (view != NULL) {
+		view(param);
 	}
-	return NULL;
 }
 
 static stDataFrame_t * make_frame(emApi_t api, stParam_t *param) {
 	//static int seq = 0;
-	int size = sizeof(stDataFrame_t) + inParamSizeMap[api];
+
+	int paramSize = asms[api].param_size;
+	int size = sizeof(stDataFrame_t) + paramSize;
 
 	stDataFrame_t *df = MALLOC(size);
 	if (df == NULL) {
@@ -167,13 +106,13 @@ static stDataFrame_t * make_frame(emApi_t api, stParam_t *param) {
 	}
 
 	df->sof			= SOF_CHAR;
-	df->len			= inParamSizeMap[api]+3;
+	df->len			= paramSize+3;
 	df->type		= 0x00,
 	df->cmd			= api;
 	df->payload = (char *)(df + 1);
-	df->size		= inParamSizeMap[api];
-	if (inParamSizeMap[api] > 0) {
-		memcpy(df->payload, param, inParamSizeMap[api]);
+	df->size		= paramSize;
+	if (df->size > 0) {
+		memcpy(df->payload, param, paramSize);
 	}
 	df->checksum = 0;
 	df->timestamp = time(NULL);
@@ -185,8 +124,34 @@ static stDataFrame_t * make_frame(emApi_t api, stParam_t *param) {
 	return df;
 }
 
+static void api_end() {
+	if (env.apicall != NULL) {
+		FREE(env.apicall);
+		env.apicall = NULL;
+	}
+}
+
+static void api_start() {
+	if (env.apicall != NULL) {
+		return;
+	}
+
+	lockqueue_pop(&env.qSend, &env.apicall);
+	if (env.apicall == NULL) {
+		return;
+	}
+
+	stDataFrame_t * df = make_frame(env.apicall->api, env.apicall->param);
+	if (df == NULL) {
+		log_debug("make frame error !");
+		return;
+	}
+	frame_send(df);
+	env.apicall->state++;
+}
+
 static void send_over(stDataFrame_t *df) {
-	log_debug("%s send over!", cmdStringMap[df->cmd]);
+	log_debug("%s send over!", asms[df->cmd].name);
 
 	if (df != NULL) {
 		if (df->error == FE_NONE) {
@@ -195,23 +160,29 @@ static void send_over(stDataFrame_t *df) {
 		} else if (df->error == FE_SEND_TIMEOUT) {
 			/* timeout , send timeout */
 			if (api_ccb != NULL) {
-				api_ccb(df->cmd, parse_param(df), AE_SEND_TIMEOUT);
+				api_ccb(df->cmd, asms[df->cmd].states[0].parse(df), AE_SEND_TIMEOUT);
 			}
+			api_end();
+			api_start();
 		} else if (df->error == FE_SEND_ACK) {
 			/* ack , send ok*/
 			if (api_ccb != NULL) {
-				api_ccb(df->cmd, parse_param(df), AE_NONE);
+				api_ccb(df->cmd, asms[df->cmd].states[0].parse(df), AE_NONE);
 			}
 		} else if (df->error == FE_SEND_NAK) {
 			/* nan , send nak */
 			if (api_ccb != NULL) {
-				api_ccb(df->cmd, parse_param(df), AE_NAK);
+				api_ccb(df->cmd, asms[df->cmd].states[0].parse(df), AE_NAK);
 			}
+			api_end();
+			api_start();
 		} else if (df->error == FE_SEND_CAN) {
 			/* can , send can */
 			if (api_ccb != NULL) {
-				api_ccb(df->cmd, parse_param(df), AE_CAN);
+				api_ccb(df->cmd, asms[df->cmd].states[0].parse(df), AE_CAN);
 			}
+			api_end();
+			api_start();
 		} else if (df->error == FE_RECV_CHECKSUM) {
 			log_debug("never go here: FE_RECV_CHECKSUM");
 		} else if (df->error == FE_RECV_TIMEOUT) {
@@ -232,7 +203,11 @@ static void recv_over(stDataFrame_t *df) {
 		if (df->error == FE_NONE) {
 			/* receive ok */
 			if (api_crb != NULL) {
-				api_crb(df->cmd, parse_param(df), AE_NONE);
+				api_crb(df->cmd, asms[df->cmd].states[env.apicall->state].parse(df), AE_NONE);
+				if (env.apicall->state == asms[df->cmd].states[env.apicall].num_state) {
+					api_end();
+					api_send();
+				}
 			}
 		} else if (df->error == FE_SEND_TIMEOUT) {
 			/* never go here */
@@ -278,31 +253,52 @@ int api_init(void *_th, API_CALL_CALLBACK _accb, API_RETURN_CALLBACK _arcb) {
 		api_crb = _arcb;
 	}
 
-	if (frame_init(_th, send_over, recv_over) != 0) {
+	if (session_init(_th, send_over, recv_over) != 0) {
 		log_debug("frame init failed!");
 		return -1;
 	}
 
+	lockqueue_init(&env.qSend);
+	env.apicall = NULL;
+	env.initFlag = 1;
+
 	return 0;
 }
 
+
 int api_exec(emApi_t api, stParam_t *param) {
-	stDataFrame_t * df = make_frame(api, param);
-	if (df == NULL) {
-		log_debug("make frame failed!");
+	stApiCall_t *call = MALLOC(sizeof(stApiCall_t) + asms[api].param_size);
+	if (call == NULL) {
+		log_debug("no enough memory!");
 		return -1;
 	}
-	
-	return frame_send(df);
+	call->api = api;
+	call->state = AS_READY;
+	call->param = (stParam_t*)(call + 1);
+	if (asms[api].param_size != 0) {
+		memcpy(call->param, param, asms[api].param_size);
+	}
+	lockqueue_push(&env.qSend, call);
+
+	if (env.apicall == NULL) {
+		api_start();
+	}
+
+	return 0;
+
 }
 
 int api_free() {
-	frame_free();
+	session_free();
+
+	lockqueue_destroy(&env.qSend, NULL);
+
+	env.initFlag = 0;
 	return 0;
 }
 
 int api_getfd() {
-	return frame_getfd();
+	return session_getfd();
 }
 
 int api_step() {
@@ -312,6 +308,6 @@ int api_step() {
 
 
 const char *api_name(emApi_t api) {
-	return cmdStringMap[api];
+	return asms[api].name;
 }
 

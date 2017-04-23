@@ -227,10 +227,28 @@ typedef enum emApiError{
 }emApiError_t;
 
 typedef enum emApiState {
-	AS_Send = 0,
-	AS_Recv = 1,
-	AS_Sts  = 2,
+	AS_READY = 0,
+	AS_END = 9999,
 }emApiState_t;
+
+typedef struct stApiState {
+	void *parse;
+	void *view;
+}stApiState_t;
+
+typedef struct stApiStateMachine {
+	emApi_t	api;
+	char *name;
+	int param_size;
+	int num_state;
+	stApiState_t *states;
+}stApiStateMachine_t;
+
+typedef struct stApiCall {
+	emApi_t api;
+	int state;
+	stParam_t *param;
+}stApiCall_t;
 
 typedef void (*API_CALL_CALLBACK)(emApi_t api, stParam_t *param, emApiError_t error);
 typedef void (*API_RETURN_CALLBACK)(emApi_t api, stParam_t *param, emApiError_t error);
