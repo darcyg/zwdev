@@ -77,18 +77,18 @@ int main(int argc, char *argv[]) {
 }
 
 ////////////////////////////////////////////////////////////////
-void api_call_callback(emApi_t api, stParam_t *param, emApiError_t error) {
+void api_call_callback(emApi_t api, stParam_t *param, emApiState_t state, emApiError_t error) {
 	log_debug("api [%s] call over with ret : %d", api_name(api), error);
 	if (param != NULL) {
 		FREE(param);
 	}
 	return;
 }
-void api_return_callback(emApi_t api, stParam_t *param, emApiError_t error) {
+void api_return_callback(emApi_t api, stParam_t *param, emApiState_t state, emApiError_t error) {
 	log_debug("api [%s] return with ret : %d", api_name(api), error);
 
-	if (api == CmdZWaveGetVersion && param != NULL) {
-		api_param_view(api, param, 1);
+	if (param != NULL) {
+		api_param_view(api, param, state);
 	}
 	
 	if (param != NULL) {
@@ -102,6 +102,7 @@ void timerout_cb(struct timer *t) {
 	timer_set(&th, t, 5000);
 	
 	api_exec(CmdZWaveGetVersion, NULL);
+	api_exec(CmdSerialApiGetInitData, NULL);
 }
 
 void api_in(void *arg, int fd) {

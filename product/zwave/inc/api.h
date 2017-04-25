@@ -11,9 +11,9 @@ typedef struct stVersion {
 
 typedef struct stInitData {
 	char ver;
-	char capablities;
-	char nodes_num;
-	char nodes_slots[230];
+	char capabilities;
+	char nodes_map_size;
+	char nodes_map[255];
 	char chip_type;
 	char chip_version;	
 }stInitData_t;
@@ -241,7 +241,7 @@ typedef struct stApiStateMachine {
 	char *name;
 	int param_size;
 	int num_state;
-	stApiState_t *states;
+	stApiState_t states[4];
 }stApiStateMachine_t;
 
 typedef struct stApiCall {
@@ -250,8 +250,10 @@ typedef struct stApiCall {
 	stParam_t *param;
 }stApiCall_t;
 
-typedef void (*API_CALL_CALLBACK)(emApi_t api, stParam_t *param, emApiError_t error);
-typedef void (*API_RETURN_CALLBACK)(emApi_t api, stParam_t *param, emApiError_t error);
+typedef void (*API_CALL_CALLBACK)(emApi_t api, stParam_t *param, emApiState_t state, emApiError_t error);
+typedef void (*API_RETURN_CALLBACK)(emApi_t api, stParam_t *param, emApiState_t state, emApiError_t error);
+
+#define API_EXEC_TIMEOUT_MS (1000*2)
 
 int api_init(void *_th, API_CALL_CALLBACK _accb, API_RETURN_CALLBACK _arcb);
 int api_exec(emApi_t api, stParam_t *param);
