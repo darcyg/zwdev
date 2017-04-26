@@ -32,11 +32,10 @@ typedef struct stNodeProtoInfo {
 typedef struct stCapabilities {
 	char AppVersion;
 	char AppRevisioin;
-	char ManufacturerId;
-	char ManufactureProductType;
-	char ManufactureProductId;
-	char SupportedFuncIds_num;
-	char SupportedFuncIds_slots[255];
+	short ManufacturerId;
+	short ManufactureProductType;
+	short ManufactureProductId;
+	char SupportedFuncIds_map[32];
 }stCapabilities_t;
 
 typedef struct stControllerCapabilities {

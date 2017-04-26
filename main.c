@@ -103,6 +103,21 @@ void timerout_cb(struct timer *t) {
 	
 	api_exec(CmdZWaveGetVersion, NULL);
 	api_exec(CmdSerialApiGetInitData, NULL);
+
+	stNodeProtoInfoIn_t npii = { 0x01};
+	api_exec(CmdZWaveGetNodeProtoInfo, (stParam_t*)&npii);
+
+	api_exec(CmdSerialApiGetCapabilities, NULL);
+
+	api_exec(CmdZWaveGetControllerCapabilities,NULL);
+
+	api_exec(CmdZWaveGetControllerCapabilities,NULL);
+
+	api_exec(CmdMemoryGetId, NULL);
+
+	api_exec(CmdZWaveGetSucNodeId, NULL);
+	
+	api_exec(CmdSerialApiApplNodeInformation, NULL);
 }
 
 void api_in(void *arg, int fd) {

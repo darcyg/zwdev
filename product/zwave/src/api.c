@@ -90,6 +90,187 @@ static void CmdSerialApiGetInitData_parse_initdata_view(stParam_t *param) {
 	}
 }
 
+/* nodeprotoinfo */
+static stParam_t* CmdZWaveGetNodeProtoInfo_parse_input(stDataFrame_t *df) {
+	if (df != NULL) {
+		stNodeProtoInfoIn_t *npii = (stNodeProtoInfoIn_t *)MALLOC(sizeof(stNodeProtoInfoIn_t));
+		if (npii == NULL) {	
+			log_debug("no enough memory!");
+			return NULL;
+		}
+		npii->bNodeID = df->payload[0];
+		return (stParam_t*)npii;
+	}
+	return NULL;
+
+}
+static void CmdZWaveGetNodeProtoInfo_view_input(stParam_t *param) {
+	if (param != NULL) {
+		stNodeProtoInfoIn_t *npii = (stNodeProtoInfoIn_t*)param;
+		log_debug("nodeId is 0x%02x", npii->bNodeID);
+	}
+}
+static stParam_t* CmdZWaveGetNodeProtoInfo_parse_nodeprotoinfo(stDataFrame_t *df) {
+	if (df != NULL) {
+		stNodeProtoInfo_t *npi = (stNodeProtoInfo_t *)MALLOC(sizeof(stNodeProtoInfoIn_t));
+		if (npi == NULL) {	
+			log_debug("no enough memory!");
+			return NULL;
+		}
+		npi->Capability = df->payload[0];
+		npi->Security		= df->payload[1];
+		npi->Basic			= df->payload[2];
+		npi->Generic		= df->payload[3];
+		npi->Specific		= df->payload[4];
+		return (stParam_t*)npi;
+	}
+	return NULL;
+}
+static void CmdZWaveGetNodeProtoInfo_view_nodeprotoinfo(stParam_t *param) {
+	if (param != NULL) {
+		stNodeProtoInfo_t *npi = (stNodeProtoInfo_t*)param;
+		log_debug("Capability:%02x,Security:%02x,Basic:%02x,Generic:%02x,Specific:%02x", 
+			npi->Capability&0xff, npi->Security&0xff, npi->Basic&0xff, npi->Generic&0xff, npi->Specific&0xff
+		);
+	}
+}
+
+/* capabilities */
+
+static stParam_t *CmdSerialApiGetCapabilities_parse_input(stDataFrame_t *df) {
+	return NULL;
+}
+static stParam_t *CmdSerialApiGetCapabilities_parse_capabilities(stDataFrame_t*df) {
+	if (df != NULL) {
+		stCapabilities_t *capa = (stCapabilities_t *)MALLOC(sizeof(stCapabilities_t));
+		if (capa == NULL) {	
+			log_debug("no enough memory!");
+			return NULL;
+		}
+		capa->AppVersion = df->payload[0];
+		capa->AppRevisioin = df->payload[1];
+		capa->ManufacturerId = df->payload[2]*256 + df->payload[3];
+		capa->ManufactureProductType = df->payload[4]*256 + df->payload[5];
+		capa->ManufactureProductId = df->payload[6]*256 + df->payload[7];
+		memcpy(capa->SupportedFuncIds_map, &df->payload[8], sizeof(capa->SupportedFuncIds_map));
+		//capa->SupportedFuncIds_slots[];
+		return (stParam_t*)capa;
+	}
+	return NULL;
+}
+static void  CmdSerialApiGetCapabilities_view_capabilities(stParam_t *param) {
+	if (param != NULL) {
+		stCapabilities_t *capa = (stCapabilities_t*)param;
+		log_debug("AppVersion:%02x, AppRevisioin:%02x, ManufacturerId:%04x, ManufactureProductType:%04x, ManufactureProductId:%04x",
+		capa->AppVersion, capa->AppRevisioin, capa->ManufacturerId, capa->ManufactureProductType, 
+		capa->ManufactureProductId);
+		log_debug_hex("SupporttedFuncIds_Map:", capa->SupportedFuncIds_map, sizeof(capa->SupportedFuncIds_map));
+	}
+}
+
+/* */
+
+static stParam_t *CmdZWaveGetControllerCapabilities_parse_input(stDataFrame_t *df) {
+	return NULL;
+}
+static stParam_t *CmdZWaveGetControllerCapabilities_parse_controllercapalities(stDataFrame_t *df) {
+	if (df != NULL) {
+		stControllerCapabilities_t *cc = (stControllerCapabilities_t *)MALLOC(sizeof(stControllerCapabilities_t));
+		if (cc == NULL) {	
+			log_debug("no enough memory!");
+			return NULL;
+		}
+		cc->RetVal = df->payload[0];
+		return (stParam_t*)cc;
+	}
+	return NULL;
+
+}
+static void CmdZWaveGetControllerCapabilities_parse_controllercapalities_view(stParam_t *param) {
+	if (param != NULL) {
+		stControllerCapabilities_t *cc =(stControllerCapabilities_t*)param;
+		log_debug("RetVal : %02x", cc->RetVal);
+	}
+}
+
+/* */
+static stParam_t *CmdMemoryGetId_parse_input(stDataFrame_t *df) {
+	return NULL;
+}
+static stParam_t *CmdMemoryGetId_parse_id(stDataFrame_t *df) {
+	if (df != NULL) {
+		stId_t *i = (stId_t *)MALLOC(sizeof(stId_t));
+		if (i == NULL) {	
+			log_debug("no enough memory!");
+			return NULL;
+		}
+		i->HomeID = *(int*)&df->payload[0];
+		i->NodeID = df->payload[4];
+		return (stParam_t*)i;
+	}
+	return NULL;
+
+}
+static void CmdMemoryGetId_view_id(stParam_t *param) {
+	if (param != NULL) {
+		stId_t *i = (stId_t*)param;
+		log_debug("HomeId : %08x, NodeId:%02x", i->HomeID, i->NodeID);
+	}
+}
+
+
+/* */
+static stParam_t *CmdZWaveGetSucNodeId_parse_input(stDataFrame_t *df) {
+	return NULL;
+}
+static stParam_t *CmdZWaveGetSucNodeId_parse_sucnodeid(stDataFrame_t *df) {
+	if (df != NULL) {
+		stSucNodeId_t *sni = (stSucNodeId_t *)MALLOC(sizeof(stSucNodeId_t));
+		if (sni == NULL) {	
+			log_debug("no enough memory!");
+			return NULL;
+		}
+		sni->SUCNodeID = df->payload[0];
+		return (stParam_t*)sni;
+	}
+	return NULL;
+}
+static void CmdZWaveGetSucNodeId_view_sucnodeid(stParam_t *param) {
+	if (param != NULL) {
+		stSucNodeId_t *sni = (stSucNodeId_t*)param;
+		log_debug("SUCNodeID:%02x", sni->SUCNodeID);
+	}
+}
+
+static stParam_t* CmdSerialApiApplNodeInformation_parse_input(stDataFrame_t *df) {
+	return NULL;
+}
+static stParam_t* CmdSerialApiApplNodeInformation_parse_nodeinformation(stDataFrame_t *df) {
+	if (df != NULL) {
+		stNodeInformation_t *ni = (stNodeInformation_t *)MALLOC(sizeof(stNodeInformation_t));
+		if (ni == NULL) {	
+			log_debug("no enough memory!");
+			return NULL;
+		}
+		ni->deviceOptionsMask = df->payload[0];
+		ni->generic = df->payload[1];
+		ni->specific = df->payload[2];
+		memcpy(ni->nodeParm, &df->payload[3] , sizeof(ni->nodeParm));
+		return (stParam_t*)ni;
+	}
+	return NULL;
+}
+static void CmdSerialApiApplNodeInformation_view_nodeinformation(stParam_t *param) {
+	if (param != NULL) {
+		stNodeInformation_t *ni = (stNodeInformation_t*)param;
+		log_debug("deviceOptionsMask:%02x,generic:%02x,specific:%02x", 
+			ni->deviceOptionsMask,ni->generic,ni->specific
+		);
+		log_debug_hex("nodeParm:", ni->nodeParm, sizeof(ni->nodeParm));
+	}
+}
+
+
 
 static stApiStateMachine_t asms[] = {
 	[CmdZWaveGetVersion] = {
@@ -104,39 +285,47 @@ static stApiStateMachine_t asms[] = {
 			{CmdSerialApiGetInitData_parse_initdata, CmdSerialApiGetInitData_parse_initdata_view},
 		},
 	},
-	/*
 	[CmdZWaveGetNodeProtoInfo] = {
 		CmdZWaveGetNodeProtoInfo, "CmdZWaveGetNodeProtoInfo", sizeof(stNodeProtoInfoIn_t), 2, {
-			{CmdZWaveGetNodeProtoInfo_parse_input},
-			{CmdZWaveGetNodeProtoInfo_parse_nodeprotoinfo},
+			{CmdZWaveGetNodeProtoInfo_parse_input, CmdZWaveGetNodeProtoInfo_view_input},
+			{CmdZWaveGetNodeProtoInfo_parse_nodeprotoinfo, CmdZWaveGetNodeProtoInfo_view_nodeprotoinfo},
 		},
 	},
+
+	[CmdSerialApiGetCapabilities] = {
+		CmdSerialApiGetCapabilities ,"CmdSerialApiGetCapabilities", 0, 2, {
+			{CmdSerialApiGetCapabilities_parse_input, NULL},
+			{CmdSerialApiGetCapabilities_parse_capabilities, CmdSerialApiGetCapabilities_view_capabilities},
+		},
+	},
+
 	[CmdZWaveGetControllerCapabilities] = {
-			CmdZWaveGetControllerCapabilities, "CmdZWaveGetControllerCapabilities", 0, 3, {
-			{CmdZWaveGetControllerCapabilities_parse_input},
-			{CmdZWaveGetControllerCapabilities_parse_capalities},
-			{CmdZWaveGetControllerCapabilities_parse_controllercapalities},
+			CmdZWaveGetControllerCapabilities, "CmdZWaveGetControllerCapabilities", 0, 2, {
+			{CmdZWaveGetControllerCapabilities_parse_input, NULL},
+			{CmdZWaveGetControllerCapabilities_parse_controllercapalities, CmdZWaveGetControllerCapabilities_parse_controllercapalities_view},
 		},
 	},
+
 	[CmdMemoryGetId] = {
 		CmdMemoryGetId, "CmdMemoryGetId", 0, 2, {
-			{CmdMemoryGetId_parse_input},
-			{CmdMemoryGetId_parse_id},
+			{CmdMemoryGetId_parse_input, NULL},
+			{CmdMemoryGetId_parse_id, CmdMemoryGetId_view_id},
 		},
 	},
 	[CmdZWaveGetSucNodeId] ={
 		CmdZWaveGetSucNodeId, "CmdZWaveGetSucNodeId", 0, 2, {
-			{CmdZWaveGetSucNodeId_parse_input},
-			{CmdZWaveGetSucNodeId_parse_sucnodeid},
+			{CmdZWaveGetSucNodeId_parse_input, NULL},
+			{CmdZWaveGetSucNodeId_parse_sucnodeid, CmdZWaveGetSucNodeId_view_sucnodeid},
 		},
 	},
 	[CmdSerialApiApplNodeInformation] = {
 		CmdSerialApiApplNodeInformation, "CmdSerialApiApplNodeInformation", 0, 2, {
-			{CmdSerialApiApplNodeInformation_parse_input},
-			{CmdSerialApiApplNodeInformation_parse_nodeinformation},
+			{CmdSerialApiApplNodeInformation_parse_input, NULL},
+			{CmdSerialApiApplNodeInformation_parse_nodeinformation, CmdSerialApiApplNodeInformation_view_nodeinformation},
 		},
 	},
 
+	/*
 	[CmdZWaveAddNodeToNetwork] = {
 		CmdZWaveAddNodeToNetwork, "CmdZWaveAddNodeToNetwork", 0, 2, {
 			{CmdZWaveAddNodeToNetwork_parse_input},
@@ -219,9 +408,14 @@ static void api_call_step() {
 static void api_send_over(void *_df) {
 	stDataFrame_t *df = (stDataFrame_t*)_df;
 
-	log_debug("%s send over!", asms[df->cmd].name);
+	log_debug("%s in [%s]!", asms[df->cmd].name, __func__);
 
 	if (df != NULL) {
+		log_info("size is %02x, %02x, trycnt:%d", df->size, df->len, df->trycnt);
+		log_debug("type : %02X, cmd : %02x", df->type, df->cmd);
+		log_debug_hex("send payload:", df->payload, df->size);
+
+
 		if (df->error == FE_NONE) {
 			/* never go here */
 			log_debug("never go here: FE_NONE");
@@ -261,19 +455,18 @@ static void api_send_over(void *_df) {
 		} else if (df->error == FE_RECV_TIMEOUT) {
 			log_debug("never go here: FE_RECV_TIMEOUT");
 		}
-		log_info("size is %02x, %02x, trycnt:%d", df->size, df->len, df->trycnt);
-		log_debug("type : %02X, cmd : %02x", df->type, df->cmd);
-		log_debug_hex("send payload:", df->payload, df->size);
-
 		FREE(df);
 	}
 }
 
 static void api_recv_over(void *_df) {
 	stDataFrame_t *df = (stDataFrame_t*)_df;
-	log_debug("%s recv over!", asms[df->cmd].name);
+	log_debug("%s in [%s] !", asms[df->cmd].name, __func__);
 
 	if (df != NULL) {
+		log_debug("type : %02X, cmd : %02x", df->type, df->cmd);
+		log_debug_hex("recv payload:", df->payload, df->size);
+
 		if (df->error == FE_NONE) {
 			/* receive ok */
 			if (api_crb != NULL) {
@@ -287,7 +480,7 @@ static void api_recv_over(void *_df) {
 					api_crb(df->cmd, parse(df), 1, AE_NONE);
 				}
 			}
-			log_debug("env.apicall->state:%d, asms[df->cmd].num_state:%d", env.apicall->state, asms[df->cmd].num_state);
+			//log_debug("env.apicall->state:%d, asms[df->cmd].num_state:%d", env.apicall->state, asms[df->cmd].num_state);
 			if (env.apicall != NULL && env.apicall->api == df->cmd && 
 					env.apicall->state > asms[df->cmd].num_state) {
 				api_end();
@@ -356,8 +549,6 @@ static void api_recv_over(void *_df) {
 			}
 		}
 
-		log_debug("type : %02X, cmd : %02x", df->type, df->cmd);
-		log_debug_hex("recv payload:", df->payload, df->size);
 		FREE(df);
 	}
 }
