@@ -51,12 +51,14 @@ typedef struct stSucNodeId {
 	char SUCNodeID;
 }stSucNodeId_t;
 
-typedef struct stNodeInformation {
+typedef struct stApplNodeInformationIn {
 	char deviceOptionsMask;
 	char generic;
 	char specific;
 	char nodeParm[16];
-}stNodeInformation_t;
+}stApplNodeInformationIn_t;
+
+
 
 typedef struct stAddNodeToNetworkIn {
 	char mode;
@@ -187,7 +189,7 @@ typedef union stParam {
 
 	stSucNodeId_t sucNodeId;
 
-	stNodeInformation_t nodeInformation;
+	stApplNodeInformationIn_t nodeInformation;
 	
 	stAddNodeToNetworkIn_t addNodeToNetworkIn;
 	stAddNodeToNetwork_t addNodeToNetwork;

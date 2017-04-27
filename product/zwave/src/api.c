@@ -242,34 +242,31 @@ static void CmdZWaveGetSucNodeId_view_sucnodeid(stParam_t *param) {
 	}
 }
 
-static stParam_t* CmdSerialApiApplNodeInformation_parse_input(stDataFrame_t *df) {
-	return NULL;
-}
-static stParam_t* CmdSerialApiApplNodeInformation_parse_nodeinformation(stDataFrame_t *df) {
+
+static stParam_t *CmdSerialApiApplNodeInformation_parse_applnodeinformation(stDataFrame_t *df) {
 	if (df != NULL) {
-		stNodeInformation_t *ni = (stNodeInformation_t *)MALLOC(sizeof(stNodeInformation_t));
-		if (ni == NULL) {	
+		stApplNodeInformationIn_t *anii = (stApplNodeInformationIn_t *)MALLOC(sizeof(stApplNodeInformationIn_t));
+		if (anii == NULL) {	
 			log_debug("no enough memory!");
 			return NULL;
 		}
-		ni->deviceOptionsMask = df->payload[0];
-		ni->generic = df->payload[1];
-		ni->specific = df->payload[2];
-		memcpy(ni->nodeParm, &df->payload[3] , sizeof(ni->nodeParm));
-		return (stParam_t*)ni;
+		anii->deviceOptionsMask = df->payload[0];
+		anii->generic = df->payload[1];
+		anii->specific = df->payload[2];
+		memcpy(anii->nodeParm, &df->payload[3] , sizeof(anii->nodeParm));
+		return (stParam_t*)anii;
 	}
 	return NULL;
-}
-static void CmdSerialApiApplNodeInformation_view_nodeinformation(stParam_t *param) {
+} 
+static void CmdSerialApiApplNodeInformation_view_applnodeinformation(stParam_t *param) {
 	if (param != NULL) {
-		stNodeInformation_t *ni = (stNodeInformation_t*)param;
+		stApplNodeInformationIn_t *anii = (stApplNodeInformationIn_t*)param;
 		log_debug("deviceOptionsMask:%02x,generic:%02x,specific:%02x", 
-			ni->deviceOptionsMask,ni->generic,ni->specific
+			anii->deviceOptionsMask,anii->generic,anii->specific
 		);
-		log_debug_hex("nodeParm:", ni->nodeParm, sizeof(ni->nodeParm));
+		log_debug_hex("nodeParm:", anii->nodeParm, sizeof(anii->nodeParm));
 	}
 }
-
 
 
 static stApiStateMachine_t asms[] = {
@@ -320,8 +317,7 @@ static stApiStateMachine_t asms[] = {
 	},
 	[CmdSerialApiApplNodeInformation] = {
 		CmdSerialApiApplNodeInformation, "CmdSerialApiApplNodeInformation", 0, 2, {
-			{CmdSerialApiApplNodeInformation_parse_input, NULL},
-			{CmdSerialApiApplNodeInformation_parse_nodeinformation, CmdSerialApiApplNodeInformation_view_nodeinformation},
+			{CmdSerialApiApplNodeInformation_parse_applnodeinformation, CmdSerialApiApplNodeInformation_view_applnodeinformation},
 		},
 	},
 
@@ -434,6 +430,11 @@ static void api_send_over(void *_df) {
 				api_ccb(df->cmd, parse(df), 1, AE_NONE);
 			}
 			api_call_step();
+
+			if (env.apicall->state > asms[df->cmd].num_state) {
+				api_end();
+			}
+
 		} else if (df->error == FE_SEND_NAK) {
 			/* nan , send nak */
 			if (api_ccb != NULL) {
