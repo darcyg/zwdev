@@ -65,9 +65,43 @@ typedef struct stAddNodeToNetworkIn {
 	char funcID;
 }stAddNodeToNetworkIn_t;
 
+typedef struct stAddNodeToNetworkWait {
+	char funcID;
+	char dummy1;
+	char dummy2;
+	char dummy3;
+}stAddNodeToNetworkWait_t;
+
+typedef struct stAddNodeToNetworkBack {
+	char funcID;
+	char dummy1;
+	char dummy2;
+	char dummy3;
+}stAddNodeToNetworkBack_t;
+
 typedef struct stAddNodeToNetwork {
 	char funcID;
+	char bStatus;
+	char bSource;
+	char len;
+	char basic;
+	char generic;
+	char specific;
+	char commandclasses[32];
 }stAddNodeToNetwork_t;
+
+typedef struct stAddNodeToNetworkComp {
+	char funcID;
+	char dummy1;
+	char dummy2;
+	char dummy3;
+}stAddNodeToNetworkComp_t;
+
+
+
+
+
+
 
 typedef struct stNodeInfoIn {
 	char NodeID;	
@@ -235,6 +269,7 @@ typedef enum emApiState {
 typedef struct stApiState {
 	void *parse;
 	void *view;
+	void *step;
 }stApiState_t;
 
 typedef struct stApiStateMachine {
@@ -242,7 +277,7 @@ typedef struct stApiStateMachine {
 	char *name;
 	int param_size;
 	int num_state;
-	stApiState_t states[4];
+	stApiState_t states[8];
 }stApiStateMachine_t;
 
 typedef struct stApiCall {

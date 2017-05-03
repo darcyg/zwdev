@@ -99,7 +99,7 @@ void api_return_callback(emApi_t api, stParam_t *param, emApiState_t state, emAp
 
 void timerout_cb(struct timer *t) {
 	log_info("========================api test==================");
-	timer_set(&th, t, 5000);
+	timer_set(&th, t, 155000);
 	
 	api_exec(CmdZWaveGetVersion, NULL);
 	api_exec(CmdSerialApiGetInitData, NULL);
@@ -118,6 +118,10 @@ void timerout_cb(struct timer *t) {
 	api_exec(CmdZWaveGetSucNodeId, NULL);
 	
 	api_exec(CmdSerialApiApplNodeInformation, NULL);
+
+	static int funcID = 0x1;
+	stAddNodeToNetworkIn_t antni = {0x81, funcID++};
+	api_exec(CmdZWaveAddNodeToNetwork, &antni);
 }
 
 void api_in(void *arg, int fd) {

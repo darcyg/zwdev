@@ -36,6 +36,8 @@ static stApiEnv_t env = {
 static stParam_t *CmdZWaveGetVersion_parse_input(stDataFrame_t *df) {
 	return NULL;
 }
+static void CmdZWaveGetVersion_step_input() {
+}
 static stParam_t *CmdZWaveGetVersion_parse_version(stDataFrame_t *df) {
 	if (df != NULL) {
 		stVersion_t *ver = (stVersion_t *)MALLOC(sizeof(stVersion_t));
@@ -56,11 +58,16 @@ static void CmdZWaveGetVersion_view_version(stParam_t *param) {
 		log_debug("ver:%s,type:%02x", ver->ver, ver->type);
 	}
 }
+static void CmdZWaveGetVersion_step_version() {
+}
 /* CmdSerialApiGetInitData */
 
 static stParam_t *CmdSerialApiGetInitData_parse_input(stDataFrame_t *df) {
 	return NULL;
 }
+static void CmdSerialApiGetInitData_step_input() {
+}
+
 static stParam_t *CmdSerialApiGetInitData_parse_initdata(stDataFrame_t *df) {
 	if (df != NULL) {
 		stInitData_t *id= (stInitData_t *)MALLOC(sizeof(stInitData_t));
@@ -89,6 +96,8 @@ static void CmdSerialApiGetInitData_parse_initdata_view(stParam_t *param) {
 		log_debug_hex("nodes:", id->nodes_map, id->nodes_map_size);
 	}
 }
+static void CmdSerialApiGetInitData_step_initdata() {
+}
 
 /* nodeprotoinfo */
 static stParam_t* CmdZWaveGetNodeProtoInfo_parse_input(stDataFrame_t *df) {
@@ -109,6 +118,8 @@ static void CmdZWaveGetNodeProtoInfo_view_input(stParam_t *param) {
 		stNodeProtoInfoIn_t *npii = (stNodeProtoInfoIn_t*)param;
 		log_debug("nodeId is 0x%02x", npii->bNodeID);
 	}
+}
+static void CmdZWaveGetNodeProtoInfo_step_input() {
 }
 static stParam_t* CmdZWaveGetNodeProtoInfo_parse_nodeprotoinfo(stDataFrame_t *df) {
 	if (df != NULL) {
@@ -134,11 +145,15 @@ static void CmdZWaveGetNodeProtoInfo_view_nodeprotoinfo(stParam_t *param) {
 		);
 	}
 }
+static void CmdZWaveGetNodeProtoInfo_step_nodeprotoinfo() {
+}
 
 /* capabilities */
 
 static stParam_t *CmdSerialApiGetCapabilities_parse_input(stDataFrame_t *df) {
 	return NULL;
+}
+static void CmdSerialApiGetCapabilities_step_input() {
 }
 static stParam_t *CmdSerialApiGetCapabilities_parse_capabilities(stDataFrame_t*df) {
 	if (df != NULL) {
@@ -167,11 +182,15 @@ static void  CmdSerialApiGetCapabilities_view_capabilities(stParam_t *param) {
 		log_debug_hex("SupporttedFuncIds_Map:", capa->SupportedFuncIds_map, sizeof(capa->SupportedFuncIds_map));
 	}
 }
+static void  CmdSerialApiGetCapabilities_step_capabilities() {
+}
 
 /* */
 
 static stParam_t *CmdZWaveGetControllerCapabilities_parse_input(stDataFrame_t *df) {
 	return NULL;
+}
+static void CmdZWaveGetControllerCapabilities_step_input(stDataFrame_t *df) {
 }
 static stParam_t *CmdZWaveGetControllerCapabilities_parse_controllercapalities(stDataFrame_t *df) {
 	if (df != NULL) {
@@ -192,10 +211,14 @@ static void CmdZWaveGetControllerCapabilities_parse_controllercapalities_view(st
 		log_debug("RetVal : %02x", cc->RetVal);
 	}
 }
+static void CmdZWaveGetControllerCapabilities_step_controllercapalities() {
+}
 
 /* */
 static stParam_t *CmdMemoryGetId_parse_input(stDataFrame_t *df) {
 	return NULL;
+}
+static void CmdMemoryGetId_step_input() {
 }
 static stParam_t *CmdMemoryGetId_parse_id(stDataFrame_t *df) {
 	if (df != NULL) {
@@ -217,11 +240,15 @@ static void CmdMemoryGetId_view_id(stParam_t *param) {
 		log_debug("HomeId : %08x, NodeId:%02x", i->HomeID, i->NodeID);
 	}
 }
+static void CmdMemoryGetId_step_id() {
+}
 
 
 /* */
 static stParam_t *CmdZWaveGetSucNodeId_parse_input(stDataFrame_t *df) {
 	return NULL;
+}
+static void CmdZWaveGetSucNodeId_step_input() {
 }
 static stParam_t *CmdZWaveGetSucNodeId_parse_sucnodeid(stDataFrame_t *df) {
 	if (df != NULL) {
@@ -240,6 +267,8 @@ static void CmdZWaveGetSucNodeId_view_sucnodeid(stParam_t *param) {
 		stSucNodeId_t *sni = (stSucNodeId_t*)param;
 		log_debug("SUCNodeID:%02x", sni->SUCNodeID);
 	}
+}
+static void CmdZWaveGetSucNodeId_step_sucnodeid() {
 }
 
 
@@ -267,68 +296,202 @@ static void CmdSerialApiApplNodeInformation_view_applnodeinformation(stParam_t *
 		log_debug_hex("nodeParm:", anii->nodeParm, sizeof(anii->nodeParm));
 	}
 }
+static void CmdSerialApiApplNodeInformation_step_applnodeinformation() {
+}
+
+/* Add Node To Network*/
+static stParam_t* CmdZWaveAddNodeToNetwork_parse_in(stDataFrame_t *df) {
+	if (df != NULL) {
+		stAddNodeToNetworkIn_t *in = (stAddNodeToNetworkIn_t *)MALLOC(sizeof(stAddNodeToNetworkIn_t));
+		if (in == NULL) {	
+			log_debug("no enough memory!");
+			return NULL;
+		}
+		in->mode = df->payload[0];
+		in->funcID = df->payload[1];
+		return (stParam_t*)in;
+	}
+	return NULL;
+}
+static void CmdZWaveAddNodeToNetwork_view_in(stParam_t *param) {
+	if (param != NULL) {
+		stAddNodeToNetworkIn_t *in = (stAddNodeToNetworkIn_t*)param;
+		log_debug("mode:%02x,funcID:%02x", in->mode, in->funcID);
+	}
+}
+static void CmdZWaveAddNodeToNetwork_step_in() {
+}
+static stParam_t* CmdZWaveAddNodeToNetwork_parse_wait(stDataFrame_t *df) {
+	if (df != NULL) {
+		stAddNodeToNetworkWait_t *w = (stAddNodeToNetworkWait_t *)MALLOC(sizeof(stAddNodeToNetworkWait_t));
+		if (w == NULL) {	
+			log_debug("no enough memory!");
+			return NULL;
+		}
+		w->funcID = df->payload[0];
+		w->dummy1 = df->payload[1];
+		w->dummy2 = df->payload[2];
+		w->dummy3 = df->payload[3];
+		return (stParam_t*)w;
+	}
+	return NULL;
+}
+static void CmdZWaveAddNodeToNetwork_view_wait(stParam_t *param) {
+	if (param != NULL) {
+		stAddNodeToNetworkWait_t *w = (stAddNodeToNetworkWait_t*)param;
+		log_debug("funcID:%02x", w->funcID);
+	}
+}
+static void CmdZWaveAddNodeToNetwork_step_wait() {
+}
+static stParam_t* CmdZWaveAddNodeToNetwork_parse_back(stDataFrame_t *df) {
+	if (df != NULL) {
+		stAddNodeToNetworkBack_t *b = (stAddNodeToNetworkBack_t *)MALLOC(sizeof(stAddNodeToNetworkBack_t));
+		if (b == NULL) {	
+			log_debug("no enough memory!");
+			return NULL;
+		}
+		b->funcID = df->payload[0];
+		b->dummy1 = df->payload[1];
+		b->dummy2 = df->payload[2];
+		b->dummy3 = df->payload[3];
+		return (stParam_t*)b;
+	}
+	return NULL;
+
+}
+static void CmdZWaveAddNodeToNetwork_view_back(stDataFrame_t *param) {
+	if (param != NULL) {
+		stAddNodeToNetworkBack_t *b = (stAddNodeToNetworkBack_t*)param;
+		log_debug("funcID:%02x", b->funcID);
+	}
+}
+static void CmdZWaveAddNodeToNetwork_step_back() {
+}
+static stParam_t* CmdZWaveAddNodeToNetwork_parse_addnodetonetwork(stDataFrame_t *df) {
+	if (df != NULL) {
+		stAddNodeToNetwork_t *x = (stAddNodeToNetwork_t *)MALLOC(sizeof(stAddNodeToNetwork_t));
+		if (x == NULL) {	
+			log_debug("no enough memory!");
+			return NULL;
+		}
+		x->funcID = df->payload[0];
+		x->bStatus = df->payload[1];
+		x->bSource = df->payload[2];
+		x->len = df->payload[3];
+		x->basic = df->payload[4];
+		x->generic = df->payload[5];
+		x->specific = df->payload[6];
+		memcpy(x->commandclasses, &df->payload[7], x->len - 3);
+		
+		return (stParam_t*)x;
+	}
+	return NULL;
+}
+
+static void CmdZWaveAddNodeToNetwork_view_addnodetonetwork(stParam_t *param) {
+	if (param != NULL) {
+		stAddNodeToNetwork_t *x = (stAddNodeToNetwork_t*)param;
+		log_debug("funcID:%02x, bStatus:%02x, bSource:%02x, len:%02x, basic:%02x, generic:%02x, specific:%02x",
+			x->funcID, x->bStatus, x->bSource, x->len, x->basic, x->generic, x->specific
+		);
+		log_debug_hex("commandclass:", x->commandclasses, x->len - 3);
+	}
+}
+static void CmdZWaveAddNodeToNetwork_step_addnodetonetwork() {
+}
+static stParam_t* CmdZWaveAddNodeToNetwork_parse_comp(stDataFrame_t *df) {
+	if (df != NULL) {
+		stAddNodeToNetworkComp_t *c = (stAddNodeToNetworkComp_t *)MALLOC(sizeof(stAddNodeToNetworkComp_t));
+		if (c == NULL) {	
+			log_debug("no enough memory!");
+			return NULL;
+		}
+		c->funcID = df->payload[0];
+		c->dummy1 = df->payload[1];
+		c->dummy2 = df->payload[2];
+		c->dummy3 = df->payload[3];
+		return (stParam_t*)c;
+	}
+	return NULL;
+
+
+}
+static void CmdZWaveAddNodeToNetwork_view_comp(stParam_t *param) {
+	if (param != NULL) {
+		stAddNodeToNetworkComp_t *c = (stAddNodeToNetworkComp_t*)param;
+		log_debug("funcID:%02x", c->funcID);
+	}
+}
+static void CmdZWaveAddNodeToNetwork_step_comp() {
+}
+
+
 
 
 static stApiStateMachine_t asms[] = {
 	[CmdZWaveGetVersion] = {
 		CmdZWaveGetVersion, "CmdZWaveGetVersion", 0, 2, {
-			{CmdZWaveGetVersion_parse_input, NULL},
-			{CmdZWaveGetVersion_parse_version, CmdZWaveGetVersion_view_version},
+			{CmdZWaveGetVersion_parse_input, NULL, CmdZWaveGetVersion_step_input},
+			{CmdZWaveGetVersion_parse_version, CmdZWaveGetVersion_view_version, CmdZWaveGetVersion_step_version},
 		},
 	},
 	[CmdSerialApiGetInitData] = {
 		CmdSerialApiGetInitData, "CmdSerialApiGetInitData", 0, 2, {
-			{CmdSerialApiGetInitData_parse_input, NULL},
-			{CmdSerialApiGetInitData_parse_initdata, CmdSerialApiGetInitData_parse_initdata_view},
+			{CmdSerialApiGetInitData_parse_input, NULL, CmdSerialApiGetInitData_step_input},
+			{CmdSerialApiGetInitData_parse_initdata, CmdSerialApiGetInitData_parse_initdata_view, CmdSerialApiGetInitData_step_initdata},
 		},
 	},
 	[CmdZWaveGetNodeProtoInfo] = {
 		CmdZWaveGetNodeProtoInfo, "CmdZWaveGetNodeProtoInfo", sizeof(stNodeProtoInfoIn_t), 2, {
-			{CmdZWaveGetNodeProtoInfo_parse_input, CmdZWaveGetNodeProtoInfo_view_input},
-			{CmdZWaveGetNodeProtoInfo_parse_nodeprotoinfo, CmdZWaveGetNodeProtoInfo_view_nodeprotoinfo},
+			{CmdZWaveGetNodeProtoInfo_parse_input, CmdZWaveGetNodeProtoInfo_view_input, CmdZWaveGetNodeProtoInfo_step_input},
+			{CmdZWaveGetNodeProtoInfo_parse_nodeprotoinfo, CmdZWaveGetNodeProtoInfo_view_nodeprotoinfo, CmdZWaveGetNodeProtoInfo_step_nodeprotoinfo},
 		},
 	},
 
 	[CmdSerialApiGetCapabilities] = {
 		CmdSerialApiGetCapabilities ,"CmdSerialApiGetCapabilities", 0, 2, {
-			{CmdSerialApiGetCapabilities_parse_input, NULL},
-			{CmdSerialApiGetCapabilities_parse_capabilities, CmdSerialApiGetCapabilities_view_capabilities},
+			{CmdSerialApiGetCapabilities_parse_input, NULL, CmdSerialApiGetCapabilities_step_input},
+			{CmdSerialApiGetCapabilities_parse_capabilities, CmdSerialApiGetCapabilities_view_capabilities, CmdSerialApiGetCapabilities_step_capabilities},
 		},
 	},
 
 	[CmdZWaveGetControllerCapabilities] = {
 			CmdZWaveGetControllerCapabilities, "CmdZWaveGetControllerCapabilities", 0, 2, {
-			{CmdZWaveGetControllerCapabilities_parse_input, NULL},
-			{CmdZWaveGetControllerCapabilities_parse_controllercapalities, CmdZWaveGetControllerCapabilities_parse_controllercapalities_view},
+			{CmdZWaveGetControllerCapabilities_parse_input, NULL, CmdZWaveGetControllerCapabilities_step_input},
+			{CmdZWaveGetControllerCapabilities_parse_controllercapalities, CmdZWaveGetControllerCapabilities_parse_controllercapalities_view,
+					 CmdZWaveGetControllerCapabilities_step_controllercapalities},
 		},
 	},
 
 	[CmdMemoryGetId] = {
 		CmdMemoryGetId, "CmdMemoryGetId", 0, 2, {
-			{CmdMemoryGetId_parse_input, NULL},
-			{CmdMemoryGetId_parse_id, CmdMemoryGetId_view_id},
+			{CmdMemoryGetId_parse_input, NULL, CmdMemoryGetId_step_input},
+			{CmdMemoryGetId_parse_id, CmdMemoryGetId_view_id, CmdMemoryGetId_step_id},
 		},
 	},
 	[CmdZWaveGetSucNodeId] ={
 		CmdZWaveGetSucNodeId, "CmdZWaveGetSucNodeId", 0, 2, {
-			{CmdZWaveGetSucNodeId_parse_input, NULL},
-			{CmdZWaveGetSucNodeId_parse_sucnodeid, CmdZWaveGetSucNodeId_view_sucnodeid},
+			{CmdZWaveGetSucNodeId_parse_input, NULL, CmdZWaveGetSucNodeId_step_input},
+			{CmdZWaveGetSucNodeId_parse_sucnodeid, CmdZWaveGetSucNodeId_view_sucnodeid, CmdZWaveGetSucNodeId_step_sucnodeid},
 		},
 	},
 	[CmdSerialApiApplNodeInformation] = {
-		CmdSerialApiApplNodeInformation, "CmdSerialApiApplNodeInformation", 0, 2, {
-			{CmdSerialApiApplNodeInformation_parse_applnodeinformation, CmdSerialApiApplNodeInformation_view_applnodeinformation},
+		CmdSerialApiApplNodeInformation, "CmdSerialApiApplNodeInformation", 0, 1, {
+			{CmdSerialApiApplNodeInformation_parse_applnodeinformation, CmdSerialApiApplNodeInformation_view_applnodeinformation,
+				CmdSerialApiApplNodeInformation_step_applnodeinformation},
 		},
 	},
 
-	/*
 	[CmdZWaveAddNodeToNetwork] = {
-		CmdZWaveAddNodeToNetwork, "CmdZWaveAddNodeToNetwork", 0, 2, {
-			{CmdZWaveAddNodeToNetwork_parse_input},
-			{CmdZWaveAddNodeToNetwork_parse_addnodetonetwork},
-		}
+		CmdZWaveAddNodeToNetwork, "CmdZWaveAddNodeToNetwork", sizeof(stAddNodeToNetworkIn_t), 5, {
+			{CmdZWaveAddNodeToNetwork_parse_in, CmdZWaveAddNodeToNetwork_view_in, CmdZWaveAddNodeToNetwork_step_in},
+			{CmdZWaveAddNodeToNetwork_parse_wait, CmdZWaveAddNodeToNetwork_view_wait, CmdZWaveAddNodeToNetwork_step_wait},
+			{CmdZWaveAddNodeToNetwork_parse_back, CmdZWaveAddNodeToNetwork_view_back, CmdZWaveAddNodeToNetwork_step_back},
+			{CmdZWaveAddNodeToNetwork_parse_addnodetonetwork, CmdZWaveAddNodeToNetwork_view_addnodetonetwork, CmdZWaveAddNodeToNetwork_step_addnodetonetwork},
+			{CmdZWaveAddNodeToNetwork_parse_comp, CmdZWaveAddNodeToNetwork_view_comp, CmdZWaveAddNodeToNetwork_step_comp},
+		},
 	},
-	*/
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////
