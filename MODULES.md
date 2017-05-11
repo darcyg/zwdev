@@ -228,7 +228,7 @@
 	 */
 	int frame_free();
 
-#session:  
+# session:  
 
 	/**
 	 * @brief session layer init
@@ -282,7 +282,7 @@
 	 */
 	int session_receive_step();
 
-#stateMachine:  
+# stateMachine:  
 	
 	/**
 	 * @brief state machine init function
@@ -334,7 +334,7 @@
 	 */
 	int state_machine_free(stStateMachine_t *sm);
 
-#api:  
+# api:  
 
 	/**
 	 * @brief api init function 
@@ -389,7 +389,7 @@
 	 */
 	int api_step();
 
-#app:  
+# app:  
 	/**
 	 * @brief app init function
 	 * 
@@ -432,7 +432,7 @@
 	 */
 	int app_free();
 
-#cmd:  
+# cmd:  
 	/**
 	 * @brief cmd init function
 	 * 
@@ -476,5 +476,5 @@
 	int cmd_free();
 
 
-#mainLoop:  
+# mainLoop:  
 	main looper dispatcher .
