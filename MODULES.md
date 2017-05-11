@@ -389,6 +389,39 @@
 	 */
 	int api_step();
 
+	/**
+	 * api state machine 
+	 * /
+	stStateMachine_t apism =  {
+		2, 0, 0, {
+			{S_IDLE, 3, NULL, {
+					{E_FREE_RUNNING, idle_action_free_running, NULL},
+					{E_CALL_API, idle_action_call_api, idle_transition_call_api},
+					{E_ASYNC_DATA, idel_action_async_data, NULL},
+				},
+			},
+			{S_RUNING, 3, NULL, {
+					{E_ERROR, running_action_error, running_transition_error}, //nak can timeout
+					{E_ACK, running_action_ack, running_transition_ack},
+					{E_ASYNC_DATA, running_action_async, running_transition_async},
+					{E_DATA, running_action_data, running_transition_data},
+				},
+			},
+		},
+	}
+
+	/**
+	 * api sub state machine
+	 */
+	stStateMachine_t getinitdata = {
+		1, 0, 0, {
+			{S_WAIT_INITDATA, 1, NULL, {
+					{E_INITDATA, wait_initdata_action_initdata, wait_initdata_transition_initdata}
+				},
+			},
+		},
+	}
+
 # app:  
 	/**
 	 * @brief app init function
