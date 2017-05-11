@@ -8,9 +8,10 @@ WORKDIR=$(ROOTDIR)/build
 #targets := hashmap
 #targets := filemonitorio
 #targets := jsontest
-targets := testserial
+#targets := testserial
 #targets := frame
 #targets  += testsession
+targets  += statemachine
 
 .PHONY: targets
 
@@ -137,9 +138,25 @@ testsessionsrcs							+= $(ROOTDIR)/src/mutex.c
 testsessionsrcs							+= $(ROOTDIR)/src/cond.c
 testsessionsrcs							+= $(ROOTDIR)/src/list.c
 
+statemachinesrcs							:= $(ROOTDIR)/test/statemachine.c
+statemachinesrcs							+= $(ROOTDIR)/src/ayla/log.c
+statemachinesrcs							+= $(ROOTDIR)/src/ayla/lookup_by_name.c
+statemachinesrcs							+= $(ROOTDIR)/product/zwave/src/statemachine.c
+statemachinesrcs							+= $(ROOTDIR)/src/ayla/timer.c
+statemachinesrcs							+= $(ROOTDIR)/src/ayla/time_utils.c
+statemachinesrcs							+= $(ROOTDIR)/src/ayla/assert.c
+statemachinesrcs							+= $(ROOTDIR)/src/ayla/file_event.c
+statemachinesrcs							+= $(ROOTDIR)/src/lockqueue.c
+statemachinesrcs							+= $(ROOTDIR)/src/mutex.c
+statemachinesrcs							+= $(ROOTDIR)/src/cond.c
+statemachinesrcs							+= $(ROOTDIR)/src/list.c
+
+
+
 
 objs = $(subst $(ROOTDIR),$(WORKDIR), $(subst .c,.o,$(srcs)))
 testserialobjs = $(subst $(ROOTDIR),$(WORKDIR), $(subst .c,.o,$(testserialsrcs)))
+statemachineobjs = $(subst $(ROOTDIR),$(WORKDIR), $(subst .c,.o,$(statemachinesrcs)))
 
 -include $(ROOTDIR)/make/arch.mk
 -include $(ROOTDIR)/make/rules.mk
@@ -154,10 +171,7 @@ $(eval $(call LinkApp,jsontest,$(testjsonobjs)))
 $(eval $(call LinkApp,testserial,$(testserialobjs)))
 $(eval $(call LinkApp,frame,$(frameobjs)))
 $(eval $(call LinkApp,testsession,$(testsessionobjs)))
-
-
-
-
+$(eval $(call LinkApp,statemachine,$(statemachineobjs)))
 
 
 scp :
