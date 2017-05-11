@@ -1,72 +1,24 @@
-#ARCH			:= mt7620a
-ARCH			:= x86
+CROSS 	?= 
+ARCH		?=
 
-#####################################################
-ifeq ($(ARCH),mt7620a)
-CROSS		:= mipsel-openwrt-linux-
-endif
-
-ifeq ($(ARCH),x86)
-CROSS		:= 
-endif
-
-ifeq ($(ARCH),mt7620a)
-SELF_CFLAGS		+= -I./inc -I./product/zwave/inc -I./inc/ayla -I./inc/platform
-SELF_LDFLAGS	+= -L./lib -ljansson
-OPENWRT_DIR	:= /opt/au/openwrt_7620
-STAGING_DIR		:= $(OPENWRT_DIR)/staging_dir
-CROSS_DIR		:= $(STAGING_DIR)/toolchain-mipsel_24kec+dsp_gcc-4.8-linaro_uClibc-0.9.33.2/bin
-endif
-
-ifeq ($(ARCH),x86) 
-SELF_CFLAGS		+= -I./inc -I./product/zwave/inc -I./inc/ayla
-SELF_LDFLAGS	+= -L./lib -ljansson
-OPENWRT_DIR	:= 
-STAGING_DIR		:= 
-CROSS_DIR		:= 
-endif
+GCC 		?= $(CROSS)gcc
+CXX			?= $(CROSS)g++
+AR			?= $(CROSS)ar
+AS			?= $(CROSS)gcc
+RANLIB	?= $(CROSS)ranlib
+STRIP 	?= $(CROSS)strip
+OBJCOPY	?= $(CROSS)objcopy
+OBJDUMP ?= $(CROSS)objdump
+SIZE		?= $(CROSS)size
+LD			?= $(CROSS)ld
+MKDIR		?= mkdir -p
 
 
-SEDONA_HOME	:= /mnt/hgfs/sedona
-SEDONABIN_DIR	:= $(SEDONA_HOME)/bin
-JAVA_HOME		:= /home/au/all/program/jdk1.8.0_11
-export PATH		:= $(PATH):$(CROSS_DIR):$(SEDONABIN_DIR)
-export STAGING_DIR
-export JAVA_HOME
-export CLASSPATH:=.:$(JAVA_HOME)/lib/tools.jar:$(JAVA_HOME)/lib/dt.jar
+TARGET_CFLAGS 		+= -Wall -g -O2 -I$(ROOTDIR)/inc -I$(ROOTDIR)/inc/ayla -I$(ROOTDIR)/platform -I$(ROOTDIR)/product/zwave/inc 
 
-# tools
-CC			:= $(CROSS)gcc
-CFLAGS 		:= -Wall -g -O2
-CFLAGS		+= $(SELF_CFLAGS)
+TARGET_CXXFLAGS 	+= $(TARGET_CFLAGS) -std=c++0x
 
-CPP			:= $(CROSS)g++
-CPPFLAGS		:= $(CFLAGS)
-CPPFLAGS		+= -std=c++0x
+TARGET_LDFLAGS 		+= -L$(ROOTDIR)/lib -lm -lrt -ldl -lpthread
+#TARGET_LDFLAGS 	+= -ljasson
+#TARGET_LDFLAGS		+= -lstdc++
 
-LD			:= $(CROSS)g++
-LDFLAGS		:= -lm -lrt -ldl -lpthread
-LDFLAGS		+= $(SELF_LDFLAGS)
-LDFLAGS		+= -lstdc++
-
-CP			:= cp 
-CPFLAGS		:= -rf
-RM			:= rm
-RMFLAGS		:= -rf
-
-CPPEXT		:= .cpp
-CEXT			:= .c
-HEXT			:= .h
-OEXT			:= .o
-COMPILE		:= -c
-OUT			:= -o
-
-
-SEDONACC		:= sedonac.sh
-SEDONAOUT		:= -outDir
-SCODEEXT		:= .scode
-SABEXT		:= .sab
-XMLEXT		:= .xml
-SAXEXT		:= .sax
-
-STRIP			:= $(CROSS)strip

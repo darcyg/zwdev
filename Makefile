@@ -1,175 +1,176 @@
-include ./make/arch.mk
+ROOTDIR=$(shell pwd)
+WORKDIR=$(ROOTDIR)/build
 
-targets	 += main
+#targets	 += zwdevd
 #targets := testlockqueue 
 #targets := testlog 
 #targets := testtimer
 #targets := hashmap
 #targets := filemonitorio
 #targets := jsontest
-#targets := testserial
+targets := testserial
 #targets := frame
 #targets  += testsession
 
-objs							:= ./main.o
-objs							+= ./src/ayla/log.o
-objs							+= ./src/ayla/lookup_by_name.o
-objs							+= ./product/zwave/src/serial.o
-objs							+= ./product/zwave/src/transport.o
-objs							+= ./product/zwave/src/frame.o
-objs							+= ./product/zwave/src/session.o
-objs							+= ./product/zwave/src/api.o
-objs							+= ./src/ayla/timer.o
-objs							+= ./src/ayla/time_utils.o
-objs							+= ./src/ayla/assert.o
-objs							+= ./src/ayla/file_event.o
-objs							+= ./src/lockqueue.o
-objs							+= ./src/mutex.o
-objs							+= ./src/cond.o
-objs							+= ./src/list.o
+.PHONY: targets
 
-testobjs					:= ./test/test.o
-testobjs					+= ./src/list.o
-testobjs					+= ./src/mutex.o
-testobjs					+= ./src/cond.o
-testobjs					+= ./src/lockqueue.o
-
-testlogobjs				:= ./test/logtest.o
-testlogobjs				+= ./src/ayla/log.o
-testlogobjs				+= ./src/ayla/lookup_by_name.o
-
-testtimerobjs			:=
-testtimerobjs			+= ./test/timertest.o
-testtimerobjs			+= ./src/ayla/log.o
-testtimerobjs			+= ./src/ayla/lookup_by_name.o
-testtimerobjs			+= ./src/ayla/timer.o
-testtimerobjs			+= ./src/ayla/time_utils.o
-testtimerobjs			+= ./src/ayla/assert.o
-testtimerobjs			+= ./src/ayla/file_event.o
-
-hashmapobjs				:= 
-hashmapobjs				+= ./test/hashmaptest.o
-hashmapobjs				+= ./src/ayla/log.o
-hashmapobjs				+= ./src/ayla/lookup_by_name.o
-hashmapobjs				+= ./src/ayla/timer.o
-hashmapobjs				+= ./src/ayla/time_utils.o
-hashmapobjs				+= ./src/ayla/assert.o
-hashmapobjs				+= ./src/ayla/file_event.o
-hashmapobjs				+= ./src/ayla/hashmap.o
-
-filemonitorioobjs		:=
-filemonitorioobjs		+= ./test/filemonitorio.o
-filemonitorioobjs		+= ./src/ayla/log.o
-filemonitorioobjs		+= ./src/ayla/lookup_by_name.o
-filemonitorioobjs		+= ./src/ayla/timer.o
-filemonitorioobjs		+= ./src/ayla/time_utils.o
-filemonitorioobjs		+= ./src/ayla/assert.o
-filemonitorioobjs		+= ./src/ayla/file_event.o
-filemonitorioobjs		+= ./src/ayla/hashmap.o
-filemonitorioobjs		+= ./src/ayla/file_io.o
-filemonitorioobjs		+= ./src/ayla/filesystem_monitor.o
-
-testjsonobjs		:=
-testjsonobjs		+= ./test/jsontest.o
-testjsonobjs		+= ./src/ayla/log.o
-testjsonobjs		+= ./src/ayla/lookup_by_name.o
-testjsonobjs		+= ./src/ayla/timer.o
-testjsonobjs		+= ./src/ayla/time_utils.o
-testjsonobjs		+= ./src/ayla/assert.o
-testjsonobjs		+= ./src/ayla/file_event.o
-testjsonobjs		+= ./src/ayla/json_parser.o
-
-testjsonobjs		+= ./src/ayla/async.o
-testjsonobjs		+= ./src/ayla/buffer.o
-testjsonobjs		+= ./src/ayla/conf_io.o
-testjsonobjs		+= ./src/ayla/conf_rom.o
-testjsonobjs		+= ./src/ayla/crc8.o
-testjsonobjs		+= ./src/ayla/crc16.o
-testjsonobjs		+= ./src/ayla/crc32.o
-testjsonobjs		+= ./src/ayla/crypto.o
-testjsonobjs		+= ./src/ayla/hex.o
-testjsonobjs		+= ./src/ayla/network_utils.o
-testjsonobjs		+= ./src/ayla/parse_argv.o
-testjsonobjs		+= ./src/platform/crypto.o
-testjsonobjs		+= ./src/platform/ota.o
-testjsonobjs		+= ./src/platform/system.o
-testjsonobjs		+= ./src/platform/conf.o
-
-testjsonobjs		+= ./src/ayla/file_io.o
-
-testserialobjs	:= ./test/testserial.o
-testserialobjs	+= ./src/ayla/log.o
-testserialobjs	+= ./src/ayla/lookup_by_name.o
-testserialobjs	+= ./product/zwave/src/serial.o
-testserialobjs	+= ./product/zwave/src/transport.o
-
-frameobjs							:= ./test/testframe.o
-frameobjs							+= ./src/ayla/log.o
-frameobjs							+= ./src/ayla/lookup_by_name.o
-frameobjs							+= ./product/zwave/src/serial.o
-frameobjs							+= ./product/zwave/src/transport.o
-frameobjs							+= ./product/zwave/src/frame.o
-frameobjs							+= ./src/ayla/timer.o
-frameobjs							+= ./src/ayla/time_utils.o
-frameobjs							+= ./src/ayla/assert.o
-frameobjs							+= ./src/ayla/file_event.o
+all : $(targets)
 
 
-testsessionobjs							:= ./test/testsession.o
-testsessionobjs							+= ./src/ayla/log.o
-testsessionobjs							+= ./src/ayla/lookup_by_name.o
-testsessionobjs							+= ./product/zwave/src/serial.o
-testsessionobjs							+= ./product/zwave/src/transport.o
-testsessionobjs							+= ./product/zwave/src/frame.o
-testsessionobjs							+= ./product/zwave/src/session.o
-testsessionobjs							+= ./src/ayla/timer.o
-testsessionobjs							+= ./src/ayla/time_utils.o
-testsessionobjs							+= ./src/ayla/assert.o
-testsessionobjs							+= ./src/ayla/file_event.o
-testsessionobjs							+= ./src/lockqueue.o
-testsessionobjs							+= ./src/mutex.o
-testsessionobjs							+= ./src/cond.o
-testsessionobjs							+= ./src/list.o
+srcs							:= $(ROOTDIR)/main.c
+srcs							+= $(ROOTDIR)/src/ayla/log.c
+srcs							+= $(ROOTDIR)/src/ayla/lookup_by_name.c
+srcs							+= $(ROOTDIR)/product/zwave/src/serial.c
+srcs							+= $(ROOTDIR)/product/zwave/src/transport.c
+srcs							+= $(ROOTDIR)/product/zwave/src/frame.c
+srcs							+= $(ROOTDIR)/product/zwave/src/session.c
+srcs							+= $(ROOTDIR)/product/zwave/src/api.c
+srcs							+= $(ROOTDIR)/src/ayla/timer.c
+srcs							+= $(ROOTDIR)/src/ayla/time_utils.c
+srcs							+= $(ROOTDIR)/src/ayla/assert.c
+srcs							+= $(ROOTDIR)/src/ayla/file_event.c
+srcs							+= $(ROOTDIR)/src/lockqueue.c
+srcs							+= $(ROOTDIR)/src/mutex.c
+srcs							+= $(ROOTDIR)/src/cond.c
+srcs							+= $(ROOTDIR)/src/list.c
+
+testsrcs					:= $(ROOTDIR)/test/test.c
+testsrcs					+= $(ROOTDIR)/src/list.c
+testsrcs					+= $(ROOTDIR)/src/mutex.c
+testsrcs					+= $(ROOTDIR)/src/cond.c
+testsrcs					+= $(ROOTDIR)/src/lockqueue.c
+
+testlogsrcs				:= $(ROOTDIR)/test/logtest.c
+testlogsrcs				+= $(ROOTDIR)/src/ayla/log.c
+testlogsrcs				+= $(ROOTDIR)/src/ayla/lookup_by_name.c
+
+testtimersrcs			:=
+testtimersrcs			+= $(ROOTDIR)/test/timertest.c
+testtimersrcs			+= $(ROOTDIR)/src/ayla/log.c
+testtimersrcs			+= $(ROOTDIR)/src/ayla/lookup_by_name.c
+testtimersrcs			+= $(ROOTDIR)/src/ayla/timer.c
+testtimersrcs			+= $(ROOTDIR)/src/ayla/time_utils.c
+testtimersrcs			+= $(ROOTDIR)/src/ayla/assert.c
+testtimersrcs			+= $(ROOTDIR)/src/ayla/file_event.c
+
+hashmapsrcs				:= 
+hashmapsrcs				+= $(ROOTDIR)/test/hashmaptest.c
+hashmapsrcs				+= $(ROOTDIR)/src/ayla/log.c
+hashmapsrcs				+= $(ROOTDIR)/src/ayla/lookup_by_name.c
+hashmapsrcs				+= $(ROOTDIR)/src/ayla/timer.c
+hashmapsrcs				+= $(ROOTDIR)/src/ayla/time_utils.c
+hashmapsrcs				+= $(ROOTDIR)/src/ayla/assert.c
+hashmapsrcs				+= $(ROOTDIR)/src/ayla/file_event.c
+hashmapsrcs				+= $(ROOTDIR)/src/ayla/hashmap.c
+
+filemonitoriosrcs		:=
+filemonitoriosrcs		+= $(ROOTDIR)/test/filemonitorio.c
+filemonitoriosrcs		+= $(ROOTDIR)/src/ayla/log.c
+filemonitoriosrcs		+= $(ROOTDIR)/src/ayla/lookup_by_name.c
+filemonitoriosrcs		+= $(ROOTDIR)/src/ayla/timer.c
+filemonitoriosrcs		+= $(ROOTDIR)/src/ayla/time_utils.c
+filemonitoriosrcs		+= $(ROOTDIR)/src/ayla/assert.c
+filemonitoriosrcs		+= $(ROOTDIR)/src/ayla/file_event.c
+filemonitoriosrcs		+= $(ROOTDIR)/src/ayla/hashmap.c
+filemonitoriosrcs		+= $(ROOTDIR)/src/ayla/file_io.c
+filemonitoriosrcs		+= $(ROOTDIR)/src/ayla/filesystem_monitor.c
+
+testjsonsrcs		:=
+testjsonsrcs		+= $(ROOTDIR)/test/jsontest.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/log.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/lookup_by_name.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/timer.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/time_utils.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/assert.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/file_event.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/json_parser.c
+
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/async.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/buffer.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/conf_io.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/conf_rom.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/crc8.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/crc16.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/crc32.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/crypto.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/hex.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/network_utils.c
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/parse_argv.c
+testjsonsrcs		+= $(ROOTDIR)/src/platform/crypto.c
+testjsonsrcs		+= $(ROOTDIR)/src/platform/ota.c
+testjsonsrcs		+= $(ROOTDIR)/src/platform/system.c
+testjsonsrcs		+= $(ROOTDIR)/src/platform/conf.c
+
+testjsonsrcs		+= $(ROOTDIR)/src/ayla/file_io.c
+
+testserialsrcs	:= $(ROOTDIR)/test/testserial.c
+testserialsrcs	+= $(ROOTDIR)/src/ayla/log.c
+testserialsrcs	+= $(ROOTDIR)/src/ayla/lookup_by_name.c
+testserialsrcs	+= $(ROOTDIR)/product/zwave/src/serial.c
+testserialsrcs	+= $(ROOTDIR)/product/zwave/src/transport.c
+
+framesrcs							:= $(ROOTDIR)/test/testframe.c
+framesrcs							+= $(ROOTDIR)/src/ayla/log.c
+framesrcs							+= $(ROOTDIR)/src/ayla/lookup_by_name.c
+framesrcs							+= $(ROOTDIR)/product/zwave/src/serial.c
+framesrcs							+= $(ROOTDIR)/product/zwave/src/transport.c
+framesrcs							+= $(ROOTDIR)/product/zwave/src/frame.c
+framesrcs							+= $(ROOTDIR)/src/ayla/timer.c
+framesrcs							+= $(ROOTDIR)/src/ayla/time_utils.c
+framesrcs							+= $(ROOTDIR)/src/ayla/assert.c
+framesrcs							+= $(ROOTDIR)/src/ayla/file_event.c
+
+
+testsessionsrcs							:= $(ROOTDIR)/test/testsession.c
+testsessionsrcs							+= $(ROOTDIR)/src/ayla/log.c
+testsessionsrcs							+= $(ROOTDIR)/src/ayla/lookup_by_name.c
+testsessionsrcs							+= $(ROOTDIR)/product/zwave/src/serial.c
+testsessionsrcs							+= $(ROOTDIR)/product/zwave/src/transport.c
+testsessionsrcs							+= $(ROOTDIR)/product/zwave/src/frame.c
+testsessionsrcs							+= $(ROOTDIR)/product/zwave/src/session.c
+testsessionsrcs							+= $(ROOTDIR)/src/ayla/timer.c
+testsessionsrcs							+= $(ROOTDIR)/src/ayla/time_utils.c
+testsessionsrcs							+= $(ROOTDIR)/src/ayla/assert.c
+testsessionsrcs							+= $(ROOTDIR)/src/ayla/file_event.c
+testsessionsrcs							+= $(ROOTDIR)/src/lockqueue.c
+testsessionsrcs							+= $(ROOTDIR)/src/mutex.c
+testsessionsrcs							+= $(ROOTDIR)/src/cond.c
+testsessionsrcs							+= $(ROOTDIR)/src/list.c
+
+
+objs = $(subst $(ROOTDIR),$(WORKDIR), $(subst .c,.o,$(srcs)))
+testserialobjs = $(subst $(ROOTDIR),$(WORKDIR), $(subst .c,.o,$(testserialsrcs)))
+
+-include $(ROOTDIR)/make/arch.mk
+-include $(ROOTDIR)/make/rules.mk
+
+$(eval $(call LinkApp,zwdevd,$(objs)))
+$(eval $(call LinkApp,testlockqueue,$(testobjs)))
+$(eval $(call LinkApp,testlog,$(testlogobjs)))
+$(eval $(call LinkApp,testtimer,$(testtimerobjs)))
+$(eval $(call LinkApp,hashmap,$(hashmapobjs)))
+$(eval $(call LinkApp,filemonitorio,$(filemonitorioobjs)))
+$(eval $(call LinkApp,jsontest,$(testjsonobjs)))
+$(eval $(call LinkApp,testserial,$(testserialobjs)))
+$(eval $(call LinkApp,frame,$(frameobjs)))
+$(eval $(call LinkApp,testsession,$(testsessionobjs)))
 
 
 
 
-midobjs	:= 
-midobjs += $(objs)					$(objs:%.o=%.d) 
-midobjs += $(testobjs)			$(testobjs:%.o=%.d) 
-midobjs += $(testlogobjs)		$(testlogobjs:%.o=%.d)
-midobjs += $(testtimerobjs) $(testtimerobjs:%.o=%.d) 
-midobjs += $(hashmapobjs)		$(hashmapobjs:%.o=%.d) 
-midobjs += $(filemonitorioobjs)	$(filemonitorioobjs:%.o=%.d) 
-midobjs += $(testjsonobjs)	$(testjsonobjs:%.o=%.d) 
-midobjs += $(testserialobjs) $(testserialobjs:%.o=%.d) 
-midobjs += $(frameobjs) $(frameobjs:%.o=%.d) 
-midobjs += $(testsessionobjs) $(testsessionobjs:%.o=%.d) 
 
-include ./make/rules.mk
-
-$(eval $(call LinkApp, main, $(objs)))
-$(eval $(call LinkApp, testlockqueue, $(testobjs)))
-$(eval $(call LinkApp, testlog, $(testlogobjs)))
-$(eval $(call LinkApp, testtimer, $(testtimerobjs)))
-$(eval $(call LinkApp, hashmap, $(hashmapobjs)))
-$(eval $(call LinkApp, filemonitorio, $(filemonitorioobjs)))
-$(eval $(call LinkApp, jsontest, $(testjsonobjs)))
-$(eval $(call LinkApp, testserial, $(testserialobjs)))
-$(eval $(call LinkApp, frame, $(frameobjs)))
-$(eval $(call LinkApp, testsession, $(testsessionobjs)))
 
 scp :
-	scp -P 22 ./main root@192.168.10.101:/tmp
+	scp -P 22 $(ROOTDIR)/main root@192.168.10.101:/tmp
 
 startvc :
-	(cd ./utils/VirtualCom;\
-		./StartVirtualComServer.sh start; \
+	(cd $(ROOTDIR)/utils/VirtualCom;\
+		$(ROOTDIR)/StartVirtualComServer.sh start; \
 		cd -; \
 	)
 stopvc :
-	(cd ./utils/VirtualCom;\
-		./StartVirtualComServer.sh stop; \
+	(cd $(ROOTDIR)/utils/VirtualCom;\
+		$(ROOTDIR)/StartVirtualComServer.sh stop; \
 		cd -;\
 	)
 

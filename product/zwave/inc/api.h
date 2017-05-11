@@ -3,6 +3,7 @@
 
 /* this file contains zwave static controller serial api interfaces */
 
+#if 0
 #pragma pack(1)
 typedef struct stVersion {
 	char ver[32];
@@ -299,6 +300,63 @@ int api_step();
 
 const char *api_name(emApi_t api);
 void api_param_view(emApi_t api, stParam_t *param, emApiState_t state);
+#else
 
+typedef enum emApiMachineState {
+	AMS_IDLE = 0,
+	AMS_RUNNING = 1,
+}emApiMachineState_t;
+
+typedef enum  emApiMachineEvent {
+	AME_CALL_API = 0,
+	AME_ACK = 1,
+	AME_ERROR = 2,
+	AME_DATA = 3,
+	AME_ASYNC_DATA= 4,
+	AME_CALL_EXIT = 5,
+	AME_FREE_RUN = 6,
+}emApiMachineEvent_t;
+
+typedef struct stApiMachineAction {
+	void *exec;
+}stApiMachineAction;
+
+typedef struct stApiMachineTransition {
+	void *trans;
+}stApiMachineTransition_t;
+
+typedef struct stApiMachineEvent {
+	emApiMachineEvent event;
+	void *event_data;
+}stApiMachineEvent_t;
+
+
+typedef em emApiCallMachine {
+	stAcmTest,
+}emApiCallMachine_t;
+typedef struct stApiMachineEnv {
+	int state;
+	void *event_queue;
+	emApiCallMachine_t *acm;
+}stApiMachineEnv_t;
+
+int am_transition_call_api();
+int am_transition_call_exit();
+int am_action_idle_async_data();
+int am_action_running_data();
+int am_action_running_ack();
+int am_transition_running_err();
+int am_action_running_call_async_api();
+int am_action_running_async_data();
+
+
+int api_init();
+int api_free();
+int api_getfd();
+int api_step();
+
+
+
+#endif
 
 #endif

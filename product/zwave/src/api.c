@@ -11,6 +11,7 @@
 #include "session.h"
 #include "lockqueue.h"
 
+#if 0
 typedef struct stApiEnv {
 	stLockQueue_t qSend;
 	stApiCall_t *apicall;
@@ -807,5 +808,233 @@ void api_param_view(emApi_t api, stParam_t *param, emApiState_t state) {
 		view(param);
 	}
 }
+
+#else
+
+//=======================================================================
+struct stApiMachineEnv_t ame;
+static stApiMachineEnv_t *get_api_machine_env() {
+	return &ame;
+}
+
+
+static int api_state_event_handler(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
+	switch (e->event) {
+		case AME_CALL_API:
+			if (env->state == AME_IDLE) {
+				am_transition_call_api(env, e);
+			} else {
+				log_debug("unhandled event : %d when state: %d", e->event, env->state);
+			}
+			break;
+		case AME_ACK:
+			if (env->state == AME_RUNNING) {
+				if (am_action_running_ack(env, e) == 0) {
+					;
+				} else {
+					log_debug("unhandled event : %d when state: %d", e->event, env->state);
+				}
+			} else {
+				log_debug("unhandled event : %d when state: %d", e->event, env->state);
+			}
+			break;
+		case AME_ERROR:
+			if (env->state == AME_RUNNING) {
+				if (am_action_running_err(env, e) == 0) {
+					;
+				} else {
+					log_debug("unhandled event : %d when state: %d", e->event, env->state);
+				}
+			} else {
+				log_debug("unhandled event : %d when state: %d", e->event, env->state);
+			}
+			break;
+		case AME_DATA:
+			if (env->state == AME_RUNNING) {
+				if (am_action_running_data(env, e) == 0) {
+					;
+				} else {
+					log_debug("unhandled event : %d when state: %d", e->event, env->state);
+				}
+			} else {
+				log_debug("unhandled event : %d when state: %d", e->event, env->state);
+			}
+			break;
+		case AME_ASYNC_DATA:
+			if (env->state == AME_RUNNING) {
+				if (am_action_running_async_data(env, e) == 0) {
+					;
+				} else {
+					log_debug("unhandled event : %d when state: %d", e->event, env->state);
+				}
+			} else {
+				log_debug("unhandled event : %d when state: %d", e->event, env->state);
+			}
+			break;
+		case AME_CALL_EXIT:
+			if (env->state == AME_RUNNING) {
+				am_transition_call_exit(env, e);
+			} else {
+				log_debug("unhandled event : %d when state: %d", e->event, env->state);
+			}
+			break;	
+		case AME_FREE_RUN:
+			break;
+		default:
+			log_debug("unknown event : %d", e->event);
+			break;
+	}
+	
+	return 0;
+}
+static int api_state_run() {
+	stApiMachineEnv_t *env = api_machine_env_get();
+	stApiMachineEvent_t *e = api_machine_event_pop();
+	if (e == NULL) {
+		return 0;
+	}
+	do  {
+		ret = api_state_event_handler(env, e);
+		api_machine_event_free(e);
+		stApiMachineEvent_t *e = api_machine_event_pop();
+	} while (e != NULL);
+	return 0;
+}
+
+
+static int api_call_api(stApiCall_t *ac) {
+	stDataFrame_t * df = make_frame(ac->api, ac->param);
+	if (df == NULL) {
+		return -1;
+	}
+	frame_send(df);
+	return 0;
+}
+
+
+
+
+
+
+int am_transition_call_api(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
+	stApiCall_t *ac = (stApiCall_t*)e->event_data;
+	if (ac == NULL) {
+		return -1;
+	}
+	/* CALL API */
+	if (api_call_api(ac) != 0) {
+		log_debug("make frame error !");
+		return -2;
+	}
+	
+	env->state = AME_RUNNING;
+
+	return 0;
+}
+int am_transition_call_exit(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
+	env->state = AME_IDLE;
+
+	stApiMachineEvent_t event = {AME_FREE_RUN};
+	api_machine_event_push(&event);
+	return 0;
+}
+int am_action_idle_async_data(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
+	log_debug("idel data->event : %d when state: %d", e->event, env->state);
+	/* not not support async data */
+	return 0;
+}
+int am_action_running_data(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
+	if (env->acm != NULL && env->acm->run != NULL) {
+		env->acm->run(env, e);
+	}
+}
+int am_action_running_ack(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {	
+	if (env->acm != NULL && env->acm->run != NULL) {
+		env->acm->run(env, e);
+	}
+}
+int am_transition_running_err(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
+	log_debug("error event : %d when state: %d", e->event, env->state);
+	
+	env->state = AME_IDLE;
+
+	stApiMachineEvent_t event = {AME_FREE_RUN};
+	api_machine_event_push(&event);
+
+	return 0;
+}
+int am_action_running_call_async_api(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
+#if 0
+	stApiCall_t *ac = (stApiCall_t*)e->event_data;
+	if (ac == NULL) {
+		return -1;
+	}
+	/* CALL API */
+	if (api_call_api(ac) != 0) {
+		log_debug("make frame error !");
+		return -2;
+	}
+#endif
+	if (env->acm != NULL && env->acm->run != NULL) {
+		env->acm->run(env, e);
+	}
+}
+int am_action_running_async_data(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
+	log_debug("async data->event : %d when state: %d", e->event, env->state);
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////
+int api_init() {
+	if (_accb != NULL) {
+		api_ccb = _accb;
+	}
+	if (_arcb != NULL) {
+		api_crb = _arcb;
+	}
+
+	if (session_init(_th, api_send_over, api_recv_over) != 0) {
+		log_debug("frame init failed!");
+		return -1;
+	}
+
+	/*
+	lockqueue_init(&env.qSend);
+
+	env.th = (struct timer_head *)_th;
+  timer_init(&env.timerSend, api_send_timer_callback);
+
+	env.apicall = NULL;
+	env.initFlag = 1;
+	*/
+
+	return 0;
+}
+int api_free() {
+	session_free();
+
+	/*
+	lockqueue_destroy(&env.qSend, NULL);
+
+	env.initFlag = 0;
+	*/
+
+	return 0;
+}
+int api_getfd() {
+	return session_getfd();
+}
+int api_step() {
+	session_receive_step();
+	return 0;
+}
+int api_call() {
+	return 0;
+}
+
+
+
+#endif
+
 
 
