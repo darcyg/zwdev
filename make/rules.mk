@@ -12,6 +12,6 @@ clean:
 define LinkApp
 $1: $2
 	$(GCC) $2 $(LDFLAGS) $(TARGET_LDFLAGS) -o $(ROOTDIR)/build/$1
-	$(STRIP) $(ROOTDIR)/build/$1
+	#$(STRIP) $(ROOTDIR)/build/$1
 endef
 

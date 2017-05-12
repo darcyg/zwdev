@@ -1,7 +1,7 @@
 ROOTDIR=$(shell pwd)
 WORKDIR=$(ROOTDIR)/build
 
-#targets	 += zwdevd
+targets	 += zwdevd
 #targets := testlockqueue 
 #targets := testlog 
 #targets := testtimer
@@ -10,8 +10,8 @@ WORKDIR=$(ROOTDIR)/build
 #targets := jsontest
 #targets := testserial
 #targets := frame
-#targets  += testsession
-targets  += statemachine
+#targets := testsession
+#targets := statemachine
 
 .PHONY: targets
 
@@ -26,6 +26,7 @@ srcs							+= $(ROOTDIR)/product/zwave/src/transport.c
 srcs							+= $(ROOTDIR)/product/zwave/src/frame.c
 srcs							+= $(ROOTDIR)/product/zwave/src/session.c
 srcs							+= $(ROOTDIR)/product/zwave/src/api.c
+srcs							+= $(ROOTDIR)/product/zwave/src/statemachine.c
 srcs							+= $(ROOTDIR)/src/ayla/timer.c
 srcs							+= $(ROOTDIR)/src/ayla/time_utils.c
 srcs							+= $(ROOTDIR)/src/ayla/assert.c

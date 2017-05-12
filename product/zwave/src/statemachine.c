@@ -24,17 +24,22 @@ int state_machine_set_state(stStateMachine_t *sm, int state) {
 	return 0;
 }
 int state_machine_step(stStateMachine_t *sm, stEvent_t *event) {
-	int i = 0;
+	int i = 0, j = 0;
 	int state = state_machine_get_state(sm);
 
 	void *action = NULL;
 	void *transition = NULL;
 	void *acret = NULL;
-	for (i = 0; i < sm->states[state].numevent; i++) {
-		if (sm->states[state].eventhandlers[i].eid == event->eid) {
-			action = sm->states[state].eventhandlers[i].action;
-			transition = sm->states[state].eventhandlers[i].transition;
-			break;
+	for (j = 0; j < sm->numstate; j++) {
+		if (state != sm->states[j].stateid) {
+			continue;
+		}
+		for (i = 0; i < sm->states[j].numevent; i++) {
+			if (sm->states[j].eventhandlers[i].eid == event->eid) {
+				action = sm->states[j].eventhandlers[i].action;
+				transition = sm->states[j].eventhandlers[i].transition;
+				break;
+			}
 		}
 	}
 	if (action != NULL) {
@@ -50,9 +55,9 @@ int state_machine_step(stStateMachine_t *sm, stEvent_t *event) {
 		next_state = state;
 	}
 
-	if (acret != NULL) {
-		FREE(acret);
-	}
+	//if (acret != NULL) {
+	//	FREE(acret);
+	//}
 
 	state_machine_set_state(sm, next_state);
 
@@ -61,5 +66,16 @@ int state_machine_step(stStateMachine_t *sm, stEvent_t *event) {
 int state_machine_free(stStateMachine_t *sm) {
 	state_machine_reset(sm);
 	return 0;
+}
+
+stState_t *state_machine_search_state(stStateMachine_t *sm, int sid) {
+	int i = 0;
+	for (i = 0; i < sm->numstate; i++) {
+		if (sid == sm->states[i].stateid) {
+			return &sm->states[i];
+		}
+	}
+
+	return NULL;
 }
 

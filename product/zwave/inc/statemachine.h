@@ -17,6 +17,7 @@ typedef struct stEventHandler {
 }stEventHandler_t;
 
 typedef struct stState {
+	int stateid;
 	int numevent;
 	void *param;
 	stEventHandler_t eventhandlers[MAX_EVENT_NUM];
@@ -38,6 +39,8 @@ int state_machine_get_state(stStateMachine_t *sm);
 int state_machine_set_state(stStateMachine_t *sm, int state);
 int state_machine_step(stStateMachine_t *sm, stEvent_t *event);
 int state_machine_free(stStateMachine_t *sm);
+
+stState_t *state_machine_search_state(stStateMachine_t *sm, int sid);
 
 
 /* state must start at zero */

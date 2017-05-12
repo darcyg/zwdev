@@ -78,17 +78,17 @@ int main(int argc, char *argv[]) {
 
 ////////////////////////////////////////////////////////////////
 void api_call_callback(emApi_t api, stParam_t *param, emApiState_t state, emApiError_t error) {
-	log_debug("api [%s] call over with ret : %d", api_name(api), error);
+	//log_debug("api [%s] call over with ret : %d", api_name(api), error);
 	if (param != NULL) {
 		FREE(param);
 	}
 	return;
 }
 void api_return_callback(emApi_t api, stParam_t *param, emApiState_t state, emApiError_t error) {
-	log_debug("api [%s] return with ret : %d", api_name(api), error);
+	//log_debug("api [%s] return with ret : %d", api_name(api), error);
 
 	if (param != NULL) {
-		api_param_view(api, param, state);
+		//api_param_view(api, param, state);
 	}
 	
 	if (param != NULL) {
@@ -99,9 +99,12 @@ void api_return_callback(emApi_t api, stParam_t *param, emApiState_t state, emAp
 
 void timerout_cb(struct timer *t) {
 	log_info("========================api test==================");
-	timer_set(&th, t, 155000);
+	timer_set(&th, t, 1000);
 	
-	api_exec(CmdZWaveGetVersion, NULL);
+	api_call(CmdZWaveGetVersion, NULL, 0);
+	api_call(CmdZWaveGetVersion, NULL, 0);
+
+	/*
 	api_exec(CmdSerialApiGetInitData, NULL);
 
 	stNodeProtoInfoIn_t npii = { 0x01};
@@ -122,6 +125,7 @@ void timerout_cb(struct timer *t) {
 	static int funcID = 0x1;
 	stAddNodeToNetworkIn_t antni = {0x81, funcID++};
 	api_exec(CmdZWaveAddNodeToNetwork, &antni);
+	*/
 }
 
 void api_in(void *arg, int fd) {

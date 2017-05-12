@@ -91,17 +91,17 @@ int s3_t_high_500(stStateMachine_t *sm, stEvent_t *event);
 
 stStateMachine_t testSm = {
 	3, STATE_1, STATE_1, {
-		{2, NULL, {
+		{STATE_1, 2, NULL, {
 				{E_LOW_100, s1_a_low_100, NULL},
 				{E_HIGH_100_LOW_300, s1_a_high_100_low_300, s1_t_high_100_low_300},
 			} 
 		}, //state1
-		{2, NULL, {	
+		{STATE_2, 2, NULL, {	
 				{E_HIGH_100_LOW_300, s2_a_high_100_low_300, NULL},
 				{E_HIGH_300_LOW_500, s2_a_high_300_low_500, s2_t_high_300_low_500},
 			} 
 		}, //state 2
-		{2, NULL, {
+		{STATE_3, 2, NULL, {
 				{E_HIGH_300_LOW_500, s3_a_high_300_low_500, NULL},
 				{E_HIGH_500, s3_a_high_500, s3_t_high_500},
 			}
