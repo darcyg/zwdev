@@ -1038,6 +1038,7 @@ int api_call() {
 
 typedef struct stApiEnv {
 	stLockQueue_t qSend;
+	stLockQueue_t qApiBack;
 
 	stApiCall_t *apicall;
 
@@ -1054,6 +1055,7 @@ static API_RETURN_CALLBACK api_crb = NULL;
 
 static stApiEnv_t env = {
 	.qSend = {},
+	.qApiBack = {},
 	.apicall = NULL,
 	.th = NULL,
 	.timerSend = {},
@@ -1104,6 +1106,10 @@ int  running_transition_async_data(stStateMachine_t *sm, stEvent_t *event, void 
 void * running_action_data(stStateMachine_t *sm, stEvent_t *event);
 int  running_transition_data(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
+void * running_action_call_api(stStateMachine_t *sm, stEvent_t *event);
+int  running_transition_call_api(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+
 
 void * wait_action_version_data(stStateMachine_t *sm, stEvent_t *event);
 int    wait_transition_version_data(stStateMachine_t *sm, stEvent_t *event, void *acret);
@@ -1133,7 +1139,7 @@ stStateMachine_t smCmdSerialApiGetInitData = {
 
 
 stStateMachine_t smApi = {
-	3, S_IDLE, S_IDLE, {
+	2, S_IDLE, S_IDLE, {
 
 		{S_IDLE, 3, NULL, {
 				{E_BEAT, idle_action_beat, NULL},
@@ -1142,11 +1148,12 @@ stStateMachine_t smApi = {
 			},
 		},
 
-		{S_RUNNING, 3, NULL, {	
+		{S_RUNNING, 5, NULL, {	
 				{E_ERROR, running_action_error, running_transition_error}, //nak can timeout
 				{E_ACK, running_action_ack, running_transition_ack},
 				{E_ASYNC_DATA, running_action_async_data, running_transition_async_data},
 				{E_DATA, running_action_data, running_transition_data},
+				{E_CALL_API, running_action_call_api, running_transition_call_api},
 			},
 		}, 
 
@@ -1154,12 +1161,79 @@ stStateMachine_t smApi = {
 };
 
 
-static stStateMachine_t* api_search_state_machine(emApi_t api) {
+static stStateMachine_t* api_id_to_state_machine(emApi_t api) {
 	if (api == CmdZWaveGetVersion) {
 		return &smCmdZWaveGetVersion;
+	} else if (api == CmdSerialApiGetInitData) {
+		return &smCmdSerialApiGetInitData;
 	}
 	return NULL;
 }
+static int api_state_machine_to_id(void *sm) {
+	if (sm == &smCmdZWaveGetVersion) {
+		return CmdZWaveGetVersion;
+	} else if (sm == &smCmdSerialApiGetInitData) {
+		return CmdSerialApiGetInitData;
+	}
+	return -1;
+}
+static bool api_async_call_api(stStateMachine_t *sm, stEvent_t *event, int *sid) {
+	stState_t * state = state_machine_search_state(&smApi, *sid);
+	if (state != NULL) {
+		stStateMachine_t *sm = (stStateMachine_t*)state->param;
+		if (sm != NULL) {
+			int api = api_state_machine_to_id(sm);
+			switch (api) {
+				case CmdZWaveGetVersion:
+				break;
+				case CmdSerialApiGetInitData:
+				break;
+			}
+		}
+	}
+	return false;
+}
+
+static int api_data_event_id_step(stStateMachine_t *sm, int id) {
+	int sid = state_machine_get_state(&smApi);
+	stState_t * state = state_machine_search_state(&smApi, sid);
+	if (state != NULL) {
+		stStateMachine_t *sm = (stStateMachine_t*)state->param;
+		if (sm != NULL) {
+			int api = api_state_machine_to_id(sm);
+			switch (api) {
+				case CmdZWaveGetVersion:
+				if (sm->state == S_WAIT_VERSION_DATA && id == E_DATA) {
+					return E_VERSION_DATA;
+				}
+				break;
+				case CmdSerialApiGetInitData:
+				if (sm->state == S_WAIT_INIT_DATA && id == E_DATA) {
+					return E_INIT_DATA;
+				}
+				break;
+			}
+		}
+	}
+	return -1;
+}
+
+
+static bool api_is_async_data(stDataFrame_t *df) {
+	int sid = state_machine_get_state(&smApi);
+	stState_t * state = state_machine_search_state(&smApi, sid);
+	if (state != NULL) {
+		stStateMachine_t *sm = (stStateMachine_t*)state->param;
+		if (sm != NULL) {
+			if (api_state_machine_to_id(sm) != df->cmd /* && seq == seq */) {
+				return true;
+			}
+		}
+	}
+	
+	return false;
+}
+
 
 static stDataFrame_t * make_frame(emApi_t api, stParam_t *param, int paramSize) {
 	//static int seq = 0;
@@ -1200,6 +1274,7 @@ static int api_post_beat_event() {
 }
 
 static int api_post_api_call_event(emApi_t api, stParam_t *param, int param_size) {
+
 	stEvent_t *e = (stEvent_t*)MALLOC(sizeof(stEvent_t) + sizeof(stApiCall_t));
 	if (e == NULL) {
 		log_debug("not enough memory!");
@@ -1213,10 +1288,37 @@ static int api_post_api_call_event(emApi_t api, stParam_t *param, int param_size
 	ac->param_size = param_size;
 	if (ac->param_size > 0) {
 		memcpy(&ac->param, param, sizeof(stParam_t));
-	}
+	} 
 
 	lockqueue_push(&env.qSend, e);
 	log_debug("api queue size is %d", lockqueue_size(&env.qSend));
+	return 0;
+}
+
+static int api_backup_api_call_event(stEvent_t *event) {
+
+	int size = sizeof(stEvent_t) + sizeof(stApiCall_t);
+	stEvent_t *e = MALLOC(size);
+	if (e == NULL) {
+		log_debug("out of memory!");
+		return 0;
+	}
+	memcpy(e, event, size);
+	e->param = e + 1;
+
+	lockqueue_push(&env.qApiBack, e);
+	log_debug("api backup queue size is %d", lockqueue_size(&env.qApiBack));
+	return 0;
+}
+
+
+static int api_restore_api_call_event() {
+	stEvent_t *e = NULL;
+	if (lockqueue_pop(&env.qApiBack, (void**)&e) && e != NULL) {
+		log_debug("[%s] event : %d", __func__, e->eid);
+
+		lockqueue_push(&env.qSend, e);
+	}
 	return 0;
 }
 
@@ -1318,7 +1420,11 @@ static void api_recv_over(void *_df) {
 
 		if (df->error == FE_NONE) {
 			/* receive ok */
-			api_post_recv_over_event(E_ASYNC_DATA, df);
+			if (api_is_async_data(df)) {
+				api_post_recv_over_event(E_ASYNC_DATA, df);
+			} else {
+				api_post_recv_over_event(E_DATA, df);
+			}
 		} else if (df->error == FE_SEND_TIMEOUT) {
 			/* never go here */
 			log_debug("never go here: FE_SEND_TIMEOUT");
@@ -1359,9 +1465,11 @@ static void api_beat_timer_callback(struct timer *timer) {
 	//while (lockqueue_pop(&env.qSend, (void **)&event)) {
 	if (lockqueue_pop(&env.qSend, (void **)&event)) {
 		if (event != NULL) {
+			log_debug("event id %d", event->eid);
 			state_machine_step(&smApi, event);
 			FREE(event);
 			event = NULL;
+			api_beat();
 		}
 	}
 }
@@ -1379,6 +1487,7 @@ int api_init(void *_th, API_CALL_CALLBACK _accb, API_RETURN_CALLBACK _arcb) {
 	}
 
 	lockqueue_init(&env.qSend);
+	lockqueue_init(&env.qApiBack);
 
 	env.apicall = NULL;
 
@@ -1394,6 +1503,7 @@ int api_free() {
 	session_free();
 
 	lockqueue_destroy(&env.qSend, NULL);
+	lockqueue_destroy(&env.qApiBack, NULL);
 	timer_cancel(env.th, &env.timerSend);
 	timer_cancel(env.th, &env.timerBeat);
 
@@ -1411,6 +1521,7 @@ int api_step() {
 } 
 int api_call(emApi_t api, stParam_t *param, int param_size) {
 	api_post_api_call_event(api, param, param_size);
+
 	api_beat();
 	return 0;
 }
@@ -1422,6 +1533,8 @@ void * idle_action_beat(stStateMachine_t *sm, stEvent_t *event) {
 
 void * idle_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
 
+	log_debug("------[%s]------", __func__);
+	
 	if (state_machine_get_state(sm) != S_IDLE) {
 		log_debug("state machine busy!");
 		return NULL;
@@ -1467,6 +1580,9 @@ void * running_action_error(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int  running_transition_error(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	api_restore_api_call_event();
+	api_post_beat_event();
+	api_beat();
 	return S_IDLE;
 }
 
@@ -1477,7 +1593,7 @@ void * running_action_ack(stStateMachine_t *sm, stEvent_t *event) {
 	stState_t * state = state_machine_search_state(sm, sid);
 	if (state != NULL) {
 		stDataFrame_t *df = (stDataFrame_t*)event->param;
-		state->param = (void*)api_search_state_machine(df->cmd);
+		state->param = (void*)api_id_to_state_machine(df->cmd);
 		state_machine_reset((stStateMachine_t*)state->param);
 	}
 	return NULL;
@@ -1508,40 +1624,63 @@ void * running_action_data(stStateMachine_t *sm, stEvent_t *event) {
 	if (state != NULL) {
 		stStateMachine_t *smapi = (stStateMachine_t*)state->param;
 		if (smapi != NULL) {
+			event->eid = api_data_event_id_step(sm, event->eid);
 			state_machine_step(smapi, event);
 			int s = state_machine_get_state(smapi);
 			if (s == S_END) {
+				api_restore_api_call_event();
 				api_post_beat_event();
 				api_beat();
 				return (void*)S_IDLE;
 			}
 		} else {
 			log_debug("what ? null api state ? ... funck !!!");
+			api_restore_api_call_event();
 			api_post_beat_event();
+			api_beat();
 			return (void*)S_IDLE;
 		}
 	} else {
 		log_debug("what ? null state ?...fuck!!!!");
+		api_restore_api_call_event();
 		api_post_beat_event();
+		api_beat();
 		return (void*)S_IDLE;
 	}
 	return (void*)S_RUNNING;
 }
 int  running_transition_data(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("------[%s]------%d", __func__, (int)acret);
 	return (int)acret;
+}
+
+void * running_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("------[%s]------", __func__);
+
+	int sid = state_machine_get_state(&smApi);
+	if(!api_async_call_api(sm, event, &sid)) {
+		api_backup_api_call_event(event);
+	}
+
+	return (void*)sid;
+}
+
+int  running_transition_call_api(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return (int)(acret);
 }
 
 
 void * wait_action_version_data(stStateMachine_t *sm, stEvent_t *event) {
-	log_debug("----------[%s]-parse...----------", __func__);
+	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
 int    wait_transition_version_data(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
 void * wait_action_init_data(stStateMachine_t *sm, stEvent_t *event) {
-	log_debug("----------[%s]-parse...----------", __func__);
+	log_debug("----------[%s]-----------", __func__);
 	return NULL;
 }
 int    wait_transition_init_data(stStateMachine_t *sm, stEvent_t *event, void *acret) {

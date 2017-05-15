@@ -99,10 +99,10 @@ void api_return_callback(emApi_t api, stParam_t *param, emApiState_t state, emAp
 
 void timerout_cb(struct timer *t) {
 	log_info("========================api test==================");
-	timer_set(&th, t, 1000);
+	timer_set(&th, t, 8000);
 	
 	api_call(CmdZWaveGetVersion, NULL, 0);
-	api_call(CmdZWaveGetVersion, NULL, 0);
+	api_call(CmdSerialApiGetInitData, NULL, 0);
 
 	/*
 	api_exec(CmdSerialApiGetInitData, NULL);
@@ -137,7 +137,7 @@ void api_test() {
 
 	struct timer tr;
 	timer_init(&tr, timerout_cb);
-	timer_set(&th, &tr, 3000);
+	timer_set(&th, &tr, 1000);
 
 	struct file_event_table fet;
 	file_event_init(&fet);
