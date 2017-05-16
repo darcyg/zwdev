@@ -220,6 +220,7 @@ int frame_receive_step() {
 					if (send_over_cb != NULL) {
 						send_over_cb(tmp);
 					}
+					return 0;
 				} else if ((0xff&ch) == NAK_CHAR) {
 					//log_debug("%d", __LINE__);
 					if (fs.frameSend != NULL) {
@@ -235,6 +236,7 @@ int frame_receive_step() {
 					if (send_over_cb != NULL) {
 						send_over_cb(tmp);
 					}
+					return 0;
 				} else if ((0xff&ch) == CAN_CHAR) {
 					//log_debug("%d", __LINE__);
 					if (fs.frameSend != NULL) {
@@ -250,6 +252,7 @@ int frame_receive_step() {
 					if (send_over_cb != NULL) {
 						send_over_cb(tmp);
 					}
+					return 0;
 				} else {
 					//log_debug("%d", __LINE__);
 					;
@@ -329,9 +332,9 @@ int frame_receive_step() {
 				}
 
 				fs.frameRecv = NULL;
-			
 				fs.stateRecv = FRS_SOF_HUNT;
 				timer_cancel(fs.th, &fs.timerRecv);
+				return 0;
 				break;
 			default:
 				fs.stateRecv = FRS_SOF_HUNT;

@@ -1038,7 +1038,8 @@ int api_call() {
 
 typedef struct stApiEnv {
 	stLockQueue_t qSend;
-	stLockQueue_t qApiBack;
+	stLockQueue_t qSendBack;
+	stLockQueue_t qRecv;
 
 	stApiCall_t *apicall;
 
@@ -1055,7 +1056,8 @@ static API_RETURN_CALLBACK api_crb = NULL;
 
 static stApiEnv_t env = {
 	.qSend = {},
-	.qApiBack = {},
+	.qSendBack = {},
+	.qRecv = {},
 	.apicall = NULL,
 	.th = NULL,
 	.timerSend = {},
@@ -1070,6 +1072,7 @@ enum {
 
 	S_WAIT_INIT_DATA = 2,
 	S_WAIT_VERSION_DATA = 3,
+	S_WAIT_NODE_PROTOINFO = 4,
 
 
 	S_END = 9999,
@@ -1085,6 +1088,7 @@ enum {
 
 	E_VERSION_DATA = 6,
 	E_INIT_DATA = 7,
+	E_NODE_PROTOINFO = 8,
 };
 
 void * idle_action_beat(stStateMachine_t *sm, stEvent_t *event);
@@ -1118,6 +1122,10 @@ void * wait_action_init_data(stStateMachine_t *sm, stEvent_t *event);
 int    wait_transition_init_data(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
+void * wait_action_node_protoinfo(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_node_protoinfo(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+
 
 stStateMachine_t smCmdZWaveGetVersion = {
 	1, S_WAIT_VERSION_DATA, S_WAIT_VERSION_DATA, {
@@ -1136,6 +1144,16 @@ stStateMachine_t smCmdSerialApiGetInitData = {
 		},
 	},
 };
+
+stStateMachine_t smCmdZWaveGetNodeProtoInfo = {
+	1, S_WAIT_NODE_PROTOINFO, S_WAIT_NODE_PROTOINFO, {
+		{S_WAIT_NODE_PROTOINFO, 1, NULL, {
+				{E_NODE_PROTOINFO, wait_action_node_protoinfo, wait_transition_node_protoinfo},
+			},
+		},
+	},
+};
+
 
 
 stStateMachine_t smApi = {
@@ -1166,6 +1184,8 @@ static stStateMachine_t* api_id_to_state_machine(emApi_t api) {
 		return &smCmdZWaveGetVersion;
 	} else if (api == CmdSerialApiGetInitData) {
 		return &smCmdSerialApiGetInitData;
+	} else if (api == CmdZWaveGetNodeProtoInfo) {
+		return &smCmdZWaveGetNodeProtoInfo;
 	}
 	return NULL;
 }
@@ -1174,6 +1194,8 @@ static int api_state_machine_to_id(void *sm) {
 		return CmdZWaveGetVersion;
 	} else if (sm == &smCmdSerialApiGetInitData) {
 		return CmdSerialApiGetInitData;
+	} else if (sm == &smCmdZWaveGetNodeProtoInfo) {
+		return CmdZWaveGetNodeProtoInfo;
 	}
 	return -1;
 }
@@ -1187,6 +1209,8 @@ static bool api_async_call_api(stStateMachine_t *sm, stEvent_t *event, int *sid)
 				case CmdZWaveGetVersion:
 				break;
 				case CmdSerialApiGetInitData:
+				break;
+				case CmdZWaveGetNodeProtoInfo:
 				break;
 			}
 		}
@@ -1212,6 +1236,11 @@ static int api_data_event_id_step(stStateMachine_t *sm, int id) {
 					return E_INIT_DATA;
 				}
 				break;
+				case CmdZWaveGetNodeProtoInfo:
+				if (sm->state == S_WAIT_NODE_PROTOINFO && id == E_DATA) {
+					return E_NODE_PROTOINFO;
+				}
+				break;
 			}
 		}
 	}
@@ -1226,10 +1255,14 @@ static bool api_is_async_data(stDataFrame_t *df) {
 		stStateMachine_t *sm = (stStateMachine_t*)state->param;
 		if (sm != NULL) {
 			if (api_state_machine_to_id(sm) != df->cmd /* && seq == seq */) {
+				log_debug("async data(state api id:%d, frame api id:%d)", api_state_machine_to_id(sm), df->cmd);
+				log_debug_hex("async data :",df->payload, df->size);
 				return true;
 			}
 		}
 	}
+	log_debug("async data.");
+	//log_debug_hex("sync data :",df->payload, df->len);
 	
 	return false;
 }
@@ -1306,15 +1339,15 @@ static int api_backup_api_call_event(stEvent_t *event) {
 	memcpy(e, event, size);
 	e->param = e + 1;
 
-	lockqueue_push(&env.qApiBack, e);
-	log_debug("api backup queue size is %d", lockqueue_size(&env.qApiBack));
+	lockqueue_push(&env.qSendBack, e);
+	log_debug("api backup queue size is %d", lockqueue_size(&env.qSendBack));
 	return 0;
 }
 
 
 static int api_restore_api_call_event() {
 	stEvent_t *e = NULL;
-	if (lockqueue_pop(&env.qApiBack, (void**)&e) && e != NULL) {
+	if (lockqueue_pop(&env.qSendBack, (void**)&e) && e != NULL) {
 		log_debug("[%s] event : %d", __func__, e->eid);
 
 		lockqueue_push(&env.qSend, e);
@@ -1367,13 +1400,37 @@ static int api_post_recv_over_event(int eid, stDataFrame_t *df) {
 
 }
 
-static void api_beat() {
-	timer_cancel(env.th, &env.timerBeat);
-	timer_set(env.th, &env.timerBeat, 1);
+static bool handlerOneEvent() {
+	stEvent_t *event = NULL;
+	if (lockqueue_pop(&env.qRecv, (void **)&event)) {
+		if (event != NULL) {
+			log_debug("event id %d from RecvQueue", event->eid);
+			state_machine_step(&smApi, event);
+			FREE(event);
+			event = NULL;
+			return true;
+		}
+	} else if (lockqueue_pop(&env.qSend, (void **)&event)) {
+		if (event != NULL) {
+			log_debug("event id %d from SendQueue", event->eid);
+			state_machine_step(&smApi, event);
+			FREE(event);
+			event = NULL;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 
-
+static void api_beat(int flag) {
+	timer_cancel(env.th, &env.timerBeat);
+	timer_set(env.th, &env.timerBeat, 1);
+	if (flag) {
+		handlerOneEvent();
+	}
+}
 
 
 static void api_send_over(void *_df) {
@@ -1456,12 +1513,16 @@ static void api_recv_over(void *_df) {
 static void api_send_timer_callback(struct timer *timer) {
 	state_machine_reset(&smApi);
 	api_post_beat_event();
-	api_beat();
+	api_beat(0);
 }
 
 
 static void api_beat_timer_callback(struct timer *timer) {
-	stEvent_t *event = NULL;
+	//stEvent_t *event = NULL;
+	if (handlerOneEvent()) {
+		api_beat(0);
+	}
+	/*
 	//while (lockqueue_pop(&env.qSend, (void **)&event)) {
 	if (lockqueue_pop(&env.qSend, (void **)&event)) {
 		if (event != NULL) {
@@ -1469,9 +1530,10 @@ static void api_beat_timer_callback(struct timer *timer) {
 			state_machine_step(&smApi, event);
 			FREE(event);
 			event = NULL;
-			api_beat();
+			api_beat(0);
 		}
 	}
+	*/
 }
 
 
@@ -1487,7 +1549,8 @@ int api_init(void *_th, API_CALL_CALLBACK _accb, API_RETURN_CALLBACK _arcb) {
 	}
 
 	lockqueue_init(&env.qSend);
-	lockqueue_init(&env.qApiBack);
+	lockqueue_init(&env.qSendBack);
+	lockqueue_init(&env.qRecv);
 
 	env.apicall = NULL;
 
@@ -1503,7 +1566,8 @@ int api_free() {
 	session_free();
 
 	lockqueue_destroy(&env.qSend, NULL);
-	lockqueue_destroy(&env.qApiBack, NULL);
+	lockqueue_destroy(&env.qSendBack, NULL);
+	lockqueue_destroy(&env.qRecv, NULL);
 	timer_cancel(env.th, &env.timerSend);
 	timer_cancel(env.th, &env.timerBeat);
 
@@ -1516,13 +1580,13 @@ int api_getfd() {
 }
 int api_step() {
 	session_receive_step();
-	api_beat();
+	api_beat(1);
 	return 0;
 } 
 int api_call(emApi_t api, stParam_t *param, int param_size) {
 	api_post_api_call_event(api, param, param_size);
 
-	api_beat();
+	api_beat(0);
 	return 0;
 }
 ///////////////////////////////////////////////////////////////////////////
@@ -1582,7 +1646,7 @@ void * running_action_error(stStateMachine_t *sm, stEvent_t *event) {
 int  running_transition_error(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	api_restore_api_call_event();
 	api_post_beat_event();
-	api_beat();
+	api_beat(1);
 	return S_IDLE;
 }
 
@@ -1630,21 +1694,21 @@ void * running_action_data(stStateMachine_t *sm, stEvent_t *event) {
 			if (s == S_END) {
 				api_restore_api_call_event();
 				api_post_beat_event();
-				api_beat();
+				api_beat(0);
 				return (void*)S_IDLE;
 			}
 		} else {
 			log_debug("what ? null api state ? ... funck !!!");
 			api_restore_api_call_event();
 			api_post_beat_event();
-			api_beat();
+			api_beat(0);
 			return (void*)S_IDLE;
 		}
 	} else {
 		log_debug("what ? null state ?...fuck!!!!");
 		api_restore_api_call_event();
 		api_post_beat_event();
-		api_beat();
+		api_beat(0);
 		return (void*)S_IDLE;
 	}
 	return (void*)S_RUNNING;
@@ -1670,6 +1734,7 @@ int  running_transition_call_api(stStateMachine_t *sm, stEvent_t *event, void *a
 }
 
 
+/* CmdZWaveGetVersion */
 void * wait_action_version_data(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
@@ -1679,6 +1744,7 @@ int    wait_transition_version_data(stStateMachine_t *sm, stEvent_t *event, void
 	return S_END;
 }
 
+/* CmdSerialApiGetInitData */
 void * wait_action_init_data(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-----------", __func__);
 	return NULL;
@@ -1686,6 +1752,18 @@ void * wait_action_init_data(stStateMachine_t *sm, stEvent_t *event) {
 int    wait_transition_init_data(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	return S_END;
 }
+
+/* CmdZWaveGetNodeProtoInfo */
+void * wait_action_node_protoinfo(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_node_protoinfo(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return S_END;
+}
+
+
+
 
 #endif
 
