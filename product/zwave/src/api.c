@@ -1074,6 +1074,7 @@ enum {
 	S_WAIT_VERSION_DATA = 3,
 	S_WAIT_NODE_PROTOINFO = 4,
 	S_WAIT_CAPABILITIES = 5,
+	S_WAIT_CONTROLLER_CAPABILITIES = 6,
 
 
 	S_END = 9999,
@@ -1091,6 +1092,7 @@ enum {
 	E_INIT_DATA = 7,
 	E_NODE_PROTOINFO = 8,
 	E_CAPABILITIES = 9,
+	E_CONTROLLER_CAPABILITIES = 10,
 };
 
 void * idle_action_beat(stStateMachine_t *sm, stEvent_t *event);
@@ -1131,6 +1133,10 @@ int    wait_transition_node_protoinfo(stStateMachine_t *sm, stEvent_t *event, vo
 void * wait_action_capabilities(stStateMachine_t *sm, stEvent_t *event);
 int    wait_transition_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
+void * wait_action_controller_capabilities(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_controller_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+
 
 stStateMachine_t smCmdZWaveGetVersion = {
 	1, S_WAIT_VERSION_DATA, S_WAIT_VERSION_DATA, {
@@ -1163,6 +1169,16 @@ stStateMachine_t smCmdSerialApiGetCapalibities = {
 	1, S_WAIT_CAPABILITIES, S_WAIT_CAPABILITIES, {
 		{S_WAIT_CAPABILITIES, 1, NULL, {
 				{E_CAPABILITIES, wait_action_capabilities, wait_transition_capabilities},
+			},
+		},
+	},
+};
+
+
+stStateMachine_t smCmdZWaveGetControllerCapabilities = {
+	1, S_WAIT_CONTROLLER_CAPABILITIES, S_WAIT_CONTROLLER_CAPABILITIES, {
+		{S_WAIT_CONTROLLER_CAPABILITIES, 1, NULL, {
+				{E_CONTROLLER_CAPABILITIES, wait_action_controller_capabilities, wait_transition_controller_capabilities},
 			},
 		},
 	},
@@ -1204,6 +1220,8 @@ static stStateMachine_t* api_id_to_state_machine(emApi_t api) {
 		return &smCmdZWaveGetNodeProtoInfo;
 	} else if (api == CmdSerialApiGetCapabilities) {
 		return &smCmdSerialApiGetCapalibities;
+	} else if (api == CmdZWaveGetControllerCapabilities) {
+		return &smCmdZWaveGetControllerCapabilities;
 	}
 	return NULL;
 }
@@ -1216,6 +1234,8 @@ static int api_state_machine_to_id(void *sm) {
 		return CmdZWaveGetNodeProtoInfo;
 	} else if (sm == &smCmdSerialApiGetCapalibities) {
 		return CmdSerialApiGetCapabilities;
+	} else if (sm == &smCmdZWaveGetControllerCapabilities) {
+		return CmdZWaveGetControllerCapabilities;
 	}
 	return -1;
 }
@@ -1233,6 +1253,8 @@ static bool api_async_call_api(stStateMachine_t *sm, stEvent_t *event, int *sid)
 				case CmdZWaveGetNodeProtoInfo:
 				break;
 				case CmdSerialApiGetCapabilities:
+				break;
+				case CmdZWaveGetControllerCapabilities:
 				break;
 			}
 		}
@@ -1266,6 +1288,11 @@ static int api_data_event_id_step(stStateMachine_t *sm, int id) {
 				case CmdSerialApiGetCapabilities:
 				if (sm->state == S_WAIT_CAPABILITIES && id == E_DATA) {
 					return E_CAPABILITIES;
+				}
+				break;
+				case CmdZWaveGetControllerCapabilities:
+				if (sm->state == S_WAIT_CONTROLLER_CAPABILITIES && id == E_DATA) {
+					return E_CONTROLLER_CAPABILITIES;
 				}
 				break;
 			}
@@ -1798,6 +1825,17 @@ void * wait_action_capabilities(stStateMachine_t *sm, stEvent_t *event) {
 int    wait_transition_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	return S_END;
 }
+
+
+/* CmdZWaveGetControllerCapabilities */
+void * wait_action_controller_capabilities(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_controller_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return S_END;
+}
+
 
 
 
