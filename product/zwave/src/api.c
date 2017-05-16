@@ -1075,6 +1075,7 @@ enum {
 	S_WAIT_NODE_PROTOINFO = 4,
 	S_WAIT_CAPABILITIES = 5,
 	S_WAIT_CONTROLLER_CAPABILITIES = 6,
+	S_WAIT_ID = 7,
 
 
 	S_END = 9999,
@@ -1093,6 +1094,7 @@ enum {
 	E_NODE_PROTOINFO = 8,
 	E_CAPABILITIES = 9,
 	E_CONTROLLER_CAPABILITIES = 10,
+	E_ID = 11,
 };
 
 void * idle_action_beat(stStateMachine_t *sm, stEvent_t *event);
@@ -1135,6 +1137,10 @@ int    wait_transition_capabilities(stStateMachine_t *sm, stEvent_t *event, void
 
 void * wait_action_controller_capabilities(stStateMachine_t *sm, stEvent_t *event);
 int    wait_transition_controller_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+
+void * wait_action_id(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_id(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
 
@@ -1185,6 +1191,16 @@ stStateMachine_t smCmdZWaveGetControllerCapabilities = {
 };
 
 
+stStateMachine_t smCmdMemoryGetId = {
+	1, S_WAIT_ID, S_WAIT_ID, {
+		{S_WAIT_ID, 1, NULL, {
+				{E_ID, wait_action_id,  wait_transition_id},
+			},
+		},
+	},
+};
+
+
 
 
 
@@ -1222,6 +1238,8 @@ static stStateMachine_t* api_id_to_state_machine(emApi_t api) {
 		return &smCmdSerialApiGetCapalibities;
 	} else if (api == CmdZWaveGetControllerCapabilities) {
 		return &smCmdZWaveGetControllerCapabilities;
+	} else if (api == CmdMemoryGetId) {
+		return &smCmdMemoryGetId;
 	}
 	return NULL;
 }
@@ -1236,6 +1254,8 @@ static int api_state_machine_to_id(void *sm) {
 		return CmdSerialApiGetCapabilities;
 	} else if (sm == &smCmdZWaveGetControllerCapabilities) {
 		return CmdZWaveGetControllerCapabilities;
+	} else if (sm == &smCmdMemoryGetId) {
+		return CmdMemoryGetId;
 	}
 	return -1;
 }
@@ -1255,6 +1275,8 @@ static bool api_async_call_api(stStateMachine_t *sm, stEvent_t *event, int *sid)
 				case CmdSerialApiGetCapabilities:
 				break;
 				case CmdZWaveGetControllerCapabilities:
+				break;
+				case CmdMemoryGetId:
 				break;
 			}
 		}
@@ -1293,6 +1315,11 @@ static int api_data_event_id_step(stStateMachine_t *sm, int id) {
 				case CmdZWaveGetControllerCapabilities:
 				if (sm->state == S_WAIT_CONTROLLER_CAPABILITIES && id == E_DATA) {
 					return E_CONTROLLER_CAPABILITIES;
+				}
+				break;
+				case CmdMemoryGetId:
+				if (sm->state == S_WAIT_ID && id == E_DATA) {
+					return E_ID;
 				}
 				break;
 			}
@@ -1836,6 +1863,15 @@ int    wait_transition_controller_capabilities(stStateMachine_t *sm, stEvent_t *
 	return S_END;
 }
 
+
+/* CmdMemoryGetId */
+void * wait_action_id(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_id(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return S_END;
+}
 
 
 

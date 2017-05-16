@@ -110,9 +110,11 @@ void timerout_cb(struct timer *t) {
 
 	api_call(CmdSerialApiGetCapabilities, NULL, 0);
 
-	/*
-	api_exec(CmdZWaveGetControllerCapabilities,NULL);
+	api_call(CmdZWaveGetControllerCapabilities,NULL, 0);
 
+	api_call(CmdMemoryGetId, NULL, 0);
+
+	/*
 	api_exec(CmdZWaveGetControllerCapabilities,NULL);
 
 	api_exec(CmdMemoryGetId, NULL);
