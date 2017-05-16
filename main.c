@@ -114,15 +114,11 @@ void timerout_cb(struct timer *t) {
 
 	api_call(CmdMemoryGetId, NULL, 0);
 
-	/*
-	api_exec(CmdZWaveGetControllerCapabilities,NULL);
-
-	api_exec(CmdMemoryGetId, NULL);
-
-	api_exec(CmdZWaveGetSucNodeId, NULL);
+	api_call(CmdZWaveGetSucNodeId, NULL, 0);
 	
-	api_exec(CmdSerialApiApplNodeInformation, NULL);
+	//api_call(CmdSerialApiApplNodeInformation, NULL, 0);
 
+	/*
 	static int funcID = 0x1;
 	stAddNodeToNetworkIn_t antni = {0x81, funcID++};
 	api_exec(CmdZWaveAddNodeToNetwork, &antni);

@@ -1076,6 +1076,8 @@ enum {
 	S_WAIT_CAPABILITIES = 5,
 	S_WAIT_CONTROLLER_CAPABILITIES = 6,
 	S_WAIT_ID = 7,
+	S_WAIT_SUC_NODE_ID = 8,
+	S_WAIT_APPL_NODE_INFORMATION = 9,
 
 
 	S_END = 9999,
@@ -1095,6 +1097,8 @@ enum {
 	E_CAPABILITIES = 9,
 	E_CONTROLLER_CAPABILITIES = 10,
 	E_ID = 11,
+	E_SUC_NODE_ID = 12,
+	E_APPL_NODE_INFORMATION = 13,
 };
 
 void * idle_action_beat(stStateMachine_t *sm, stEvent_t *event);
@@ -1141,6 +1145,14 @@ int    wait_transition_controller_capabilities(stStateMachine_t *sm, stEvent_t *
 
 void * wait_action_id(stStateMachine_t *sm, stEvent_t *event);
 int    wait_transition_id(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+
+void * wait_action_suc_node_id(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_suc_node_id(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+void * wait_action_appl_node_information(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_appl_node_information(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
 
 
 
@@ -1201,6 +1213,26 @@ stStateMachine_t smCmdMemoryGetId = {
 };
 
 
+stStateMachine_t smCmdZWaveGetSucNodeId = {
+	1, S_WAIT_SUC_NODE_ID, S_WAIT_SUC_NODE_ID, {
+		{S_WAIT_SUC_NODE_ID, 1, NULL, {
+				{E_SUC_NODE_ID, wait_action_suc_node_id,  wait_transition_suc_node_id},
+			},
+		},
+	},
+};
+
+
+stStateMachine_t smCmdSerialApiApplNodeInformation= {
+	1, S_WAIT_APPL_NODE_INFORMATION, S_WAIT_APPL_NODE_INFORMATION, {
+		{S_WAIT_APPL_NODE_INFORMATION, 1, NULL, {
+				{E_APPL_NODE_INFORMATION, wait_action_appl_node_information,  wait_transition_appl_node_information},
+			},
+		},
+	},
+};
+
+
 
 
 
@@ -1240,6 +1272,10 @@ static stStateMachine_t* api_id_to_state_machine(emApi_t api) {
 		return &smCmdZWaveGetControllerCapabilities;
 	} else if (api == CmdMemoryGetId) {
 		return &smCmdMemoryGetId;
+	} else if (api == CmdZWaveGetSucNodeId) {
+		return &smCmdZWaveGetSucNodeId;
+	} else if (api == CmdSerialApiApplNodeInformation) {
+		return &smCmdSerialApiApplNodeInformation;
 	}
 	return NULL;
 }
@@ -1256,6 +1292,10 @@ static int api_state_machine_to_id(void *sm) {
 		return CmdZWaveGetControllerCapabilities;
 	} else if (sm == &smCmdMemoryGetId) {
 		return CmdMemoryGetId;
+	} else if (sm == &smCmdZWaveGetSucNodeId) {
+		return CmdZWaveGetSucNodeId;
+	} else if (sm == &smCmdSerialApiApplNodeInformation) {
+		return CmdSerialApiApplNodeInformation;
 	}
 	return -1;
 }
@@ -1277,6 +1317,10 @@ static bool api_async_call_api(stStateMachine_t *sm, stEvent_t *event, int *sid)
 				case CmdZWaveGetControllerCapabilities:
 				break;
 				case CmdMemoryGetId:
+				break;
+				case CmdZWaveGetSucNodeId:
+				break;
+				case CmdSerialApiApplNodeInformation:
 				break;
 			}
 		}
@@ -1320,6 +1364,16 @@ static int api_data_event_id_step(stStateMachine_t *sm, int id) {
 				case CmdMemoryGetId:
 				if (sm->state == S_WAIT_ID && id == E_DATA) {
 					return E_ID;
+				}
+				break;
+				case CmdZWaveGetSucNodeId:
+				if (sm->state == S_WAIT_SUC_NODE_ID && id == E_DATA) {
+					return E_SUC_NODE_ID;
+				}
+				break;
+				case CmdSerialApiApplNodeInformation:
+				if (sm->state == S_WAIT_APPL_NODE_INFORMATION && id == E_DATA) {
+					return E_APPL_NODE_INFORMATION;
 				}
 				break;
 			}
@@ -1870,6 +1924,26 @@ void * wait_action_id(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_id(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return S_END;
+}
+
+
+/* CmdZWaveGetSucNodeId */
+void * wait_action_suc_node_id(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_suc_node_id(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return S_END;
+}
+
+
+/* CmdSerialApiApplNodeInformation */
+void * wait_action_appl_node_information(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_appl_node_information(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	return S_END;
 }
 
