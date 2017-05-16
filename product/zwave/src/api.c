@@ -1073,6 +1073,7 @@ enum {
 	S_WAIT_INIT_DATA = 2,
 	S_WAIT_VERSION_DATA = 3,
 	S_WAIT_NODE_PROTOINFO = 4,
+	S_WAIT_CAPABILITIES = 5,
 
 
 	S_END = 9999,
@@ -1089,6 +1090,7 @@ enum {
 	E_VERSION_DATA = 6,
 	E_INIT_DATA = 7,
 	E_NODE_PROTOINFO = 8,
+	E_CAPABILITIES = 9,
 };
 
 void * idle_action_beat(stStateMachine_t *sm, stEvent_t *event);
@@ -1126,6 +1128,9 @@ void * wait_action_node_protoinfo(stStateMachine_t *sm, stEvent_t *event);
 int    wait_transition_node_protoinfo(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
+void * wait_action_capabilities(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
 
 stStateMachine_t smCmdZWaveGetVersion = {
 	1, S_WAIT_VERSION_DATA, S_WAIT_VERSION_DATA, {
@@ -1153,6 +1158,17 @@ stStateMachine_t smCmdZWaveGetNodeProtoInfo = {
 		},
 	},
 };
+
+stStateMachine_t smCmdSerialApiGetCapalibities = {
+	1, S_WAIT_CAPABILITIES, S_WAIT_CAPABILITIES, {
+		{S_WAIT_CAPABILITIES, 1, NULL, {
+				{E_CAPABILITIES, wait_action_capabilities, wait_transition_capabilities},
+			},
+		},
+	},
+};
+
+
 
 
 
@@ -1186,6 +1202,8 @@ static stStateMachine_t* api_id_to_state_machine(emApi_t api) {
 		return &smCmdSerialApiGetInitData;
 	} else if (api == CmdZWaveGetNodeProtoInfo) {
 		return &smCmdZWaveGetNodeProtoInfo;
+	} else if (api == CmdSerialApiGetCapabilities) {
+		return &smCmdSerialApiGetCapalibities;
 	}
 	return NULL;
 }
@@ -1196,6 +1214,8 @@ static int api_state_machine_to_id(void *sm) {
 		return CmdSerialApiGetInitData;
 	} else if (sm == &smCmdZWaveGetNodeProtoInfo) {
 		return CmdZWaveGetNodeProtoInfo;
+	} else if (sm == &smCmdSerialApiGetCapalibities) {
+		return CmdSerialApiGetCapabilities;
 	}
 	return -1;
 }
@@ -1211,6 +1231,8 @@ static bool api_async_call_api(stStateMachine_t *sm, stEvent_t *event, int *sid)
 				case CmdSerialApiGetInitData:
 				break;
 				case CmdZWaveGetNodeProtoInfo:
+				break;
+				case CmdSerialApiGetCapabilities:
 				break;
 			}
 		}
@@ -1241,6 +1263,11 @@ static int api_data_event_id_step(stStateMachine_t *sm, int id) {
 					return E_NODE_PROTOINFO;
 				}
 				break;
+				case CmdSerialApiGetCapabilities:
+				if (sm->state == S_WAIT_CAPABILITIES && id == E_DATA) {
+					return E_CAPABILITIES;
+				}
+				break;
 			}
 		}
 	}
@@ -1261,7 +1288,7 @@ static bool api_is_async_data(stDataFrame_t *df) {
 			}
 		}
 	}
-	log_debug("async data.");
+	log_debug("sync data.");
 	//log_debug_hex("sync data :",df->payload, df->len);
 	
 	return false;
@@ -1762,6 +1789,15 @@ int    wait_transition_node_protoinfo(stStateMachine_t *sm, stEvent_t *event, vo
 	return S_END;
 }
 
+
+/* CmdSerialApiGetCapabilities */
+void * wait_action_capabilities(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return S_END;
+}
 
 
 

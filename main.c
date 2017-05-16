@@ -108,9 +108,9 @@ void timerout_cb(struct timer *t) {
 	stNodeProtoInfoIn_t npii = { 0x01};
 	api_call(CmdZWaveGetNodeProtoInfo, (stParam_t*)&npii, sizeof(stNodeProtoInfoIn_t));
 
-	/*
-	api_exec(CmdSerialApiGetCapabilities, NULL);
+	api_call(CmdSerialApiGetCapabilities, NULL, 0);
 
+	/*
 	api_exec(CmdZWaveGetControllerCapabilities,NULL);
 
 	api_exec(CmdZWaveGetControllerCapabilities,NULL);
