@@ -1233,6 +1233,35 @@ stStateMachine_t smCmdSerialApiApplNodeInformation= {
 };
 
 
+stStateMachine_t smCmdZWaveAddNodeToNetWork = {
+	5, S_WAIT_CTR_STATUS, S_WAIT_CTR_STATUS, {
+		{S_WAIT_CTR_STATUS, 1, NULL, {
+				{E_CTR_STATUS, wait_action_ctr_status, wait_transition_ctr_status},
+			},
+		},
+		{S_WAIT_ADDED_OR_CANCLE, 2, NULL, {
+				{E_NEWDEV_ADDED, wait_action_ctr_status, wait_transition_ctr_status},
+				{E_CANCLE_ADD, wait_action_cancle_add, wait_transition_cancle_add}, /* async cancle api */
+			},
+		},
+		{S_WAIT_ADDED_NODE, 1, NULL, {
+				{E_ADDED_NODE, wait_action_added_node, wait_transition_added_node},
+			},
+		},
+		{S_WAIT_ADD_COMP, 1, NULL, {
+				{E_ADD_COMP, wait_action_add_comp, wait_transition_add_comp},
+			},
+		},
+		{S_WAIT_CANCLE_CONFIRM, 1, NULL, {
+				{E_CANCLE_CONFIRM, wait_action_cancle_confirm, wait_transition_cancle_confirm}, /* async confirm api */
+			},
+		},
+		{S_WAIT_CANCLE_COMP, 1, NULL, {
+				{E_CANCLE_COMP, wait_action_cancle_comp, wait_transition_cancle_comp},
+			},
+		},
+	},
+};
 
 
 
