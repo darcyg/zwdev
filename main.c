@@ -118,6 +118,9 @@ void timerout_cb(struct timer *t) {
 	
 	//api_call(CmdSerialApiApplNodeInformation, NULL, 0);
 
+	stAddNodeToNetworkIn_t antni = {0x81, 0x02, 0x00, 0x00};
+	api_call(CmdZWaveAddNodeToNetwork, (stParam_t*)&antni, sizeof(antni));
+
 	/*
 	static int funcID = 0x1;
 	stAddNodeToNetworkIn_t antni = {0x81, funcID++};

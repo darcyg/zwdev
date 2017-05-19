@@ -1079,6 +1079,13 @@ enum {
 	S_WAIT_SUC_NODE_ID = 8,
 	S_WAIT_APPL_NODE_INFORMATION = 9,
 
+	S_WAIT_CTR_STATUS = 10,
+	S_WAIT_ADDED_OR_CANCLE = 11,
+	S_WAIT_ADDED_NODE = 12,
+	S_WAIT_ADD_COMP = 13,
+	S_WAIT_CANCLE_CONFIRM = 14,
+	S_WAIT_CANCLE_COMP = 15,
+
 
 	S_END = 9999,
 };
@@ -1089,7 +1096,8 @@ enum {
 	E_ASYNC_DATA = 2,
 	E_ERROR = 3,
 	E_ACK = 4,
-	E_DATA = 5,
+  E_DATA = 5,
+	
 
 	E_VERSION_DATA = 6,
 	E_INIT_DATA = 7,
@@ -1099,6 +1107,14 @@ enum {
 	E_ID = 11,
 	E_SUC_NODE_ID = 12,
 	E_APPL_NODE_INFORMATION = 13,
+
+	E_CTR_STATUS = 14,
+	E_NEWDEV_ADDED = 15,
+	E_CANCLE_ADD = 16,
+	E_ADDED_NODE = 17,
+	E_ADD_COMP = 18,
+	E_CANCLE_CONFIRM = 19,
+	E_CANCLE_COMP = 20,
 };
 
 void * idle_action_beat(stStateMachine_t *sm, stEvent_t *event);
@@ -1155,6 +1171,26 @@ int    wait_transition_appl_node_information(stStateMachine_t *sm, stEvent_t *ev
 
 
 
+void * wait_action_ctr_status(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_ctr_status(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+void * wait_action_newdev_added(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_newdev_added(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+void * wait_action_cancle_add(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_cancle_add(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+void * wait_action_added_node(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_added_node(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+void * wait_action_add_comp(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_add_comp(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+void * wait_action_cancle_confirm(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_cancle_confirm(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+void * wait_action_cancle_comp(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_cancle_comp(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 stStateMachine_t smCmdZWaveGetVersion = {
 	1, S_WAIT_VERSION_DATA, S_WAIT_VERSION_DATA, {
@@ -1240,7 +1276,7 @@ stStateMachine_t smCmdZWaveAddNodeToNetWork = {
 			},
 		},
 		{S_WAIT_ADDED_OR_CANCLE, 2, NULL, {
-				{E_NEWDEV_ADDED, wait_action_ctr_status, wait_transition_ctr_status},
+				{E_NEWDEV_ADDED, wait_action_newdev_added, wait_transition_newdev_added},
 				{E_CANCLE_ADD, wait_action_cancle_add, wait_transition_cancle_add}, /* async cancle api */
 			},
 		},
@@ -1305,6 +1341,8 @@ static stStateMachine_t* api_id_to_state_machine(emApi_t api) {
 		return &smCmdZWaveGetSucNodeId;
 	} else if (api == CmdSerialApiApplNodeInformation) {
 		return &smCmdSerialApiApplNodeInformation;
+	} else if (api == CmdZWaveAddNodeToNetwork) {
+		return &smCmdZWaveAddNodeToNetWork;
 	}
 	return NULL;
 }
@@ -1325,6 +1363,8 @@ static int api_state_machine_to_id(void *sm) {
 		return CmdZWaveGetSucNodeId;
 	} else if (sm == &smCmdSerialApiApplNodeInformation) {
 		return CmdSerialApiApplNodeInformation;
+	} else if (sm == &smCmdZWaveAddNodeToNetWork) {
+		return CmdZWaveAddNodeToNetwork;
 	}
 	return -1;
 }
@@ -1350,6 +1390,17 @@ static bool api_async_call_api(stStateMachine_t *sm, stEvent_t *event, int *sid)
 				case CmdZWaveGetSucNodeId:
 				break;
 				case CmdSerialApiApplNodeInformation:
+				break;
+				case CmdZWaveAddNodeToNetwork:
+				{
+					stDataFrame_t *df = (stDataFrame_t *)event->param;
+					if (df->cmd == CmdZWaveAddNodeToNetwork && (
+								sm->state == S_WAIT_ADDED_OR_CANCLE ||
+								sm->state == S_WAIT_CANCLE_CONFIRM  ||
+								sm->state == S_WAIT_CANCLE_COMP)) {
+						return  true;
+					}
+				}
 				break;
 			}
 		}
@@ -1405,11 +1456,66 @@ static int api_data_event_id_step(stStateMachine_t *sm, int id) {
 					return E_APPL_NODE_INFORMATION;
 				}
 				break;
+				case CmdZWaveAddNodeToNetwork:
+				log_debug("-- 1");
+				if (sm->state == S_WAIT_CTR_STATUS && id == E_DATA) {
+				log_debug("-- 2");
+					return E_CTR_STATUS;
+				} else if (sm->state == S_WAIT_ADDED_OR_CANCLE && id == E_DATA) {
+				log_debug("-- 3");
+					return E_NEWDEV_ADDED;
+				} else if (sm->state == S_WAIT_ADDED_NODE && id == E_DATA) {
+				log_debug("-- 4");
+					return E_ADDED_NODE;
+				} else if (sm->state == S_WAIT_ADD_COMP && id == E_DATA) {
+				log_debug("-- 5");
+					return E_ADD_COMP;
+				}
+				break;
 			}
 		}
 	}
 	return -1;
 }
+
+static int api_ack_event_id_step(stStateMachine_t *sm, int id) {
+	int sid = state_machine_get_state(&smApi);
+	stState_t * state = state_machine_search_state(&smApi, sid);
+	if (state != NULL) {
+		stStateMachine_t *sm = (stStateMachine_t*)state->param;
+		if (sm != NULL) {
+			int api = api_state_machine_to_id(sm);
+			switch (api) {
+				case CmdZWaveGetVersion:
+				case CmdSerialApiGetInitData:
+				case CmdZWaveGetNodeProtoInfo:
+				case CmdSerialApiGetCapabilities:
+				case CmdZWaveGetControllerCapabilities:
+				case CmdMemoryGetId:
+				case CmdZWaveGetSucNodeId:
+				case CmdSerialApiApplNodeInformation:
+				break;
+				case CmdZWaveAddNodeToNetwork:
+				switch (sm->state) {
+					case S_WAIT_ADDED_OR_CANCLE:
+						return E_CANCLE_ADD;
+					break;
+					case S_WAIT_CANCLE_CONFIRM:
+						return E_CANCLE_CONFIRM;
+					break;
+					case S_WAIT_CANCLE_COMP:
+						return E_CANCLE_COMP;
+					break;
+					default:
+					break;
+				}
+				break;
+			}
+		}
+	}
+	return -1;
+}
+
 
 
 static bool api_is_async_data(stDataFrame_t *df) {
@@ -1615,7 +1721,7 @@ static void api_send_over(void *_df) {
 			/* timeout , send timeout */
 			api_post_apicall_over_event(E_ERROR, df);
 		} else if (df->error == FE_SEND_ACK) {
-			api_post_apicall_over_event(E_ACK, df);
+				api_post_apicall_over_event(E_ACK, df);
 		} else if (df->error == FE_SEND_NAK) {
 			/* nan , send nak */
 			api_post_apicall_over_event(E_ERROR, df);
@@ -1820,19 +1926,37 @@ void * running_action_ack(stStateMachine_t *sm, stEvent_t *event) {
 	int sid = state_machine_get_state(sm);
 	stState_t * state = state_machine_search_state(sm, sid);
 	if (state != NULL) {
-		stDataFrame_t *df = (stDataFrame_t*)event->param;
-		state->param = (void*)api_id_to_state_machine(df->cmd);
-		state_machine_reset((stStateMachine_t*)state->param);
+		stStateMachine_t *smapi = (stStateMachine_t*)state->param;
+		if (smapi != NULL) {
+			event->eid = api_ack_event_id_step(sm, event->eid);
+			state_machine_step(smapi, event);
+			int s = state_machine_get_state(smapi);
+			if (s == S_END) {
+				api_restore_api_call_event();
+				api_post_beat_event();
+				api_beat(0);
+				state->param = NULL;
+				return (void*)S_IDLE;
+			}
+			return (void *)S_RUNNING;
+		} else {
+			stDataFrame_t *df = (stDataFrame_t*)event->param;
+			state->param = (void*)api_id_to_state_machine(df->cmd);
+			state_machine_reset((stStateMachine_t*)state->param);
+		}
 	}
 	return NULL;
 }
 int  running_transition_ack(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	int sid = state_machine_get_state(sm);
-	stState_t * state = state_machine_search_state(sm, sid);
-	if (state == NULL || state->numevent == 0) {
-		return S_IDLE;
+	if (acret == NULL) {
+		int sid = state_machine_get_state(sm);
+		stState_t * state = state_machine_search_state(sm, sid);
+		if (state == NULL || state->numevent == 0) {
+			return S_IDLE;
+		}
+		return S_RUNNING;
 	}
-	return S_RUNNING;
+	return (int)acret;
 }
 
 void * running_action_async_data(stStateMachine_t *sm, stEvent_t *event) {
@@ -1859,6 +1983,7 @@ void * running_action_data(stStateMachine_t *sm, stEvent_t *event) {
 				api_restore_api_call_event();
 				api_post_beat_event();
 				api_beat(0);
+				state->param = NULL;
 				return (void*)S_IDLE;
 			}
 		} else {
@@ -1973,6 +2098,64 @@ void * wait_action_appl_node_information(stStateMachine_t *sm, stEvent_t *event)
 	return NULL;
 }
 int    wait_transition_appl_node_information(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return S_END;
+}
+
+/* CmdZWaveAddNodeToNetwork */
+
+void * wait_action_ctr_status(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_ctr_status(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return S_WAIT_ADDED_OR_CANCLE;
+}
+
+void * wait_action_newdev_added(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_newdev_added(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return S_WAIT_ADDED_NODE;
+}
+
+void * wait_action_cancle_add(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_cancle_add(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return S_WAIT_CANCLE_CONFIRM;
+}
+
+void * wait_action_added_node(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_added_node(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return S_WAIT_ADD_COMP;
+}
+
+void * wait_action_add_comp(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_add_comp(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return S_END;
+}
+
+void * wait_action_cancle_confirm(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_cancle_confirm(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return S_WAIT_CANCLE_COMP;
+}
+
+void * wait_action_cancle_comp(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_cancle_comp(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	return S_END;
 }
 

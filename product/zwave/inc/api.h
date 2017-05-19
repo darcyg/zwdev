@@ -417,6 +417,8 @@ typedef struct stApplNodeInformationIn {
 typedef struct stAddNodeToNetworkIn {
 	char mode;
 	char funcID;
+	char yummy1;	
+	char yummy2;
 }stAddNodeToNetworkIn_t;
 
 typedef struct stAddNodeToNetworkWait {
