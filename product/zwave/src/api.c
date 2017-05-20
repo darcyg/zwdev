@@ -1664,14 +1664,32 @@ static int api_post_recv_over_event(int eid, stDataFrame_t *df) {
 		memcpy(ac->payload, df->payload, df->len);
 	}
 
-	lockqueue_push(&env.qSend, e);
+	lockqueue_push(&env.qRecv, e);
+	//lockqueue_push(&env.qSend, e);
 
 	return 0;
 
 }
 
+static void api_print_state_info() {
+	int sid = state_machine_get_state(&smApi);
+
+	int ssid = -1;
+	stState_t * state = state_machine_search_state(&smApi, sid);
+	if (state != NULL) {
+		stStateMachine_t *sm = (stStateMachine_t*)state->param;
+		if (sm != NULL) {
+			ssid = state_machine_get_state(sm);
+		}
+	}
+
+	log_debug("**>main state is : [%d], sub api state is [%d]<**", sid, ssid);
+}
+
 static bool handlerOneEvent() {
 	stEvent_t *event = NULL;
+	//api_print_state_info();
+
 	if (lockqueue_pop(&env.qRecv, (void **)&event)) {
 		if (event != NULL) {
 			log_debug("event id %d from RecvQueue", event->eid);
@@ -1861,6 +1879,7 @@ int api_call(emApi_t api, stParam_t *param, int param_size) {
 }
 ///////////////////////////////////////////////////////////////////////////
 void * idle_action_beat(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
 
@@ -1892,11 +1911,13 @@ void * idle_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
 	}
 	frame_send(df);
 
-	timer_set(env.th, &env.timerSend, API_EXEC_TIMEOUT_MS);
+	//Fixed here to a correct one
+	//timer_set(env.th, &env.timerSend, API_EXEC_TIMEOUT_MS);
 
 	return (void *)S_RUNNING;
 }
 int    idle_transition_call_api(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	if (acret == NULL) {
 		return S_IDLE;
 	} 
@@ -1914,6 +1935,7 @@ void * running_action_error(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int  running_transition_error(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	api_restore_api_call_event();
 	api_post_beat_event();
 	api_beat(1);
@@ -1948,6 +1970,7 @@ void * running_action_ack(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int  running_transition_ack(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	if (acret == NULL) {
 		int sid = state_machine_get_state(sm);
 		stState_t * state = state_machine_search_state(sm, sid);
@@ -2019,6 +2042,7 @@ void * running_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
 }
 
 int  running_transition_call_api(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return (int)(acret);
 }
 
@@ -2039,6 +2063,7 @@ void * wait_action_init_data(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_init_data(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
@@ -2048,6 +2073,7 @@ void * wait_action_node_protoinfo(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_node_protoinfo(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
@@ -2058,6 +2084,7 @@ void * wait_action_capabilities(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
@@ -2068,6 +2095,7 @@ void * wait_action_controller_capabilities(stStateMachine_t *sm, stEvent_t *even
 	return NULL;
 }
 int    wait_transition_controller_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
@@ -2078,6 +2106,7 @@ void * wait_action_id(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_id(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
@@ -2088,6 +2117,7 @@ void * wait_action_suc_node_id(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_suc_node_id(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
@@ -2098,6 +2128,7 @@ void * wait_action_appl_node_information(stStateMachine_t *sm, stEvent_t *event)
 	return NULL;
 }
 int    wait_transition_appl_node_information(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
@@ -2108,6 +2139,7 @@ void * wait_action_ctr_status(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_ctr_status(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_WAIT_ADDED_OR_CANCLE;
 }
 
@@ -2116,6 +2148,7 @@ void * wait_action_newdev_added(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_newdev_added(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_WAIT_ADDED_NODE;
 }
 
@@ -2124,6 +2157,7 @@ void * wait_action_cancle_add(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_cancle_add(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_WAIT_CANCLE_CONFIRM;
 }
 
@@ -2132,6 +2166,7 @@ void * wait_action_added_node(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_added_node(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_WAIT_ADD_COMP;
 }
 
@@ -2140,6 +2175,7 @@ void * wait_action_add_comp(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_add_comp(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
@@ -2148,6 +2184,7 @@ void * wait_action_cancle_confirm(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_cancle_confirm(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_WAIT_CANCLE_COMP;
 }
 
@@ -2156,6 +2193,7 @@ void * wait_action_cancle_comp(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_cancle_comp(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 

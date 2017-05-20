@@ -1,5 +1,6 @@
 #include "common.h"
 #include "statemachine.h"
+#include "log.h"
 
 
 int state_machine_init(stStateMachine_t *sm) {
@@ -53,6 +54,10 @@ int state_machine_step(stStateMachine_t *sm, stEvent_t *event) {
 		next_state = ((TRANSITION)transition)(sm, event, acret);
 	} else {
 		next_state = state;
+	}
+
+	if (next_state != state) {
+		log_info("state change from %d to %d", state, next_state);
 	}
 
 	//if (acret != NULL) {
