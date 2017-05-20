@@ -120,7 +120,11 @@ void timerout_cb(struct timer *t) {
 
 	//stAddNodeToNetworkIn_t antni = {0x81, 0x02, 0x00, 0x00};
 	//api_call(CmdZWaveAddNodeToNetwork, (stParam_t*)&antni, sizeof(antni));
+	//stNodeInfoIn_t nii = {0x26};
+	//api_call(CmdZWaveRequestNodeInfo, (stParam_t*)&nii, sizeof(nii));
 
+	stRemoveNodeFromNetworkIn_t rnfn = {0x01, 0x13};
+	api_call(CmdZWaveRemoveNodeFromNetwork, (stParam_t*)&rnfn, sizeof(rnfn));
 	/*
 	static int funcID = 0x1;
 	stAddNodeToNetworkIn_t antni = {0x81, funcID++};

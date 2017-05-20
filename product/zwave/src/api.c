@@ -1086,6 +1086,13 @@ enum {
 	S_WAIT_CANCLE_CONFIRM = 14,
 	S_WAIT_CANCLE_COMP = 15,
 
+	S_WAIT_NODE_INFO = 16,
+
+	S_WAIT_REMOVE_RESPONSE = 17,	
+	S_WAIT_LEAVE_OR_CANCLE = 18,
+	S_WAIT_LEAVED_NODE_S1 = 19,
+	S_WAIT_LEAVED_NODE_S2 = 20,
+	S_WAIT_LEAVE_COMP = 21,
 
 	S_END = 9999,
 };
@@ -1115,7 +1122,18 @@ enum {
 	E_ADD_COMP = 18,
 	E_CANCLE_CONFIRM = 19,
 	E_CANCLE_COMP = 20,
+
+	E_NODE_INFO = 21,
+
+
+	E_REMOVE_RESPONSE = 22,
+	E_LEAVING = 23,
+	E_CANCLE_REMOVE = 24,
+	E_LEAVED_NODE_S1 = 25,
+	E_LEAVED_NODE_S2 = 26,
+	E_LEAVE_COMP = 27,
 };
+
 
 void * idle_action_beat(stStateMachine_t *sm, stEvent_t *event);
 
@@ -1191,6 +1209,34 @@ int    wait_transition_cancle_confirm(stStateMachine_t *sm, stEvent_t *event, vo
 
 void * wait_action_cancle_comp(stStateMachine_t *sm, stEvent_t *event);
 int    wait_transition_cancle_comp(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+void * wait_action_node_info(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_node_info(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+
+
+void * wait_action_remove_response(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_remove_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+void * wait_action_leaving(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_leaving(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+void * wait_action_cancle_remove(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_cancle_remove(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+void * wait_action_leaved_node_s1(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_leaved_node_s1(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+void * wait_action_leaved_node_s2(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_leaved_node_s2(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+void * wait_action_leave_comp(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_leave_comp(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+
+
+
+
 
 stStateMachine_t smCmdZWaveGetVersion = {
 	1, S_WAIT_VERSION_DATA, S_WAIT_VERSION_DATA, {
@@ -1270,7 +1316,7 @@ stStateMachine_t smCmdSerialApiApplNodeInformation= {
 
 
 stStateMachine_t smCmdZWaveAddNodeToNetWork = {
-	5, S_WAIT_CTR_STATUS, S_WAIT_CTR_STATUS, {
+	6, S_WAIT_CTR_STATUS, S_WAIT_CTR_STATUS, {
 		{S_WAIT_CTR_STATUS, 1, NULL, {
 				{E_CTR_STATUS, wait_action_ctr_status, wait_transition_ctr_status},
 			},
@@ -1294,6 +1340,45 @@ stStateMachine_t smCmdZWaveAddNodeToNetWork = {
 		},
 		{S_WAIT_CANCLE_COMP, 1, NULL, {
 				{E_CANCLE_COMP, wait_action_cancle_comp, wait_transition_cancle_comp},
+			},
+		},
+	},
+};
+
+stStateMachine_t smCmdZWaveRequestNodeInfo = {
+	1, S_WAIT_NODE_INFO, S_WAIT_NODE_INFO, {
+		{S_WAIT_NODE_INFO, 1, NULL, {
+				{E_NODE_INFO, wait_action_node_info,  wait_transition_node_info},
+			},
+		},
+	},
+};
+
+stStateMachine_t smCmdZWaveRemoveNodeFromNetwork = {
+	5, S_WAIT_REMOVE_RESPONSE, S_WAIT_REMOVE_RESPONSE, {
+		{S_WAIT_REMOVE_RESPONSE, 1, NULL, {
+				{E_REMOVE_RESPONSE, wait_action_remove_response, wait_transition_remove_response},
+			},
+		},
+
+		{S_WAIT_LEAVE_OR_CANCLE, 2, NULL, {
+				{E_LEAVING, wait_action_leaving, wait_transition_leaving},
+				{E_CANCLE_REMOVE, wait_action_cancle_remove, wait_transition_cancle_remove},
+			},
+		},
+
+		{S_WAIT_LEAVED_NODE_S1, 1, NULL, {
+				{E_LEAVED_NODE_S1, wait_action_leaved_node_s1, wait_transition_leaved_node_s1},
+			},
+		},
+
+		{S_WAIT_LEAVED_NODE_S2, 1, NULL, {
+				{E_LEAVED_NODE_S2, wait_action_leaved_node_s2, wait_transition_leaved_node_s2},
+			},
+		},
+
+		{S_WAIT_LEAVE_COMP, 1, NULL, {
+				{E_LEAVE_COMP, wait_action_leave_comp, wait_transition_leave_comp},
 			},
 		},
 	},
@@ -1343,6 +1428,10 @@ static stStateMachine_t* api_id_to_state_machine(emApi_t api) {
 		return &smCmdSerialApiApplNodeInformation;
 	} else if (api == CmdZWaveAddNodeToNetwork) {
 		return &smCmdZWaveAddNodeToNetWork;
+	} else if (api == CmdZWaveRequestNodeInfo) {
+		return &smCmdZWaveRequestNodeInfo;
+	} else if (api == CmdZWaveRemoveNodeFromNetwork) {
+		return &smCmdZWaveRemoveNodeFromNetwork;
 	}
 	return NULL;
 }
@@ -1365,6 +1454,10 @@ static int api_state_machine_to_id(void *sm) {
 		return CmdSerialApiApplNodeInformation;
 	} else if (sm == &smCmdZWaveAddNodeToNetWork) {
 		return CmdZWaveAddNodeToNetwork;
+	} else if (sm == &smCmdZWaveRequestNodeInfo) {
+		return CmdZWaveRequestNodeInfo;
+	} else if (sm == &smCmdZWaveRemoveNodeFromNetwork) {
+		return CmdZWaveRemoveNodeFromNetwork;
 	}
 	return -1;
 }
@@ -1393,11 +1486,25 @@ static bool api_async_call_api(stStateMachine_t *sm, stEvent_t *event, int *sid)
 				break;
 				case CmdZWaveAddNodeToNetwork:
 				{
-					stDataFrame_t *df = (stDataFrame_t *)event->param;
-					if (df->cmd == CmdZWaveAddNodeToNetwork && (
+					//stDataFrame_t *df = (stDataFrame_t *)event->param;
+					stApiCall_t * ac = (stApiCall_t*)event->param;
+					if (ac->api == CmdZWaveAddNodeToNetwork && (
 								sm->state == S_WAIT_ADDED_OR_CANCLE ||
 								sm->state == S_WAIT_CANCLE_CONFIRM  ||
 								sm->state == S_WAIT_CANCLE_COMP)) {
+						return  true;
+					}
+				}
+				break;
+				case CmdZWaveRequestNodeInfo:
+				break;
+				case CmdZWaveRemoveNodeFromNetwork:
+				{
+					//stDataFrame_t *df = (stDataFrame_t *)event->param;
+					stApiCall_t * ac = (stApiCall_t*)event->param;
+					if (ac->api == CmdZWaveRemoveNodeFromNetwork && (
+								sm->state == S_WAIT_LEAVE_OR_CANCLE ||
+								sm->state == S_WAIT_LEAVE_COMP) ) {
 						return  true;
 					}
 				}
@@ -1472,6 +1579,23 @@ static int api_data_event_id_step(stStateMachine_t *sm, int id) {
 					return E_ADD_COMP;
 				}
 				break;
+				case CmdZWaveRequestNodeInfo:
+				if (sm->state == S_WAIT_NODE_INFO && id == E_DATA) {
+					return E_NODE_INFO;
+				}
+				break;
+				case CmdZWaveRemoveNodeFromNetwork:
+				if (sm->state == S_WAIT_REMOVE_RESPONSE && id == E_DATA) {
+					return E_REMOVE_RESPONSE;
+				} else if (sm->state == S_WAIT_LEAVE_OR_CANCLE && id == E_DATA) {
+					return E_LEAVING;
+				} else if (sm->state == S_WAIT_LEAVED_NODE_S1 && id == E_DATA) {
+					return E_LEAVED_NODE_S1;
+				} else if (sm->state == S_WAIT_LEAVED_NODE_S2 && id == E_DATA) {
+					return E_LEAVED_NODE_S2;
+				}
+				break;
+
 			}
 		}
 	}
@@ -1510,6 +1634,15 @@ static int api_ack_event_id_step(stStateMachine_t *sm, int id) {
 					break;
 				}
 				break;
+				case CmdZWaveRequestNodeInfo:
+				break;
+				case CmdZWaveRemoveNodeFromNetwork:
+				switch (sm->state) {
+					case S_WAIT_LEAVE_COMP:
+						return E_LEAVE_COMP;
+					break;
+				}
+				break;
 			}
 		}
 	}
@@ -1521,20 +1654,21 @@ static int api_ack_event_id_step(stStateMachine_t *sm, int id) {
 static bool api_is_async_data(stDataFrame_t *df) {
 	int sid = state_machine_get_state(&smApi);
 	stState_t * state = state_machine_search_state(&smApi, sid);
-	if (state != NULL) {
+
+	if (sid == S_RUNNING && state != NULL) {
 		stStateMachine_t *sm = (stStateMachine_t*)state->param;
 		if (sm != NULL) {
-			if (api_state_machine_to_id(sm) != df->cmd /* && seq == seq */) {
-				log_debug("async data(state api id:%d, frame api id:%d)", api_state_machine_to_id(sm), df->cmd);
-				log_debug_hex("async data :",df->payload, df->size);
-				return true;
+			if (api_state_machine_to_id(sm) == df->cmd /* && seq == seq */) {
+				log_debug_hex("sync data :",df->payload, df->size);
+				return false;
 			}
 		}
 	}
-	log_debug("sync data.");
-	//log_debug_hex("sync data :",df->payload, df->len);
-	
-	return false;
+
+	//log_debug("async data(state api id:%d, frame api id:%d)", api_state_machine_to_id(sm), df->cmd);
+	log_debug("frame api id:%d", df->cmd);
+	log_debug_hex("async data :",df->payload, df->size);
+	return true;
 }
 
 
@@ -1672,6 +1806,7 @@ static int api_post_recv_over_event(int eid, stDataFrame_t *df) {
 }
 
 static void api_print_state_info() {
+	#if 0
 	int sid = state_machine_get_state(&smApi);
 
 	int ssid = -1;
@@ -1684,11 +1819,12 @@ static void api_print_state_info() {
 	}
 
 	log_debug("**>main state is : [%d], sub api state is [%d]<**", sid, ssid);
+	#endif
 }
 
 static bool handlerOneEvent() {
 	stEvent_t *event = NULL;
-	//api_print_state_info();
+	api_print_state_info();
 
 	if (lockqueue_pop(&env.qRecv, (void **)&event)) {
 		if (event != NULL) {
@@ -2036,8 +2172,18 @@ void * running_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
 	int sid = state_machine_get_state(&smApi);
 	if(!api_async_call_api(sm, event, &sid)) {
 		api_backup_api_call_event(event);
-	}
+	} else {
+		if (event->eid != E_CALL_API) {
+			log_debug("api call event id error : %d, correct:%d", event->eid, E_CALL_API);
+		}
+		stApiCall_t * ac = (stApiCall_t*)event->param;
 
+		stDataFrame_t * df = make_frame(ac->api, &ac->param, ac->param_size);
+		if (df == NULL) {
+			log_debug("api call make frame error !");
+		}
+		frame_send(df);
+	}
 	return (void*)sid;
 }
 
@@ -2193,6 +2339,73 @@ void * wait_action_cancle_comp(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_cancle_comp(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+void * wait_action_node_info(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_node_info(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+
+
+void * wait_action_remove_response(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_remove_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_WAIT_LEAVE_OR_CANCLE;
+}
+
+void * wait_action_leaving(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_leaving(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_WAIT_LEAVED_NODE_S1;
+}
+
+void * wait_action_cancle_remove(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_cancle_remove(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+void * wait_action_leaved_node_s1(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_leaved_node_s1(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_WAIT_LEAVED_NODE_S2;
+}
+
+void * wait_action_leaved_node_s2(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_leaved_node_s2(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
+	char buf[1] ={ 0x05};
+	api_call(CmdZWaveRemoveNodeFromNetwork, (stParam_t*)buf, 1);
+	return S_WAIT_LEAVE_COMP;
+}
+
+void * wait_action_leave_comp(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_leave_comp(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }

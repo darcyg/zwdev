@@ -549,7 +549,7 @@ typedef enum emApi {
 
 	CmdZWaveRequestNodeInfo = 0x60,
 
-	CmdApplicationControllerUpdate = 0x49,
+	CmdApplicationControllerUpdate = 0x49,  //<---
 
 	CmdZWaveRemoveNodeFromNetwork = 0x4B,
 
