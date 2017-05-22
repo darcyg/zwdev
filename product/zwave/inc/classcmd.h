@@ -73,13 +73,55 @@ typedef enum emCmd {
 typedef struct stClassCmdParam {
 }stClassCmdParam_t;
 
+typedef struct stAttr {
+	int		aid;	
+	char	name[32];
+	void	*set;
+	void	*get;
+	void	*report;
+}stAttr_t;
+
+typedef struct stClass {
+	int				cid;
+	char			name[32];
+	int				attrs_cnt;
+	stAttr_t	attrs[CLASS_MAX_ATTR_NUM];
+}stClass_t;
+
+
+stClass_t classes[] = {
+	[COMMAND_CLASS_BASIC_V1] = {
+		{COMMAND_CLASS_BASIC_V1, "basic_v1", 1, {
+				{BASIC, "basic", basic_get, basic_set, basic_report},
+			},
+		},
+	},
+	[COMMAND_CLASS_VERSION_V1] = {
+		{COMMAND_CLASS_VERSION_V1, "version_v1", 2, {
+				{VERSION_COMMAND_CLASS, "version_command_class", version_command_class_get, verision_command_class_set, version_command_class_report},
+				{VERSION, "version", version_get, verision_set, version_report},
+			},
+		},
+	},
+	[COMMAND_CLASS_VERSION_V2] = {
+		{COMMAND_CLASS_VERSION_V1, "version_v1", 2, {
+				{VERSION_COMMAND_CLASS, "version_command_class", version_command_class_get, verision_command_class_set, version_command_class_report},
+				{VERSION, "version", version_get, verision_set, version_report},
+			},
+		},
+	},
+	[COMMAND_CLASS_SWITCH_BINARY_V1] = {
+		{COMMAND_CLASS_SWITCH_BINARY_V1, "switch_binary", 1, {
+				{SWITCH_BINARY, "switch_binary", switch_binary_get, switch_binary_set, switch_binary_report},
+			},
+		},
+	},
+};
+
 
 int class_cmd_get(emClass_t class, emCmd_t cmd, stClassCmdParam_t *param, stSendDataIn_t *sdi);
 int class_cmd_set(emClass_t class, emCmd_t cmd, stClassCmdParam_t *param, stSendDataIn_t *sdi);
 int class_cmd_report(emClass_t class, emCmd_t cmd, stClassCmdParam_t *param, stSendDAtaInt_t *sdi);
 int class_cmd_parse(emClass_t *class, emCmd_t *cmd, stClassCmdParam_t *param, stSendDataIn_t *sdi);
-
-
-
 
 #endif
