@@ -1094,6 +1094,8 @@ enum {
 	S_WAIT_LEAVED_NODE_S2 = 20,
 	S_WAIT_LEAVE_COMP = 21,
 
+	S_WAIT_SETSUC_RESPONSE = 22,
+
 	S_END = 9999,
 };
 
@@ -1132,6 +1134,8 @@ enum {
 	E_LEAVED_NODE_S1 = 25,
 	E_LEAVED_NODE_S2 = 26,
 	E_LEAVE_COMP = 27,
+
+	E_SETSUC_RESPONSE = 28,
 };
 
 
@@ -1232,6 +1236,10 @@ int    wait_transition_leaved_node_s2(stStateMachine_t *sm, stEvent_t *event, vo
 
 void * wait_action_leave_comp(stStateMachine_t *sm, stEvent_t *event);
 int    wait_transition_leave_comp(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+
+void * wait_action_setsuc_response(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_setsuc_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
 
@@ -1384,6 +1392,14 @@ stStateMachine_t smCmdZWaveRemoveNodeFromNetwork = {
 	},
 };
 
+stStateMachine_t smCmdZWaveSetSucNodeId = {
+	1, S_WAIT_SETSUC_RESPONSE, S_WAIT_SETSUC_RESPONSE, {
+		{S_WAIT_SETSUC_RESPONSE, 1, NULL, {
+				{E_SETSUC_RESPONSE, wait_action_setsuc_response, wait_transition_setsuc_response},
+			}
+		},
+	},
+};
 
 
 stStateMachine_t smApi = {
@@ -1432,6 +1448,8 @@ static stStateMachine_t* api_id_to_state_machine(emApi_t api) {
 		return &smCmdZWaveRequestNodeInfo;
 	} else if (api == CmdZWaveRemoveNodeFromNetwork) {
 		return &smCmdZWaveRemoveNodeFromNetwork;
+	} else if (api == CmdZWaveSetSucNodeId) {
+		return &smCmdZWaveSetSucNodeId;
 	}
 	return NULL;
 }
@@ -1458,6 +1476,8 @@ static int api_state_machine_to_id(void *sm) {
 		return CmdZWaveRequestNodeInfo;
 	} else if (sm == &smCmdZWaveRemoveNodeFromNetwork) {
 		return CmdZWaveRemoveNodeFromNetwork;
+	} else if (sm == &smCmdZWaveSetSucNodeId) {
+		return CmdZWaveSetSucNodeId;
 	}
 	return -1;
 }
@@ -1508,6 +1528,8 @@ static bool api_async_call_api(stStateMachine_t *sm, stEvent_t *event, int *sid)
 						return  true;
 					}
 				}
+				break;
+				case CmdZWaveSetSucNodeId:
 				break;
 			}
 		}
@@ -1595,7 +1617,11 @@ static int api_data_event_id_step(stStateMachine_t *sm, int id) {
 					return E_LEAVED_NODE_S2;
 				}
 				break;
-
+				case CmdZWaveSetSucNodeId:
+				if (sm->state == S_WAIT_SETSUC_RESPONSE && id == E_DATA) {
+					return E_SETSUC_RESPONSE;
+				}
+				break;
 			}
 		}
 	}
@@ -1642,6 +1668,8 @@ static int api_ack_event_id_step(stStateMachine_t *sm, int id) {
 						return E_LEAVE_COMP;
 					break;
 				}
+				break;
+				case CmdZWaveSetSucNodeId:
 				break;
 			}
 		}
@@ -2410,7 +2438,15 @@ int    wait_transition_leave_comp(stStateMachine_t *sm, stEvent_t *event, void *
 	return S_END;
 }
 
-
+/* CmdZWaveSetSucNodeId */
+void * wait_action_setsuc_response(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_setsuc_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
 
 #endif
 
