@@ -1096,6 +1096,9 @@ enum {
 
 	S_WAIT_SETSUC_RESPONSE = 22,
 
+	S_WAIT_SENDDATA_RESPONSE = 23,
+	S_WAIT_TX_STATUS = 24,
+
 	S_END = 9999,
 };
 
@@ -1136,6 +1139,9 @@ enum {
 	E_LEAVE_COMP = 27,
 
 	E_SETSUC_RESPONSE = 28,
+
+	E_SENDDATA_RESPONSE = 29,
+	E_TX_STATUS = 30,
 };
 
 
@@ -1241,6 +1247,13 @@ int    wait_transition_leave_comp(stStateMachine_t *sm, stEvent_t *event, void *
 void * wait_action_setsuc_response(stStateMachine_t *sm, stEvent_t *event);
 int    wait_transition_setsuc_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
+
+
+void * wait_action_senddata_response(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_senddata_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+void * wait_action_tx_status(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_tx_status(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
 
@@ -1396,7 +1409,20 @@ stStateMachine_t smCmdZWaveSetSucNodeId = {
 	1, S_WAIT_SETSUC_RESPONSE, S_WAIT_SETSUC_RESPONSE, {
 		{S_WAIT_SETSUC_RESPONSE, 1, NULL, {
 				{E_SETSUC_RESPONSE, wait_action_setsuc_response, wait_transition_setsuc_response},
-			}
+			},
+		},
+	},
+};
+
+stStateMachine_t smCmdZWaveSendData = {
+	2, S_WAIT_SENDDATA_RESPONSE, S_WAIT_SENDDATA_RESPONSE, {
+		{S_WAIT_SENDDATA_RESPONSE, 1, NULL, {
+				{E_SENDDATA_RESPONSE, wait_action_senddata_response, wait_transition_senddata_response},
+			},
+		},
+		{S_WAIT_TX_STATUS, 1, NULL, {
+				{E_TX_STATUS, wait_action_tx_status, wait_transition_tx_status},
+			},
 		},
 	},
 };
@@ -1450,6 +1476,8 @@ static stStateMachine_t* api_id_to_state_machine(emApi_t api) {
 		return &smCmdZWaveRemoveNodeFromNetwork;
 	} else if (api == CmdZWaveSetSucNodeId) {
 		return &smCmdZWaveSetSucNodeId;
+	} else if (api == CmdZWaveSendData) {
+		return &smCmdZWaveSendData;
 	}
 	return NULL;
 }
@@ -1478,6 +1506,8 @@ static int api_state_machine_to_id(void *sm) {
 		return CmdZWaveRemoveNodeFromNetwork;
 	} else if (sm == &smCmdZWaveSetSucNodeId) {
 		return CmdZWaveSetSucNodeId;
+	} else if (sm == &smCmdZWaveSendData) {
+		return CmdZWaveSendData;
 	}
 	return -1;
 }
@@ -1530,6 +1560,8 @@ static bool api_async_call_api(stStateMachine_t *sm, stEvent_t *event, int *sid)
 				}
 				break;
 				case CmdZWaveSetSucNodeId:
+				break;
+				case CmdZWaveSendData:
 				break;
 			}
 		}
@@ -1622,6 +1654,13 @@ static int api_data_event_id_step(stStateMachine_t *sm, int id) {
 					return E_SETSUC_RESPONSE;
 				}
 				break;
+				case CmdZWaveSendData:
+				if (sm->state == S_WAIT_SENDDATA_RESPONSE && id == E_DATA) {
+					return E_SENDDATA_RESPONSE;
+				} else if (sm->state == S_WAIT_TX_STATUS && id == E_DATA) {
+					return E_TX_STATUS;
+				}
+				break;
 			}
 		}
 	}
@@ -1670,6 +1709,8 @@ static int api_ack_event_id_step(stStateMachine_t *sm, int id) {
 				}
 				break;
 				case CmdZWaveSetSucNodeId:
+				break;
+				case CmdZWaveSendData:
 				break;
 			}
 		}
@@ -2381,6 +2422,7 @@ int    wait_transition_node_info(stStateMachine_t *sm, stEvent_t *event, void *a
 }
 
 
+/* CmdZWaveRemoveNodeFromNetwork */
 
 void * wait_action_remove_response(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
@@ -2444,6 +2486,24 @@ void * wait_action_setsuc_response(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 int    wait_transition_setsuc_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+void * wait_action_senddata_response(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_senddata_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_WAIT_TX_STATUS;
+}
+
+void * wait_action_tx_status(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_tx_status(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
