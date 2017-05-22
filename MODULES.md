@@ -334,6 +334,48 @@
 	 */
 	int state_machine_free(stStateMachine_t *sm);
 
+# classcmd:
+	/**
+	 * @breif class cmd operation  - get
+	 * 
+	 * @param class class
+   * @param cmd cmd 
+	 * @param param param
+   *
+   * @return  0 -> ok
+   */	
+	int class_cmd_get(emClass_t class, emCmd_t cmd, stClassCmdParam_t *param, stSendDataIn_t *sdi);
+	/**
+	 * @breif class cmd operation  - set
+	 * 
+	 * @param class class
+   * @param cmd cmd 
+	 * @param param param
+   *
+   * @return  0 -> ok
+   */	
+	int class_cmd_set(emClass_t class, emCmd_t cmd, stClassCmdParam_t *param, stSendDataIn_t *sdi);
+	/**
+	 * @breif class cmd operation  - report
+	 * 
+	 * @param class class
+   * @param cmd cmd 
+	 * @param param param
+   *
+   * @return  0 -> ok
+   */	
+	int class_cmd_report(emClass_t class, emCmd_t cmd, stClassCmdParam_t *param, stSendDAtaInt_t *sdi);
+
+	/**
+	 * @brief class cmd operation - parse
+	 * 
+	 * @param class class
+	 * @param cmd cmd
+	 * @param param param
+	 * @param sdi packet to parse
+   */
+	int class_cmd_parse(emClass_t *class, emCmd_t *cmd, stClassCmdParam_t *param, stSendDataIn_t *sdi);
+
 # api:  
 
 	/**
@@ -507,6 +549,7 @@
 	 *			0 ok
 	 */
 	int cmd_free();
+
 
 
 # mainLoop:  
