@@ -1099,6 +1099,8 @@ enum {
 	S_WAIT_SENDDATA_RESPONSE = 23,
 	S_WAIT_TX_STATUS = 24,
 
+	S_WAIT_ISFAILED_RESPONSE = 25,
+
 	S_END = 9999,
 };
 
@@ -1142,6 +1144,9 @@ enum {
 
 	E_SENDDATA_RESPONSE = 29,
 	E_TX_STATUS = 30,
+
+	E_ISFAILED_RESPONSE = 31,
+
 };
 
 
@@ -1254,6 +1259,10 @@ int    wait_transition_senddata_response(stStateMachine_t *sm, stEvent_t *event,
 
 void * wait_action_tx_status(stStateMachine_t *sm, stEvent_t *event);
 int    wait_transition_tx_status(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+
+void * wait_action_isfailed_response(stStateMachine_t *sm, stEvent_t *event);
+int    wait_transition_isfailed_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
 
@@ -1427,6 +1436,15 @@ stStateMachine_t smCmdZWaveSendData = {
 	},
 };
 
+stStateMachine_t smCmdZWaveIsFailedNode = {
+	1, S_WAIT_ISFAILED_RESPONSE, S_WAIT_ISFAILED_RESPONSE, {
+		{S_WAIT_ISFAILED_RESPONSE, 1, NULL, {
+				{E_ISFAILED_RESPONSE, wait_action_isfailed_response, wait_transition_isfailed_response},
+			},
+		},
+	},
+};
+
 
 stStateMachine_t smApi = {
 	2, S_IDLE, S_IDLE, {
@@ -1478,6 +1496,8 @@ static stStateMachine_t* api_id_to_state_machine(emApi_t api) {
 		return &smCmdZWaveSetSucNodeId;
 	} else if (api == CmdZWaveSendData) {
 		return &smCmdZWaveSendData;
+	} else if (api == CmdZWaveIsFailedNode) {
+		return &smCmdZWaveIsFailedNode;
 	}
 	return NULL;
 }
@@ -1508,6 +1528,8 @@ static int api_state_machine_to_id(void *sm) {
 		return CmdZWaveSetSucNodeId;
 	} else if (sm == &smCmdZWaveSendData) {
 		return CmdZWaveSendData;
+	} else if (sm == &smCmdZWaveIsFailedNode) {
+		return CmdZWaveIsFailedNode;
 	}
 	return -1;
 }
@@ -1562,6 +1584,8 @@ static bool api_async_call_api(stStateMachine_t *sm, stEvent_t *event, int *sid)
 				case CmdZWaveSetSucNodeId:
 				break;
 				case CmdZWaveSendData:
+				break;
+				case CmdZWaveIsFailedNode:
 				break;
 			}
 		}
@@ -1661,6 +1685,11 @@ static int api_data_event_id_step(stStateMachine_t *sm, int id) {
 					return E_TX_STATUS;
 				}
 				break;
+				case CmdZWaveIsFailedNode:
+				if (sm->state == S_WAIT_ISFAILED_RESPONSE && id == E_DATA) {
+					return E_ISFAILED_RESPONSE;
+				}
+				break;
 			}
 		}
 	}
@@ -1711,6 +1740,8 @@ static int api_ack_event_id_step(stStateMachine_t *sm, int id) {
 				case CmdZWaveSetSucNodeId:
 				break;
 				case CmdZWaveSendData:
+				break;
+				case CmdZWaveIsFailedNode:
 				break;
 			}
 		}
@@ -2507,6 +2538,17 @@ int    wait_transition_tx_status(stStateMachine_t *sm, stEvent_t *event, void *a
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
+
+void * wait_action_isfailed_response(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int    wait_transition_isfailed_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+
 
 #endif
 

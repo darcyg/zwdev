@@ -135,7 +135,7 @@ void timerout_cb(struct timer *t) {
 		.nodeID = 0x3B, 
 		.pData_len = 0x03,
 		.pData_data = {
-			0x20, 0x01, 0xff
+			0x20, 0x01, 0x00
 		},	
 		.txOptions = 0x25,
 		.funcID = 0x0D,
@@ -144,6 +144,10 @@ void timerout_cb(struct timer *t) {
 	sdi.pData_data[4] = sdi.funcID;
 	api_call(CmdZWaveSendData, (stParam_t*)&sdi, sdi.pData_len + 4);
 #endif
+
+	stIsFailedNodeIn_t ifni = {0x01};
+	api_call(CmdZWaveIsFailedNode, (stParam_t*)&ifni, sizeof(ifni));
+
 	/*
 	static int funcID = 0x1;
 	stAddNodeToNetworkIn_t antni = {0x81, funcID++};
