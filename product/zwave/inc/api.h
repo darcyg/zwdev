@@ -648,6 +648,103 @@ int api_call(emApi_t api, stParam_t *param, int param_size);
 int api_getfd();
 int api_step();
 
+/*                      api                           */
+/*
+int ZW_GetRoutingInfo(){return 0;}
+int ZW_LockRoute(){return 0;}
+
+int MemoryGetBuffer(){return 0;}
+int MemoryGetByte(){return 0;}
+int MemoryGetID();
+int MemoryPutBuffer(){return 0;}
+int MemoryPutByte(){return 0;}
+
+int NVM_get_id(){return 0;}
+int NVM_ext_read_long_buffer(){return 0;}
+int NVM_ext_read_long_byte(){return 0;}
+int NVM_ext_write_long_buffer(){return 0;}
+int NVM_ext_write_long_byte(){return 0;}
+
+int PWR_Clk_PD(){return 0;}
+int PWR_Clk_PUp(){return 0;}
+int PWR_Select_Clk(){return 0;}
+int PWR_SetStopMode(){return 0;}
+
+int ZW_StoreHomeID(){return 0;}
+int ZW_StoreNodeInfo(){return 0;}
+int ZW_AddNodeToNetwork();
+int ZW_AES_ECB(){return 0;}
+int ZW_AreNodesNeighbours();
+int ZW_AssignReturnRoute(){return 0;}
+int ZW_AssignSUCReturnRoute(){return 0;}
+int ZW_ControllerChange(){return 0;}
+int ZW_CreateNewPrimaryCtrl(){return 0;}
+int ZW_DeleteReturnRoute(){return 0;}
+int ZW_DeleteSUCReturnRoute(){return 0;}
+int ZW_EnableSUC();
+int ZW_ExploreRequestInclusion(){return 0;}
+int ZW_GetControllerCapabilities();
+int ZW_GetLastWorkingRoute();
+int ZW_SetLastWorkingRoute();
+int ZW_GetNeighborCount();
+int ZW_GetNodeProtocolInfo();
+int ZW_GetProtocolStatus();
+int ZW_GetProtocolVersion();
+int ZW_GetRandomWord();
+int ZW_GetRoutingMAX(){return 0;}
+int ZW_GetSUCNodeID();
+int ZW_Version();
+int ZW_GetVirtualNodes(){return 0;}
+int ZW_isFailedNode();
+int ZW_IsPrimaryCtrl();
+int ZW_IsVirtualNode(){return 0;}
+int ZW_IsWutKicked(){return 0;}
+int ZW_NewController(){return 0;}
+int ZW_RediscoveryNeeded(){return 0;}
+int ZW_RemoveFailedNode(){return 0;}
+int ZW_RemoveNodeFromNetwork();
+int ZW_ReplaceFailedNode(){return 0;}
+int ZW_ReplicationReceiveComplete(){return 0;}
+int ZW_ReplicationSend(){return 0;}
+int ZW_RequestNetWorkUpdate();
+int ZW_RequestNodeInfo();
+int ZW_RequestNodeNeighborUpdate();
+int ZW_RFPowerLevelGet();
+int ZW_RFPowerLevelSet();
+int ZW_SendData();
+int ZW_SendDataAbort();
+int ZW_SendData_Bridge();
+int ZW_SendDataMeta();
+int ZW_SendDataMeta_Bridge();
+int ZW_SendDataMulti();
+int ZW_SendDataMulti_Bridge();
+int ZW_SendNodeInformation();
+int ZW_SendSlaveData(){return 0;}
+int ZW_SendSUCID();
+int ZW_SendTestFrame(){return 0;}
+int ZW_SetDefault();
+int ZW_SetExtIntLevel(){return 0;}
+int ZW_SetLearnMode();
+int ZW_SetLearnNodeState();
+int ZW_SetPromiscuousMode(){return 0;}
+int ZW_SetRFReceiveMode(){return 0;}
+int ZW_SetRoutingMAX(){return 0;}
+int ZW_SetSlaveLearnMode();
+int ZW_SetSleepMode(){return 0;}
+int ZW_SetSUCNodeID();
+int ZW_SetWutTimeout(){return 0;}
+int ZW_Support9600Only();
+int ZW_Type_Library();
+int ZW_WatchDogDisable(){return 0;}
+int ZW_WatchDogEnable(){return 0;}
+int ZW_WatchDogKick(){return 0;}
+int ZW_WatchDogEnable(){return 0;}
+int ZW_WatchDogDisable(){return 0;}
+int ZW_NVRGetValue(){return 0;}
+int ZW_ClearTxTimers(){return 0;}
+int ZW_GetTxTimer(){return 0;}
+*/
+
 
 #endif
 

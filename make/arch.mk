@@ -19,6 +19,6 @@ TARGET_CFLAGS 		+= -Wall -g -O2 -I$(ROOTDIR)/inc -I$(ROOTDIR)/inc/ayla -I$(ROOTD
 TARGET_CXXFLAGS 	+= $(TARGET_CFLAGS) -std=c++0x
 
 TARGET_LDFLAGS 		+= -L$(ROOTDIR)/lib -lm -lrt -ldl -lpthread
-#TARGET_LDFLAGS 	+= -ljasson
+TARGET_LDFLAGS 	+= -L/usr/lib/ -ljansson
 #TARGET_LDFLAGS		+= -lstdc++
 

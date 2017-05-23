@@ -1,7 +1,7 @@
 ROOTDIR=$(shell pwd)
 WORKDIR=$(ROOTDIR)/build
 
-targets	 += zwdevd
+#targets	 += zwdevd
 #targets := testlockqueue 
 #targets := testlog 
 #targets := testtimer
@@ -12,6 +12,7 @@ targets	 += zwdevd
 #targets := frame
 #targets := testsession
 #targets := statemachine
+targets	:= testclasscmd
 
 .PHONY: targets
 
@@ -153,11 +154,28 @@ statemachinesrcs							+= $(ROOTDIR)/src/cond.c
 statemachinesrcs							+= $(ROOTDIR)/src/list.c
 
 
+testclasscmdsrcs							:= $(ROOTDIR)/test/testclasscmd.c
+testclasscmdsrcs							+= $(ROOTDIR)/src/ayla/log.c
+testclasscmdsrcs							+= $(ROOTDIR)/src/ayla/lookup_by_name.c
+testclasscmdsrcs							+= $(ROOTDIR)/product/zwave/src/classcmd.c
+testclasscmdsrcs							+= $(ROOTDIR)/src/ayla/timer.c
+testclasscmdsrcs							+= $(ROOTDIR)/src/ayla/time_utils.c
+testclasscmdsrcs							+= $(ROOTDIR)/src/ayla/assert.c
+testclasscmdsrcs							+= $(ROOTDIR)/src/ayla/file_event.c
+testclasscmdsrcs							+= $(ROOTDIR)/src/ayla/hashmap.c
+testclasscmdsrcs							+= $(ROOTDIR)/src/ayla/file_io.c
+testclasscmdsrcs							+= $(ROOTDIR)/src/lockqueue.c
+testclasscmdsrcs							+= $(ROOTDIR)/src/mutex.c
+testclasscmdsrcs							+= $(ROOTDIR)/src/cond.c
+testclasscmdsrcs							+= $(ROOTDIR)/src/list.c
+
+
 
 
 objs = $(subst $(ROOTDIR),$(WORKDIR), $(subst .c,.o,$(srcs)))
 testserialobjs = $(subst $(ROOTDIR),$(WORKDIR), $(subst .c,.o,$(testserialsrcs)))
 statemachineobjs = $(subst $(ROOTDIR),$(WORKDIR), $(subst .c,.o,$(statemachinesrcs)))
+testclasscmdobjs = $(subst $(ROOTDIR),$(WORKDIR), $(subst .c,.o,$(testclasscmdsrcs)))
 
 -include $(ROOTDIR)/make/arch.mk
 -include $(ROOTDIR)/make/rules.mk
@@ -173,6 +191,7 @@ $(eval $(call LinkApp,testserial,$(testserialobjs)))
 $(eval $(call LinkApp,frame,$(frameobjs)))
 $(eval $(call LinkApp,testsession,$(testsessionobjs)))
 $(eval $(call LinkApp,statemachine,$(statemachineobjs)))
+$(eval $(call LinkApp,testclasscmd,$(testclasscmdobjs)))
 
 
 scp :

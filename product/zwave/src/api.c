@@ -2550,6 +2550,47 @@ int    wait_transition_isfailed_response(stStateMachine_t *sm, stEvent_t *event,
 
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+int ZW_AddNodeToNetwork();
+int ZW_AreNodesNeighbours();
+int ZW_EnableSUC();
+int ZW_GetControllerCapabilities();
+int ZW_GetLastWorkingRoute();
+int ZW_SetLastWorkingRoute();
+int ZW_GetNeighborCount();
+int ZW_GetNodeProtocolInfo();
+int ZW_GetProtocolStatus();
+int ZW_GetProtocolVersion();
+int ZW_GetRandomWord();
+int ZW_GetSUCNodeID();
+int ZW_Version();
+int ZW_isFailedNode();
+int ZW_IsPrimaryCtrl();
+int ZW_RemoveNodeFromNetwork();
+int ZW_RequestNetWorkUpdate();
+int ZW_RequestNodeInfo();
+int ZW_RequestNodeNeighborUpdate();
+int ZW_RFPowerLevelGet();
+int ZW_RFPowerLevelSet();
+int ZW_SendData();
+int ZW_SendDataAbort();
+int ZW_SendData_Bridge();
+int ZW_SendDataMeta();
+int ZW_SendDataMeta_Bridge();
+int ZW_SendDataMulti();
+int ZW_SendDataMulti_Bridge();
+int ZW_SendNodeInformation();
+int ZW_SendSUCID();
+int ZW_SetDefault();
+int ZW_SetLearnMode();
+int ZW_SetLearnNodeState();
+int ZW_SetSlaveLearnMode();
+int ZW_SetSUCNodeID();
+int ZW_Support9600Only();
+int ZW_Type_Library();
+*/
+
 #endif
 
 
