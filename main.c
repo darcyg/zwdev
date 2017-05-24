@@ -101,6 +101,7 @@ void timerout_cb(struct timer *t) {
 	log_info("========================api test==================");
 	timer_set(&th, t, 20000);
 	
+#if 0
 	api_call(CmdZWaveGetVersion, NULL, 0);
 
 	api_call(CmdSerialApiGetInitData, NULL, 0);
@@ -117,6 +118,7 @@ void timerout_cb(struct timer *t) {
 	api_call(CmdZWaveGetSucNodeId, NULL, 0);
 	
 	//api_call(CmdSerialApiApplNodeInformation, NULL, 0);
+#endif
 
 #if 0
 	stAddNodeToNetworkIn_t antni = {0x81, 0x02, 0x00, 0x00};
@@ -130,7 +132,7 @@ void timerout_cb(struct timer *t) {
 	stSetSucNodeIdIn_t ssni = {0x01, 0x01, 0x25, 0x01, 0x05}; //as sis
 	//stSetSucNodeIdIn_t ssni = {0x01, 0x01, 0x25, 0x00, 0x05}; //as suc
 	api_call(CmdZWaveSetSucNodeId, (stParam_t*)&ssni, sizeof(ssni));
-#elif 1
+#elif 0
 	stSendDataIn_t sdi = {
 		.nodeID = 0x3B, 
 		.pData_len = 0x03,
@@ -145,8 +147,33 @@ void timerout_cb(struct timer *t) {
 	api_call(CmdZWaveSendData, (stParam_t*)&sdi, sdi.pData_len + 4);
 #endif
 
+#if 0
+	stRemoveFailedNodeIdIn_t rfni = {0x33, 0x02};
+	api_call(CmdZWaveRemoveFailedNodeId, (stParam_t*)&rfni, sizeof(rfni));
+#elif 0
+	api_call(CmdSerialApiSoftReset, NULL, 0);
+#elif 0
+	api_call(CmdZWaveGetProtocolVersion, NULL, 0);
+#elif 0
+	api_call(CmdSerialApiStarted, NULL, 0);
+#elif 0
+	api_call(CmdZWaveRfPowerLevelGet, NULL, 0);
+#elif 0
+	stGetNeighborCountIn_t gnci = {0x01};
+	api_call(CmdZWaveGetNeighborCount, (stParam_t*)&gnci, sizeof(gnci));
+#elif 0
+	stAreNodesNeighborsIn_t ann = {0x01, 0x3B};
+	api_call(CmdZWaveAreNodesNeighbours, (stParam_t*)&ann, sizeof(ann));
+#elif 0
+	api_call(CmdZWaveTypeLibrary, NULL, 0);
+#elif 0
+	api_call(CmdZWaveGetProtocolStatus, NULL, 0);
+#endif
+
+#if 0
 	stIsFailedNodeIn_t ifni = {0x01};
 	api_call(CmdZWaveIsFailedNode, (stParam_t*)&ifni, sizeof(ifni));
+#endif
 
 	/*
 	static int funcID = 0x1;

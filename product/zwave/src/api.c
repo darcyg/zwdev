@@ -1101,6 +1101,28 @@ enum {
 
 	S_WAIT_ISFAILED_RESPONSE = 25,
 
+	S_WAIT_REMOVE_FAILED_RESPONSE = 26,
+
+	S_WAIT_SOFTRESET_RESPONSE = 27,
+	
+	S_WAIT_PROTOCOL_VERSION = 28,
+		
+	S_WAIT_API_STARTED = 29,
+
+	S_WAIT_RFPOWER_LEVEL = 30,
+
+	S_WAIT_NEIGHBOR_COUNT = 31,
+
+	S_WAIT_ARE_NEIGHBORS = 32,
+
+	S_WAIT_TYPE_LIBRARY = 33,
+	
+	S_WAIT_PROTOCOL_STATUS = 34,
+	
+	S_WAIT_PORT_STATUS = 35,
+
+	S_WAIT_IO_PORT = 36,
+
 	S_END = 9999,
 };
 
@@ -1147,6 +1169,17 @@ enum {
 
 	E_ISFAILED_RESPONSE = 31,
 
+	E_REMOVE_FAILED_RESPONSE = 32,
+	E_SOFTRESET_RESPONSE = 33,
+	E_PROTOCOL_VERSION = 34,
+	E_API_STARTED = 35,
+	E_RFPOWER_LEVEL = 36,
+	E_NEIGHBOR_COUNT = 37,
+	E_ARE_NEIGHBORS = 38,
+	E_TYPE_LIBRARY = 39,
+	E_PROTOCOL_STATUS = 40,
+	E_PORT_STATUS = 41,
+	E_IO_PORT = 42,
 };
 
 
@@ -1265,6 +1298,38 @@ void * wait_action_isfailed_response(stStateMachine_t *sm, stEvent_t *event);
 int    wait_transition_isfailed_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
+void *wait_action_remove_failed_response(stStateMachine_t *sm, stEvent_t *event);
+int wait_transition_remove_failed_response(stStateMachine_t *sm, stEvent_t *event);
+
+void *wait_action_softreset_response(stStateMachine_t *sm, stEvent_t *event);
+int wait_transition_softreset_response(stStateMachine_t *sm, stEvent_t *event);
+
+void *wait_action_protocol_version(stStateMachine_t *sm, stEvent_t *event);
+int wait_transition_protocol_version(stStateMachine_t *sm, stEvent_t *event);
+
+void *wait_action_api_started(stStateMachine_t *sm, stEvent_t *event);
+int wait_transition_api_started(stStateMachine_t *sm, stEvent_t *event);
+
+void *wait_action_rfpower_level(stStateMachine_t *sm, stEvent_t *event); 
+int wait_transition_rf_power_level(stStateMachine_t *sm, stEvent_t *event);
+
+void *wait_action_neighbor_count(stStateMachine_t *sm, stEvent_t *event);
+int wait_transition_neighbor_count(stStateMachine_t *sm, stEvent_t *event);
+
+void *wait_action_are_neighbors(stStateMachine_t *sm, stEvent_t *event);
+int wait_transition_are_neighbors(stStateMachine_t *sm, stEvent_t *event);
+
+void *wait_action_type_library(stStateMachine_t *sm, stEvent_t *event);
+int wait_transition_type_library(stStateMachine_t *sm, stEvent_t *event);
+
+void *wait_action_protocol_status(stStateMachine_t *sm, stEvent_t *event);
+int wait_transition_protocol_status(stStateMachine_t *sm, stEvent_t *event);
+
+void *wait_action_port_status(stStateMachine_t *sm, stEvent_t *event);
+int wait_transition_port_status(stStateMachine_t *sm, stEvent_t *event);
+
+void *wait_action_io_port(stStateMachine_t *sm, stEvent_t *event);
+int wait_transition_action_io_port(stStateMachine_t *sm, stEvent_t *event);
 
 
 
@@ -1446,6 +1511,106 @@ stStateMachine_t smCmdZWaveIsFailedNode = {
 };
 
 
+
+
+
+stStateMachine_t smCmdZWaveRemoveFailedNodeId = {
+	1, S_WAIT_REMOVE_FAILED_RESPONSE, S_WAIT_REMOVE_FAILED_RESPONSE, {
+		{S_WAIT_REMOVE_FAILED_RESPONSE, 1, NULL, {
+				{E_REMOVE_FAILED_RESPONSE, wait_action_remove_failed_response, wait_transition_remove_failed_response},
+			},
+		},
+	},
+};
+stStateMachine_t smCmdSerialApiSoftReset = {
+	0, S_WAIT_SOFTRESET_RESPONSE, S_WAIT_SOFTRESET_RESPONSE, {
+		{S_WAIT_SOFTRESET_RESPONSE, 1, NULL, {
+				{E_SOFTRESET_RESPONSE, wait_action_softreset_response, wait_transition_softreset_response},
+			},
+		},
+	},
+};
+stStateMachine_t smCmdZWaveGetProtocolVersion = {
+	1, S_WAIT_PROTOCOL_VERSION, S_WAIT_PROTOCOL_VERSION, {
+		{S_WAIT_PROTOCOL_VERSION, 1, NULL, {
+				{E_PROTOCOL_VERSION, wait_action_protocol_version, wait_transition_protocol_version},
+			},
+		},
+	},
+};
+stStateMachine_t smCmdSerialApiStarted = {
+	1, S_WAIT_API_STARTED, S_WAIT_API_STARTED, {
+		{S_WAIT_API_STARTED, 1, NULL, {
+				{E_API_STARTED, wait_action_api_started, wait_transition_api_started},
+			},
+		},
+	},
+};
+stStateMachine_t smCmdZWaveRfPowerLevelGet = {
+	1, S_WAIT_RFPOWER_LEVEL, S_WAIT_RFPOWER_LEVEL, {
+		{S_WAIT_RFPOWER_LEVEL, 1, NULL, {
+				{E_RFPOWER_LEVEL, wait_action_rfpower_level, wait_transition_rf_power_level},
+			},
+		},
+	},
+
+};
+stStateMachine_t smCmdZWaveGetNeighborCount = {
+	1, S_WAIT_NEIGHBOR_COUNT, S_WAIT_NEIGHBOR_COUNT, {
+		{S_WAIT_NEIGHBOR_COUNT, 1, NULL, {
+				{E_NEIGHBOR_COUNT, wait_action_neighbor_count, wait_transition_neighbor_count},
+			},
+		},
+	},
+
+};
+stStateMachine_t smCmdZWaveAreNodesNeighbours = {
+	1, S_WAIT_ARE_NEIGHBORS, S_WAIT_ARE_NEIGHBORS, {
+		{S_WAIT_ARE_NEIGHBORS, 1, NULL, {
+				{E_ARE_NEIGHBORS, wait_action_are_neighbors, wait_transition_are_neighbors},
+			},
+		},
+	},
+
+};
+stStateMachine_t smCmdZWaveTypeLibrary = {
+	1, S_WAIT_TYPE_LIBRARY, S_WAIT_TYPE_LIBRARY, {
+		{S_WAIT_TYPE_LIBRARY, 1, NULL, {
+				{E_TYPE_LIBRARY, wait_action_type_library, wait_transition_type_library},
+			},
+		},
+	},
+
+};
+stStateMachine_t smCmdZWaveGetProtocolStatus = {
+	1, S_WAIT_PROTOCOL_STATUS, S_WAIT_PROTOCOL_STATUS, {
+		{S_WAIT_PROTOCOL_STATUS, 1, NULL, {
+				{E_PROTOCOL_STATUS, wait_action_protocol_status, wait_transition_protocol_status},
+			},
+		},
+	},
+
+};
+stStateMachine_t smCmdIoPortStatus = {
+	1, S_WAIT_PORT_STATUS, S_WAIT_PORT_STATUS, {
+		{S_WAIT_PORT_STATUS, 1, NULL, {
+				{E_PORT_STATUS, wait_action_port_status, wait_transition_port_status},
+			},
+		},
+	},
+
+};
+stStateMachine_t smCmdIoPort = {
+	1, S_WAIT_IO_PORT, S_WAIT_IO_PORT, {
+		{S_WAIT_IO_PORT, 1, NULL, {
+				{E_IO_PORT, wait_action_io_port, wait_transition_action_io_port},
+			},
+		},
+	},
+
+};
+
+
 stStateMachine_t smApi = {
 	2, S_IDLE, S_IDLE, {
 
@@ -1468,8 +1633,40 @@ stStateMachine_t smApi = {
 	},
 };
 
+static struct stApiMachinePair {
+	emApi_t api;
+	stStateMachine_t *machine;
+} amps[] = {
+	{CmdZWaveGetVersion, &smCmdZWaveGetVersion},
+	{CmdSerialApiGetInitData, &smCmdSerialApiGetInitData},
+	{CmdZWaveGetNodeProtoInfo, &smCmdZWaveGetNodeProtoInfo},
+	{CmdSerialApiGetCapabilities, &smCmdSerialApiGetCapalibities},
+	{CmdZWaveGetControllerCapabilities, &smCmdZWaveGetControllerCapabilities},
+	{CmdMemoryGetId, &smCmdMemoryGetId},
+	{CmdZWaveGetSucNodeId, &smCmdZWaveGetSucNodeId},
+	{CmdSerialApiApplNodeInformation, &smCmdSerialApiApplNodeInformation},
+	{CmdZWaveAddNodeToNetwork, &smCmdZWaveAddNodeToNetWork},
+	{CmdZWaveRequestNodeInfo, &smCmdZWaveRequestNodeInfo},
+	{CmdZWaveRemoveNodeFromNetwork, &smCmdZWaveRemoveNodeFromNetwork},
+	{CmdZWaveSetSucNodeId, &smCmdZWaveSetSucNodeId},
+	{CmdZWaveSendData, &smCmdZWaveSendData},
+	{CmdZWaveIsFailedNode, &smCmdZWaveIsFailedNode},
+
+	{CmdZWaveRemoveFailedNodeId, &smCmdZWaveRemoveFailedNodeId},
+	{CmdSerialApiSoftReset, &smCmdSerialApiSoftReset},
+	{CmdZWaveGetProtocolVersion, &smCmdZWaveGetProtocolVersion},
+	{CmdSerialApiStarted, &smCmdSerialApiStarted},
+	{CmdZWaveRfPowerLevelGet, &smCmdZWaveRfPowerLevelGet},
+	{CmdZWaveGetNeighborCount, &smCmdZWaveGetNeighborCount},
+	{CmdZWaveAreNodesNeighbours, &smCmdZWaveAreNodesNeighbours},
+	{CmdZWaveTypeLibrary, &smCmdZWaveTypeLibrary},
+	{CmdZWaveGetProtocolStatus, &smCmdZWaveGetProtocolStatus},
+	{CmdIoPortStatus, &smCmdIoPortStatus},
+	{CmdIoPort, &smCmdIoPort},
+};
 
 static stStateMachine_t* api_id_to_state_machine(emApi_t api) {
+#if 0
 	if (api == CmdZWaveGetVersion) {
 		return &smCmdZWaveGetVersion;
 	} else if (api == CmdSerialApiGetInitData) {
@@ -1499,9 +1696,18 @@ static stStateMachine_t* api_id_to_state_machine(emApi_t api) {
 	} else if (api == CmdZWaveIsFailedNode) {
 		return &smCmdZWaveIsFailedNode;
 	}
+#else
+	int i = 0;
+	for (i = 0; i < sizeof(amps)/sizeof(amps[0]); i++) {
+		if (api == amps[i].api) {
+			return amps[i].machine;
+		}
+	}
+#endif
 	return NULL;
 }
 static int api_state_machine_to_id(void *sm) {
+#if 0
 	if (sm == &smCmdZWaveGetVersion) {
 		return CmdZWaveGetVersion;
 	} else if (sm == &smCmdSerialApiGetInitData) {
@@ -1531,6 +1737,14 @@ static int api_state_machine_to_id(void *sm) {
 	} else if (sm == &smCmdZWaveIsFailedNode) {
 		return CmdZWaveIsFailedNode;
 	}
+#else
+	int i = 0;
+	for (i = 0; i < sizeof(amps)/sizeof(amps[0]); i++) {
+		if (sm == amps[i].machine) {
+			return amps[i].api;
+		}
+	}
+#endif
 	return -1;
 }
 static bool api_async_call_api(stStateMachine_t *sm, stEvent_t *event, int *sid) {
@@ -1587,6 +1801,30 @@ static bool api_async_call_api(stStateMachine_t *sm, stEvent_t *event, int *sid)
 				break;
 				case CmdZWaveIsFailedNode:
 				break;
+
+				case CmdZWaveRemoveFailedNodeId:
+				break;
+				case	CmdSerialApiSoftReset:
+				break;
+				case CmdZWaveGetProtocolVersion:
+				break;
+				case CmdSerialApiStarted:
+				break;
+				case CmdZWaveRfPowerLevelGet:
+				break;
+				case CmdZWaveGetNeighborCount:
+				break;
+				case CmdZWaveAreNodesNeighbours:
+				break;
+				case CmdZWaveTypeLibrary:
+				break;
+				case CmdZWaveGetProtocolStatus:
+				break;
+				case CmdIoPortStatus:
+				break;
+				case CmdIoPort:
+				break;
+
 			}
 		}
 	}
@@ -1690,6 +1928,73 @@ static int api_data_event_id_step(stStateMachine_t *sm, int id) {
 					return E_ISFAILED_RESPONSE;
 				}
 				break;
+
+				case CmdZWaveRemoveFailedNodeId:
+				if (sm->state == S_WAIT_REMOVE_FAILED_RESPONSE && id == E_DATA) {
+					return E_REMOVE_FAILED_RESPONSE;
+				}
+	
+				break;
+				case	CmdSerialApiSoftReset:
+				if (sm->state == S_WAIT_SOFTRESET_RESPONSE && id == E_DATA) {
+					return E_SOFTRESET_RESPONSE;
+				}
+	
+				break;
+				case CmdZWaveGetProtocolVersion:
+				if (sm->state == S_WAIT_PROTOCOL_VERSION && id == E_DATA) {
+					return E_PROTOCOL_VERSION;
+				}
+	
+				break;
+				case CmdSerialApiStarted:
+				if (sm->state == S_WAIT_API_STARTED && id == E_DATA) {
+					return E_API_STARTED;
+				}
+	
+				break;
+				case CmdZWaveRfPowerLevelGet:
+				if (sm->state == S_WAIT_RFPOWER_LEVEL && id == E_DATA) {
+					return E_RFPOWER_LEVEL;
+				}
+	
+				break;
+				case CmdZWaveGetNeighborCount:
+				if (sm->state == S_WAIT_NEIGHBOR_COUNT && id == E_DATA) {
+					return E_NEIGHBOR_COUNT;
+				}
+	
+				break;
+				case CmdZWaveAreNodesNeighbours:
+				if (sm->state == S_WAIT_ARE_NEIGHBORS && id == E_DATA) {
+					return E_ARE_NEIGHBORS;
+				}
+	
+				break;
+				case CmdZWaveTypeLibrary:
+				if (sm->state == S_WAIT_TYPE_LIBRARY && id == E_DATA) {
+					return E_TYPE_LIBRARY;
+				}
+	
+				break;
+				case CmdZWaveGetProtocolStatus:
+				if (sm->state == S_WAIT_TYPE_LIBRARY && id == E_DATA) {
+					return E_TYPE_LIBRARY;
+				}
+	
+				break;
+				case CmdIoPortStatus:
+				if (sm->state == S_WAIT_PORT_STATUS && id == E_DATA) {
+					return E_PORT_STATUS;
+				}
+	
+				break;
+				case CmdIoPort:
+				if (sm->state == S_WAIT_IO_PORT && id == E_DATA) {
+					return E_IO_PORT;
+				}
+	
+				break;
 			}
 		}
 	}
@@ -1742,6 +2047,29 @@ static int api_ack_event_id_step(stStateMachine_t *sm, int id) {
 				case CmdZWaveSendData:
 				break;
 				case CmdZWaveIsFailedNode:
+				break;
+
+				case CmdZWaveRemoveFailedNodeId:
+				break;
+				case	CmdSerialApiSoftReset:
+				break;
+				case CmdZWaveGetProtocolVersion:
+				break;
+				case CmdSerialApiStarted:
+				break;
+				case CmdZWaveRfPowerLevelGet:
+				break;
+				case CmdZWaveGetNeighborCount:
+				break;
+				case CmdZWaveAreNodesNeighbours:
+				break;
+				case CmdZWaveTypeLibrary:
+				break;
+				case CmdZWaveGetProtocolStatus:
+				break;
+				case CmdIoPortStatus:
+				break;
+				case CmdIoPort:
 				break;
 			}
 		}
@@ -2200,7 +2528,9 @@ void * running_action_ack(stStateMachine_t *sm, stEvent_t *event) {
 		} else {
 			stDataFrame_t *df = (stDataFrame_t*)event->param;
 			state->param = (void*)api_id_to_state_machine(df->cmd);
-			state_machine_reset((stStateMachine_t*)state->param);
+			if (state->param != NULL) {
+				state_machine_reset((stStateMachine_t*)state->param);
+			}
 		}
 	}
 	return NULL;
@@ -2211,6 +2541,10 @@ int  running_transition_ack(stStateMachine_t *sm, stEvent_t *event, void *acret)
 		int sid = state_machine_get_state(sm);
 		stState_t * state = state_machine_search_state(sm, sid);
 		if (state == NULL || state->numevent == 0) {
+			return S_IDLE;
+		}
+		stStateMachine_t *smapi = (stStateMachine_t*)state->param;
+		if (smapi == NULL || smapi->numstate == 0) {
 			return S_IDLE;
 		}
 		return S_RUNNING;
@@ -2547,6 +2881,108 @@ int    wait_transition_isfailed_response(stStateMachine_t *sm, stEvent_t *event,
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
+
+
+void *wait_action_remove_failed_response(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int wait_transition_remove_failed_response(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+void *wait_action_softreset_response(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int wait_transition_softreset_response(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+void *wait_action_protocol_version(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int wait_transition_protocol_version(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+void *wait_action_api_started(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int wait_transition_api_started(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+void *wait_action_rfpower_level(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int wait_transition_rf_power_level(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+void *wait_action_neighbor_count(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int wait_transition_neighbor_count(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+void *wait_action_are_neighbors(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int wait_transition_are_neighbors(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+void *wait_action_type_library(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int wait_transition_type_library(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+void *wait_action_protocol_status(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int wait_transition_protocol_status(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+void *wait_action_port_status(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int wait_transition_port_status(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+void *wait_action_io_port(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+int wait_transition_action_io_port(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+
 
 
 

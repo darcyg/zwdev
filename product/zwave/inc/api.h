@@ -524,7 +524,23 @@ typedef struct stReplaceFailedNodeSts {
 	char funcID;
 	char txStatus;
 }stReplaceFailedNodeSts_t;
+
+typedef struct stRemoveFailedNodeIdIn {
+	char nodeID;
+	char fundID;
+}stRemoveFailedNodeIdIn_t;
+
+typedef struct stGetNeighborCountIn {
+	char nodeID;
+}stGetNeighborCountIn_t;
+
+typedef struct stAreNodesNeighborsIn {
+	char nodeOne;
+	char nodeTwo;
+}stAreNodesNeighborsIn_t;
 #pragma pack(4)
+
+
 
 
 
@@ -562,7 +578,23 @@ typedef enum emApi {
 
 	CmdZWaveIsFailedNode = 0x62,
 
-	CmdZWaveReplaceFailedNode = 0x63,
+	//CmdZWaveReplaceFailedNode = 0x63,
+
+	CmdZWaveRemoveFailedNodeId = 0x61,
+
+	CmdSerialApiSoftReset = 0x08,
+	CmdZWaveGetProtocolVersion = 0x09,
+	CmdSerialApiStarted = 0x0A,
+
+	CmdZWaveRfPowerLevelGet = 0xBA,
+	CmdZWaveGetNeighborCount = 0xBB,
+	CmdZWaveAreNodesNeighbours = 0xBC,
+	
+	CmdZWaveTypeLibrary = 0xBD,
+	CmdZWaveGetProtocolStatus = 0xBF,
+	
+	CmdIoPortStatus = 0xE5,
+	CmdIoPort = 0xE6,
 }emApi_t;
 
 typedef union stParam {

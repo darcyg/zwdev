@@ -1,7 +1,7 @@
 ROOTDIR=$(shell pwd)
 WORKDIR=$(ROOTDIR)/build
 
-#targets	 += zwdevd
+targets	 += zwdevd
 #targets := testlockqueue 
 #targets := testlog 
 #targets := testtimer
@@ -12,7 +12,7 @@ WORKDIR=$(ROOTDIR)/build
 #targets := frame
 #targets := testsession
 #targets := statemachine
-targets	:= testclasscmd
+#targets	:= testclasscmd
 
 .PHONY: targets
 
