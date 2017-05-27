@@ -11,6 +11,13 @@ void basic_get();
 void basic_set();
 void basic_report();
 
+void version_command_class_get();
+void version_command_class_report();
+void version_get();
+void version_report();
+void zwaveplus_info_get();
+void zwaveplus_info_report();
+
 /* if usenick = 1, nick must has value */
 stClass_t classes[] = {
 	[COMMAND_CLASS_BASIC_V1] = {
@@ -19,32 +26,31 @@ stClass_t classes[] = {
 					basic_get, basic_set, basic_report, NULL, NULL},  
 		},
 	},
-#if 0
 	[COMMAND_CLASS_VERSION_V1] = {
-		{COMMAND_CLASS_VERSION_V1, "version_v1", 0, "", 2, {
-				{VERSION_COMMAND_CLASS, "version_command_class", 0, "", 
+		COMMAND_CLASS_VERSION_V1, "version_v1", 1, "", 2, {
+				[VERSION_COMMAND_CLASS] = {VERSION_COMMAND_CLASS, "version_command_class", 1, "version_command_class", 
 								version_command_class_get, NULL, version_command_class_report, NULL, NULL},
-				{VERSION, "version", 0, "", 
+				[VERSION] = {VERSION, "version", 1, "version", 
 								version_get, NULL, version_report, NULL, NULL},
-			},
 		},
 	},
+
 	[COMMAND_CLASS_VERSION_V2] = {
-		{COMMAND_CLASS_VERSION_V2, "version_v2", 0, "", 2, {
-				{VERSION_COMMAND_CLASS, "version_command_class", 0, "", 
+		COMMAND_CLASS_VERSION_V2, "version_v2", 1, "version_v2", 2, {
+				[VERSION_COMMAND_CLASS] = {VERSION_COMMAND_CLASS, "version_command_class", 1, "version_command_class", 
 							 version_command_class_get,NULL, version_command_class_report, NULL, NULL},
-				{VERSION, "version", 0, "", 
+				[VERSION] = {VERSION, "version", 1, "version", 
 							 version_get, NULL, version_report, NULL, NULL},
-			},
 		},
 	},
+
 	[COMMAND_CLASS_ZWAVEPLUS_INFO_V1] = {
-		{COMMAND_CLASS_ZWAVEPLUS_INFO_V1, "zwave_info_v1", 0, "", 1, {
-				{ZWAVEPLUS_INFO, "zwaveplus_info", 0, "",
+		COMMAND_CLASS_ZWAVEPLUS_INFO_V1, "zwave_info_v1", 1, "zwave_info_v1", 1, {
+				[ZWAVEPLUS_INFO] = {ZWAVEPLUS_INFO, "zwaveplus_info", 1, "zwaveplus_info",
 						 zwaveplus_info_get,NULL, zwaveplus_info_report, NULL, NULL},
-			},
 		},
 	},
+#if 0
 	[COMMAND_CLASS_ZWAVEPLUS_INFO_V2] = {
 		{COMMAND_CLASS_ZWAVEPLUS_INFO_V2, "zwave_info_v2", 0, "", 1, {
 				{ZWAVEPLUS_INFO, "zwaveplus_info", 0, "", 
@@ -141,12 +147,32 @@ int class_cmd_parse(emClass_t *class, emCmd_t *cmd, stClassCmdParam_t *param, st
 
 static struct hashmap hmattrs;
 
+static void *hashmap_alloc_key(const void *_key) {
+	const char *key = (const char *)_key;
+	int len = strlen(key);
+	void *newkey = malloc(len+1);
+	if (newkey != NULL) {
+		strcpy(newkey, key);
+	}
+	return newkey;
+}
+
+static void hashmap_free_key(void * _key) {
+	if (_key == NULL) {
+		return;
+	}
+	free(_key);
+}
+
+
 int memory_module_init() {
 	hashmap_init(&hmattrs, hashmap_hash_string, hashmap_compare_string, 60);
+	hashmap_set_key_alloc_funcs(&hmattrs, hashmap_alloc_key, hashmap_free_key);
 	return 0;
 }
 
 int memory_get_attr(int did, const char *attr, char *value) {
+
 	char sdid[32];
 	sprintf(sdid, "%d", did);
 	void *vhm = hashmap_get(&hmattrs, sdid);
@@ -171,18 +197,21 @@ int memory_set_attr(int did, const char *attr, char *value) {
 	void *vhm = hashmap_get(&hmattrs, sdid);
 	if (vhm == NULL) {
 		struct hashmap *hm = MALLOC(sizeof(struct hashmap));
-		hashmap_init(&hmattrs, hashmap_hash_string, hashmap_compare_string, 10);
+		hashmap_init(hm, hashmap_hash_string, hashmap_compare_string, 10);
+		hashmap_set_key_alloc_funcs(hm, hashmap_alloc_key, hashmap_free_key);
 		if (hm == NULL) {
 			return -1;
 		} 
-		vhm = hashmap_put(hm, attr, value);
-	}
-	
-	if (vhm == NULL) {
-		return -2;
+		vhm = hm;
 	}
 
+	if (hashmap_put(vhm, attr, value) == NULL) {
+		log_debug("%s %d", __func__, __LINE__);
+		return -2;
+	}
+	
 	if (hashmap_put(&hmattrs, sdid, vhm) == NULL) {
+		log_debug("%s %d", __func__, __LINE__);
 		return -3;
 	}
 	
@@ -253,7 +282,7 @@ int device_get_attr(int did, const char *attr, char *value) {
 
 
 static void add_attrs(json_t *jattrs, const char *attr,  const char *value);
-int class_cmd_to_attrs(emClass_t *class_array, int class_cnt, void *jattrs) {
+int class_cmd_to_attrs(int did, emClass_t *class_array, int class_cnt, void *jattrs) {
 	int i = 0;
 	//log_debug("%s - %d", __func__, __LINE__);
 	for (i = 0; i < class_cnt; i++) {
@@ -278,7 +307,19 @@ int class_cmd_to_attrs(emClass_t *class_array, int class_cnt, void *jattrs) {
 			if (attr->usenick == 0 || attr->nick[0] == 0) {
 				continue;
 			}
-			add_attrs(jattrs, attr->nick, "test_init_value");
+
+			char value[32];
+			if (memory_get_attr(did, attr->name, value) == 0)  {
+				add_attrs(jattrs, attr->nick, value);
+			} else if (flash_load_attr(did, attr->name, value) == 0) {
+				add_attrs(jattrs, attr->nick, value);
+			} else {
+				//device_get_attr(did, attr->name, value);
+				log_debug("[%s] %d, did:%d, name:%s, ", __func__, __LINE__, did, attr->name);
+				memory_set_attr(did, attr->name, "null");
+				memory_get_attr(did, attr->name, value);
+				add_attrs(jattrs, attr->nick, value);
+			}
 		}
 	}
 	return 0;
@@ -298,4 +339,17 @@ void basic_get() {
 void basic_set() {
 }
 void basic_report() {
+}
+
+void version_command_class_get() {
+}
+void version_command_class_report() {
+}
+void version_get() {
+}
+void version_report() {
+}
+void zwaveplus_info_get() {
+}
+void zwaveplus_info_report() {
 }

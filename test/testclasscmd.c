@@ -20,12 +20,12 @@ struct timer_head th = {
 
 void timerout_cb(struct timer *t) {
 	log_debug("timer out!");
-	timer_set(&th, t, 300);
+	timer_set(&th, t, 10000);
 
 	json_t *jattrs = json_object();
 	if (jattrs != NULL) {
 		emClass_t classes[] = {0x01, 0x02, 0x03, 0x04};
-		class_cmd_to_attrs(classes, sizeof(classes)/sizeof(classes[0]), jattrs);
+		class_cmd_to_attrs(1, classes, sizeof(classes)/sizeof(classes[0]), jattrs);
 		char *jattr_str = json_dumps(jattrs, 0);
 		if (jattr_str != NULL) {
 			log_debug("attrs is [%s]", jattr_str);
@@ -49,6 +49,12 @@ int main(int argc, char *argv[]) {
 
 	struct file_event_table fet;
 	file_event_init(&fet);
+
+	memory_module_init();
+	flash_module_init();
+	device_module_init();
+
+
 
 	while (1) {
 		s64 next_timeout_ms;

@@ -20,6 +20,9 @@ typedef enum emClass {
 
 typedef enum emCmd {
 	BASIC = 0x01,
+	VERSION_COMMAND_CLASS = 0x02,
+	VERSION = 0X03,
+	ZWAVEPLUS_INFO = 0x04,
 }emCmd_t;
 
 #define CLASS_MAX_ATTR_NUM 16
@@ -56,6 +59,10 @@ int class_cmd_parse(emClass_t *class, emCmd_t *cmd, stClassCmdParam_t *param, st
 */
 
 
+int memory_module_init();
+int flash_module_init();
+int device_module_init();
+
 int memory_get_attr(int did, const char *attr, char *value);
 int memory_set_attr(int did, const char *attr, char *value);
 
@@ -65,6 +72,6 @@ int flash_save_attr(int did, const char *attr, char *value);
 int device_get_attr(int did, const char *attr, char *value);
 
 
-int class_cmd_to_attrs(emClass_t *class, int class_cnt, void *jattrs);
+int class_cmd_to_attrs(int did, emClass_t *class, int class_cnt, void *jattrs);
 #endif
 
