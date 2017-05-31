@@ -293,11 +293,14 @@ typedef void (*API_RETURN_CALLBACK)(emApi_t api, stParam_t *param, emApiState_t 
 
 #define API_EXEC_TIMEOUT_MS (1000*2)
 
+
+
 int api_init(void *_th, API_CALL_CALLBACK _accb, API_RETURN_CALLBACK _arcb);
 int api_exec(emApi_t api, stParam_t *param);
 int api_free();
 int api_getfd();
 int api_step();
+stApiEnv_t *api_get_env();
 
 const char *api_name(emApi_t api);
 void api_param_view(emApi_t api, stParam_t *param, emApiState_t state);
@@ -457,14 +460,23 @@ typedef struct stAddNodeToNetworkComp {
 
 
 
-
-
 typedef struct stNodeInfoIn {
 	char NodeID;	
 }stNodeInfoIn_t;
-typedef struct stNodeInfo {
+typedef struct stNodeInfoAck {
 	char retVal;
+}stNodeInfoAck_t;
+typedef struct stNodeInfo {
+	char bStatus;
+	char bNodeID;
+	char len;
+	char basic;
+	char generic;
+	char specific;
+	char commandclasses[32];
 }stNodeInfo_t;
+
+
 
 typedef struct stControllerUpdateIn {
 	char funcID;
@@ -619,6 +631,7 @@ typedef union stParam {
 	stAddNodeToNetwork_t addNodeToNetwork;
 
 	stNodeInfoIn_t nodeInfoIn;
+	stNodeInfoAck_t nodeInfoAck;
 	stNodeInfo_t nodeInfo;
 
 	stControlleUpdateIn_t controlleUpdateIn;
@@ -679,6 +692,8 @@ int api_free();
 int api_call(emApi_t api, stParam_t *param, int param_size);
 int api_getfd();
 int api_step();
+
+int api_app_init_over_fetch(void *ae);
 
 /*                      api                           */
 /*

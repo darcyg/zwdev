@@ -20,7 +20,7 @@ struct timer_head th = {
 
 void timerout_cb(struct timer *t) {
 	log_debug("timer out!");
-	timer_set(&th, t, 10000);
+	timer_set(&th, t, 1000);
 
 	json_t *jattrs = json_object();
 	if (jattrs != NULL) {

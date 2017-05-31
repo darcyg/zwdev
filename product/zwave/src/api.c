@@ -11,6 +11,8 @@
 #include "session.h"
 #include "lockqueue.h"
 #include "statemachine.h"
+#include "app.h"
+#include "classcmd.h"
 
 #if 0
 typedef struct stApiEnv {
@@ -942,6 +944,19 @@ int am_transition_call_exit(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
 int am_action_idle_async_data(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
 	log_debug("idel data->event : %d when state: %d", e->event, env->state);
 	/* not not support async data */
+	stDataFrame_t *df = e->param;
+	if (df->cmd == 0x04) { //class get, ApplicationCommandHandler
+		char rxStatus = df->payload[0];
+		char sourceNode = df->payload[1];
+		char len = df->payload[2];
+		char cid = df->payload[3];
+		char op = df->payload[4];
+		char *value = df->payload[5];
+		int value_len = len -2;
+		if (rxStatus == 0 && cid == COMMAND_CLASS_SWITCH_BINARY_V1) { //binary class report
+			class_cmd_save(sourceNode, cid, op, value, value_len);
+		}
+	}
 	return 0;
 }
 int am_action_running_data(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
@@ -1035,7 +1050,6 @@ int api_call() {
 }
 
 #else
-
 typedef struct stApiEnv {
 	stLockQueue_t qSend;
 	stLockQueue_t qSendBack;
@@ -1049,7 +1063,15 @@ typedef struct stApiEnv {
 	struct timer timerBeat;
 
 	int initFlag;
+
+	stVersion_t ver;
+	stInitData_t initdata;
+	stCapabilities_t caps;
+	stId_t id;
+	stSucNodeId_t sucid;
 }stApiEnv_t;
+
+
 
 static API_CALL_CALLBACK api_ccb = NULL;
 static API_RETURN_CALLBACK api_crb = NULL;
@@ -1062,7 +1084,14 @@ static stApiEnv_t env = {
 	.th = NULL,
 	.timerSend = {},
 	.timerBeat = {},
+
 	.initFlag = 0,
+
+	.ver = {},
+	.initdata = {},
+	.caps = {},
+	.id = {},
+	.sucid = {},
 };
 
 /* state machine relative */
@@ -1123,6 +1152,9 @@ enum {
 
 	S_WAIT_IO_PORT = 36,
 
+	S_WAIT_NODE_INFO_ACK = 37,
+
+
 	S_END = 9999,
 };
 
@@ -1180,156 +1212,161 @@ enum {
 	E_PROTOCOL_STATUS = 40,
 	E_PORT_STATUS = 41,
 	E_IO_PORT = 42,
+
+	E_NODE_INFO_ACK = 43,
+
 };
 
 
-void * idle_action_beat(stStateMachine_t *sm, stEvent_t *event);
+static void * idle_action_beat(stStateMachine_t *sm, stEvent_t *event);
 
-void * idle_action_call_api(stStateMachine_t *sm, stEvent_t *event);
-int    idle_transition_call_api(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void * idle_action_call_api(stStateMachine_t *sm, stEvent_t *event);
+static int    idle_transition_call_api(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-void * idle_action_async_data(stStateMachine_t *sm, stEvent_t *event);
+static void * idle_action_async_data(stStateMachine_t *sm, stEvent_t *event);
 
-void * running_action_error(stStateMachine_t *sm, stEvent_t *event);
-int  running_transition_error(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void * running_action_error(stStateMachine_t *sm, stEvent_t *event);
+static int  running_transition_error(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-void * running_action_ack(stStateMachine_t *sm, stEvent_t *event);
-int  running_transition_ack(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void * running_action_ack(stStateMachine_t *sm, stEvent_t *event);
+static int  running_transition_ack(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-void * running_action_async_data(stStateMachine_t *sm, stEvent_t *event);
-int  running_transition_async_data(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void * running_action_async_data(stStateMachine_t *sm, stEvent_t *event);
+static int  running_transition_async_data(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-void * running_action_data(stStateMachine_t *sm, stEvent_t *event);
-int  running_transition_data(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void * running_action_data(stStateMachine_t *sm, stEvent_t *event);
+static int  running_transition_data(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-void * running_action_call_api(stStateMachine_t *sm, stEvent_t *event);
-int  running_transition_call_api(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-
-
-void * wait_action_version_data(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_version_data(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-void * wait_action_init_data(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_init_data(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-
-void * wait_action_node_protoinfo(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_node_protoinfo(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-
-void * wait_action_capabilities(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-void * wait_action_controller_capabilities(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_controller_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-
-void * wait_action_id(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_id(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-
-void * wait_action_suc_node_id(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_suc_node_id(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-void * wait_action_appl_node_information(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_appl_node_information(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void * running_action_call_api(stStateMachine_t *sm, stEvent_t *event);
+static int  running_transition_call_api(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
 
-void * wait_action_ctr_status(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_ctr_status(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void * wait_action_version_data(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_version_data(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-void * wait_action_newdev_added(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_newdev_added(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-void * wait_action_cancle_add(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_cancle_add(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-void * wait_action_added_node(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_added_node(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-void * wait_action_add_comp(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_add_comp(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-void * wait_action_cancle_confirm(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_cancle_confirm(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-void * wait_action_cancle_comp(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_cancle_comp(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-void * wait_action_node_info(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_node_info(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void * wait_action_init_data(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_init_data(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
-
-void * wait_action_remove_response(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_remove_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-void * wait_action_leaving(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_leaving(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-void * wait_action_cancle_remove(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_cancle_remove(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-void * wait_action_leaved_node_s1(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_leaved_node_s1(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-void * wait_action_leaved_node_s2(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_leaved_node_s2(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-void * wait_action_leave_comp(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_leave_comp(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void * wait_action_node_protoinfo(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_node_protoinfo(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
-void * wait_action_setsuc_response(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_setsuc_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void * wait_action_capabilities(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void * wait_action_controller_capabilities(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_controller_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+
+static void * wait_action_id(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_id(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+
+static void * wait_action_suc_node_id(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_suc_node_id(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void * wait_action_appl_node_information(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_appl_node_information(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
 
-void * wait_action_senddata_response(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_senddata_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void * wait_action_ctr_status(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_ctr_status(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-void * wait_action_tx_status(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_tx_status(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void * wait_action_newdev_added(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_newdev_added(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void * wait_action_cancle_add(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_cancle_add(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void * wait_action_added_node(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_added_node(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void * wait_action_add_comp(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_add_comp(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void * wait_action_cancle_confirm(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_cancle_confirm(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void * wait_action_cancle_comp(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_cancle_comp(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void * wait_action_node_info_ack(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_node_info_ack(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void * wait_action_node_info(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_node_info(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
-void * wait_action_isfailed_response(stStateMachine_t *sm, stEvent_t *event);
-int    wait_transition_isfailed_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void * wait_action_remove_response(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_remove_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void * wait_action_leaving(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_leaving(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void * wait_action_cancle_remove(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_cancle_remove(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void * wait_action_leaved_node_s1(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_leaved_node_s1(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void * wait_action_leaved_node_s2(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_leaved_node_s2(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void * wait_action_leave_comp(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_leave_comp(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
-void *wait_action_remove_failed_response(stStateMachine_t *sm, stEvent_t *event);
-int wait_transition_remove_failed_response(stStateMachine_t *sm, stEvent_t *event);
+static void * wait_action_setsuc_response(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_setsuc_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-void *wait_action_softreset_response(stStateMachine_t *sm, stEvent_t *event);
-int wait_transition_softreset_response(stStateMachine_t *sm, stEvent_t *event);
 
-void *wait_action_protocol_version(stStateMachine_t *sm, stEvent_t *event);
-int wait_transition_protocol_version(stStateMachine_t *sm, stEvent_t *event);
 
-void *wait_action_api_started(stStateMachine_t *sm, stEvent_t *event);
-int wait_transition_api_started(stStateMachine_t *sm, stEvent_t *event);
+static void * wait_action_senddata_response(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_senddata_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-void *wait_action_rfpower_level(stStateMachine_t *sm, stEvent_t *event); 
-int wait_transition_rf_power_level(stStateMachine_t *sm, stEvent_t *event);
+static void * wait_action_tx_status(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_tx_status(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-void *wait_action_neighbor_count(stStateMachine_t *sm, stEvent_t *event);
-int wait_transition_neighbor_count(stStateMachine_t *sm, stEvent_t *event);
 
-void *wait_action_are_neighbors(stStateMachine_t *sm, stEvent_t *event);
-int wait_transition_are_neighbors(stStateMachine_t *sm, stEvent_t *event);
+static void * wait_action_isfailed_response(stStateMachine_t *sm, stEvent_t *event);
+static int    wait_transition_isfailed_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-void *wait_action_type_library(stStateMachine_t *sm, stEvent_t *event);
-int wait_transition_type_library(stStateMachine_t *sm, stEvent_t *event);
 
-void *wait_action_protocol_status(stStateMachine_t *sm, stEvent_t *event);
-int wait_transition_protocol_status(stStateMachine_t *sm, stEvent_t *event);
+static void *wait_action_remove_failed_response(stStateMachine_t *sm, stEvent_t *event);
+static int wait_transition_remove_failed_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-void *wait_action_port_status(stStateMachine_t *sm, stEvent_t *event);
-int wait_transition_port_status(stStateMachine_t *sm, stEvent_t *event);
+static void *wait_action_softreset_response(stStateMachine_t *sm, stEvent_t *event);
+static int wait_transition_softreset_response(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-void *wait_action_io_port(stStateMachine_t *sm, stEvent_t *event);
-int wait_transition_action_io_port(stStateMachine_t *sm, stEvent_t *event);
+static void *wait_action_protocol_version(stStateMachine_t *sm, stEvent_t *event);
+static int wait_transition_protocol_version(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void *wait_action_api_started(stStateMachine_t *sm, stEvent_t *event);
+static int wait_transition_api_started(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void *wait_action_rfpower_level(stStateMachine_t *sm, stEvent_t *event); 
+static int wait_transition_rf_power_level(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void *wait_action_neighbor_count(stStateMachine_t *sm, stEvent_t *event);
+static int wait_transition_neighbor_count(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void *wait_action_are_neighbors(stStateMachine_t *sm, stEvent_t *event);
+static int wait_transition_are_neighbors(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void *wait_action_type_library(stStateMachine_t *sm, stEvent_t *event);
+static int wait_transition_type_library(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void *wait_action_protocol_status(stStateMachine_t *sm, stEvent_t *event);
+static int wait_transition_protocol_status(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void *wait_action_port_status(stStateMachine_t *sm, stEvent_t *event);
+static int wait_transition_port_status(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void *wait_action_io_port(stStateMachine_t *sm, stEvent_t *event);
+static int wait_transition_action_io_port(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
 
@@ -1441,7 +1478,11 @@ stStateMachine_t smCmdZWaveAddNodeToNetWork = {
 };
 
 stStateMachine_t smCmdZWaveRequestNodeInfo = {
-	1, S_WAIT_NODE_INFO, S_WAIT_NODE_INFO, {
+	2, S_WAIT_NODE_INFO_ACK, S_WAIT_NODE_INFO_ACK, {
+		{S_WAIT_NODE_INFO_ACK, 1, NULL, {
+				{E_NODE_INFO_ACK, wait_action_node_info_ack, wait_transition_node_info_ack},
+			},
+		},
 		{S_WAIT_NODE_INFO, 1, NULL, {
 				{E_NODE_INFO, wait_action_node_info,  wait_transition_node_info},
 			},
@@ -1896,7 +1937,9 @@ static int api_data_event_id_step(stStateMachine_t *sm, int id) {
 				}
 				break;
 				case CmdZWaveRequestNodeInfo:
-				if (sm->state == S_WAIT_NODE_INFO && id == E_DATA) {
+				if (sm->state == S_WAIT_NODE_INFO_ACK && id == E_DATA) {
+					return E_NODE_INFO_ACK;
+				} else if (sm->state == S_WAIT_NODE_INFO && id == E_DATA) {
 					return E_NODE_INFO;
 				}
 				break;
@@ -2089,6 +2132,9 @@ static bool api_is_async_data(stDataFrame_t *df) {
 			if (api_state_machine_to_id(sm) == df->cmd /* && seq == seq */) {
 				log_debug_hex("sync data :",df->payload, df->size);
 				return false;
+			} else if (api_state_machine_to_id(sm) == CmdZWaveRequestNodeInfo && df->cmd == CmdApplicationControllerUpdate) {
+				log_debug_hex("sync data :",df->payload, df->size);
+				return false;
 			}
 		}
 	}
@@ -2098,6 +2144,8 @@ static bool api_is_async_data(stDataFrame_t *df) {
 	log_debug_hex("async data :",df->payload, df->size);
 	return true;
 }
+
+
 
 
 static stDataFrame_t * make_frame(emApi_t api, stParam_t *param, int paramSize) {
@@ -2441,14 +2489,26 @@ int api_call(emApi_t api, stParam_t *param, int param_size) {
 	api_beat(0);
 	return 0;
 }
+
+int api_app_init_over_fetch(void *_ae) {
+	stAppEnv_t *ae = (stAppEnv_t*)_ae;
+	
+	memcpy(&ae->ver,				&env.ver,				sizeof(env.ver));
+	memcpy(&ae->initdata,		&env.initdata,	sizeof(env.initdata));
+	memcpy(&ae->caps,				&env.caps,			sizeof(env.caps));
+	memcpy(&ae->id,					&env.id,				sizeof(env.id));
+	memcpy(&ae->sucid,			&env.sucid,			sizeof(env.sucid));
+	return 0;
+}
+
 ///////////////////////////////////////////////////////////////////////////
-void * idle_action_beat(stStateMachine_t *sm, stEvent_t *event) {
+static void * idle_action_beat(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
 
 
-void * idle_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
+static void * idle_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
 
 	log_debug("------[%s]------", __func__);
 	
@@ -2480,7 +2540,7 @@ void * idle_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
 
 	return (void *)S_RUNNING;
 }
-int    idle_transition_call_api(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    idle_transition_call_api(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	if (acret == NULL) {
 		return S_IDLE;
@@ -2489,16 +2549,31 @@ int    idle_transition_call_api(stStateMachine_t *sm, stEvent_t *event, void *ac
 	return (int)acret;
 }
 
-void * idle_action_async_data(stStateMachine_t *sm, stEvent_t *event) {
+static void * idle_action_async_data(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("------[%s]------", __func__);
+
+	stDataFrame_t *df = event->param;
+	if (df->cmd == 0x04) { //class get, ApplicationCommandHandler
+		char rxStatus = df->payload[0];
+		char sourceNode = df->payload[1];
+		char len = df->payload[2];
+		char cid = df->payload[3];
+		char op = df->payload[4];
+		char *value = &df->payload[5];
+		int value_len = len -2;
+		if (rxStatus == 0 && cid == COMMAND_CLASS_SWITCH_BINARY_V1) { //binary class report
+			class_cmd_save(sourceNode, cid, op, value, value_len);
+		}
+	}
+
 	return NULL;
 }
 
-void * running_action_error(stStateMachine_t *sm, stEvent_t *event) {
+static void * running_action_error(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("------[%s]------", __func__);
 	return NULL;
 }
-int  running_transition_error(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int  running_transition_error(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	api_restore_api_call_event();
 	api_post_beat_event();
@@ -2506,7 +2581,7 @@ int  running_transition_error(stStateMachine_t *sm, stEvent_t *event, void *acre
 	return S_IDLE;
 }
 
-void * running_action_ack(stStateMachine_t *sm, stEvent_t *event) {
+static void * running_action_ack(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("------[%s]------", __func__);
 
 	int sid = state_machine_get_state(sm);
@@ -2535,7 +2610,7 @@ void * running_action_ack(stStateMachine_t *sm, stEvent_t *event) {
 	}
 	return NULL;
 }
-int  running_transition_ack(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int  running_transition_ack(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	if (acret == NULL) {
 		int sid = state_machine_get_state(sm);
@@ -2552,16 +2627,30 @@ int  running_transition_ack(stStateMachine_t *sm, stEvent_t *event, void *acret)
 	return (int)acret;
 }
 
-void * running_action_async_data(stStateMachine_t *sm, stEvent_t *event) {
+static void * running_action_async_data(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("------[%s]------", __func__);
+	stDataFrame_t *df = event->param;
+	if (df->cmd == 0x04) { //class get, ApplicationCommandHandler
+		char rxStatus = df->payload[0];
+		char sourceNode = df->payload[1];
+		char len = df->payload[2];
+		char cid = df->payload[3];
+		char op = df->payload[4];
+		char *value = &df->payload[5];
+		int value_len = len -2;
+		if (rxStatus == 0 && cid == COMMAND_CLASS_SWITCH_BINARY_V1) { //binary class report
+			class_cmd_save(sourceNode, cid, op, value, value_len);
+		}
+	}
+
 	return NULL;
 }
-int  running_transition_async_data(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int  running_transition_async_data(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("------[%s]------", __func__);
 	return S_RUNNING;
 }
 
-void * running_action_data(stStateMachine_t *sm, stEvent_t *event) {
+static void * running_action_data(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("------[%s]------", __func__);
 
 	int sid = state_machine_get_state(sm);
@@ -2595,12 +2684,12 @@ void * running_action_data(stStateMachine_t *sm, stEvent_t *event) {
 	}
 	return (void*)S_RUNNING;
 }
-int  running_transition_data(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int  running_transition_data(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("------[%s]------%d", __func__, (int)acret);
 	return (int)acret;
 }
 
-void * running_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
+static void * running_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("------[%s]------", __func__);
 
 	int sid = state_machine_get_state(&smApi);
@@ -2621,167 +2710,275 @@ void * running_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
 	return (void*)sid;
 }
 
-int  running_transition_call_api(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int  running_transition_call_api(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return (int)(acret);
 }
 
 
 /* CmdZWaveGetVersion */
-void * wait_action_version_data(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_version_data(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
+
+	stVersion_t *ver = &env.ver;
+	stDataFrame_t *df = event->param;
+
+	if (df == NULL) {
+		log_debug("CmdZWaveGet Version : null data!");
+		return NULL;
+	}
+
+	strcpy(ver->ver, df->payload);
+	ver->type = df->payload[strlen(ver->ver) + 1];
+
+	log_debug(":%p, ver:%s, type:%02x", ver, ver->ver, ver->type);	
+	
 	return NULL;
 }
-int    wait_transition_version_data(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_version_data(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
 /* CmdSerialApiGetInitData */
-void * wait_action_init_data(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_init_data(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-----------", __func__);
+
+	stInitData_t *id= &env.initdata;
+	stDataFrame_t *df = event->param;
+
+	if (df == NULL) {
+		log_debug("CmdSerialApiGetInitData : null data!");
+		return NULL;
+	}
+
+	id->ver = df->payload[0];
+	id->capabilities = df->payload[1];
+	id->nodes_map_size = df->payload[2];
+	if (id->nodes_map_size > 0) {
+		memcpy(id->nodes_map, &df->payload[3], id->nodes_map_size);
+	}
+	id->chip_type = df->payload[id->nodes_map_size +  3];
+	id->chip_version = df->payload[id->nodes_map_size + 4];
+
 	return NULL;
 }
-int    wait_transition_init_data(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_init_data(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
 /* CmdZWaveGetNodeProtoInfo */
-void * wait_action_node_protoinfo(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_node_protoinfo(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_node_protoinfo(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_node_protoinfo(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
 
 /* CmdSerialApiGetCapabilities */
-void * wait_action_capabilities(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_capabilities(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
+
+	stCapabilities_t *capa= &env.caps;
+	stDataFrame_t *df = event->param;
+
+	if (df == NULL) {
+		log_debug("CmdSerialApiGetCapabilities : null data!");
+		return NULL;
+	}
+
+	capa->AppVersion = df->payload[0];
+	capa->AppRevisioin = df->payload[1];
+	capa->ManufacturerId = df->payload[2]*256 + df->payload[3];
+	capa->ManufactureProductType = df->payload[4]*256 + df->payload[5];
+	capa->ManufactureProductId = df->payload[6]*256 + df->payload[7];
+	memcpy(capa->SupportedFuncIds_map, &df->payload[8], sizeof(capa->SupportedFuncIds_map));
+
 	return NULL;
 }
-int    wait_transition_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
 
 /* CmdZWaveGetControllerCapabilities */
-void * wait_action_controller_capabilities(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_controller_capabilities(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_controller_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_controller_capabilities(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
 
 /* CmdMemoryGetId */
-void * wait_action_id(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_id(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
+
+	stId_t *i= &env.id;
+	stDataFrame_t *df = event->param;
+
+	if (df == NULL) {
+		log_debug("CmdMemoryGetId : null data!");
+		return NULL;
+	}
+
+	i->HomeID = *(int*)&df->payload[0];
+	i->NodeID = df->payload[4];
+
 	return NULL;
 }
-int    wait_transition_id(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_id(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
 
 /* CmdZWaveGetSucNodeId */
-void * wait_action_suc_node_id(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_suc_node_id(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
+
+	stSucNodeId_t *sni = &env.sucid;
+	stDataFrame_t *df = event->param;
+	if (df == NULL) {
+		log_debug("CmdZWaveGetSucNodeId : null data!");
+		return NULL;
+	}
+
+	sni->SUCNodeID = df->payload[0];
+
 	return NULL;
 }
-int    wait_transition_suc_node_id(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_suc_node_id(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
+
+	stEvent_t *e = MALLOC(sizeof(stEvent_t));
+	e->eid = E_INIT_OVER;
+	e->param = NULL;
+	app_push(e);
+	
 	return S_END;
 }
 
 
 /* CmdSerialApiApplNodeInformation */
-void * wait_action_appl_node_information(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_appl_node_information(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_appl_node_information(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_appl_node_information(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
 /* CmdZWaveAddNodeToNetwork */
-
-void * wait_action_ctr_status(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_ctr_status(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_ctr_status(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_ctr_status(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_WAIT_ADDED_OR_CANCLE;
 }
 
-void * wait_action_newdev_added(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_newdev_added(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_newdev_added(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_newdev_added(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_WAIT_ADDED_NODE;
 }
 
-void * wait_action_cancle_add(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_cancle_add(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_cancle_add(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_cancle_add(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_WAIT_CANCLE_CONFIRM;
 }
 
-void * wait_action_added_node(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_added_node(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_added_node(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_added_node(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_WAIT_ADD_COMP;
 }
 
-void * wait_action_add_comp(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_add_comp(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_add_comp(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_add_comp(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
-void * wait_action_cancle_confirm(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_cancle_confirm(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_cancle_confirm(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_cancle_confirm(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_WAIT_CANCLE_COMP;
 }
 
-void * wait_action_cancle_comp(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_cancle_comp(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_cancle_comp(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_cancle_comp(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
-void * wait_action_node_info(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_node_info_ack(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_node_info(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_node_info_ack(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	return S_WAIT_NODE_INFO;
+}
+
+static void * wait_action_node_info(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	stDataFrame_t *df = event->param;
+
+	if (df == NULL) {
+		log_debug("CmdSerialApiGetCapabilities : null data!");
+		return NULL;
+	}
+
+
+	stEvent_t *e = MALLOC(sizeof(stEvent_t) + sizeof(stNodeInfo_t));
+	e->eid = E_CLASS_STEP;
+	e->param = e+1;
+
+	stNodeInfo_t *ni = (stNodeInfo_t*)e->param;
+	ni->bStatus = df->payload[0];
+	ni->bNodeID = df->payload[1];
+	ni->len = df->payload[2];
+	if (ni->len > 0) {
+		ni->basic = df->payload[3];
+		ni->generic = df->payload[4];
+		ni->specific = df->payload[5];
+		memcpy(ni->commandclasses, df->payload+6, ni->len - 3);
+	}
+
+	app_push(e);
+
+	return NULL;
+}
+static int    wait_transition_node_info(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
@@ -2789,195 +2986,201 @@ int    wait_transition_node_info(stStateMachine_t *sm, stEvent_t *event, void *a
 
 /* CmdZWaveRemoveNodeFromNetwork */
 
-void * wait_action_remove_response(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_remove_response(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_remove_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_remove_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_WAIT_LEAVE_OR_CANCLE;
 }
 
-void * wait_action_leaving(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_leaving(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_leaving(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_leaving(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_WAIT_LEAVED_NODE_S1;
 }
 
-void * wait_action_cancle_remove(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_cancle_remove(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_cancle_remove(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_cancle_remove(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
-void * wait_action_leaved_node_s1(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_leaved_node_s1(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_leaved_node_s1(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_leaved_node_s1(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_WAIT_LEAVED_NODE_S2;
 }
 
-void * wait_action_leaved_node_s2(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_leaved_node_s2(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_leaved_node_s2(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_leaved_node_s2(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	char buf[1] ={ 0x05};
 	api_call(CmdZWaveRemoveNodeFromNetwork, (stParam_t*)buf, 1);
 	return S_WAIT_LEAVE_COMP;
 }
 
-void * wait_action_leave_comp(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_leave_comp(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_leave_comp(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_leave_comp(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
 /* CmdZWaveSetSucNodeId */
-void * wait_action_setsuc_response(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_setsuc_response(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_setsuc_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_setsuc_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
-void * wait_action_senddata_response(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_senddata_response(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int    wait_transition_senddata_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_senddata_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_WAIT_TX_STATUS;
 }
 
-void * wait_action_tx_status(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_tx_status(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
+	stDataFrame_t * df = (stDataFrame_t *)event->param;
+	if (df->payload[0] == 0x03) { //
+	} else if (df->payload[0] == 0x04) {
+	} else if (df->payload[0] == 0x05) {
+	}
 	return NULL;
 }
-int    wait_transition_tx_status(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s]-..----------", __func__);
-	return S_END;
-}
-
-void * wait_action_isfailed_response(stStateMachine_t *sm, stEvent_t *event) {
-	log_debug("----------[%s]-..----------", __func__);
-	return NULL;
-}
-int    wait_transition_isfailed_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int    wait_transition_tx_status(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
 
-void *wait_action_remove_failed_response(stStateMachine_t *sm, stEvent_t *event) {
+static void * wait_action_isfailed_response(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int wait_transition_remove_failed_response(stStateMachine_t *sm, stEvent_t *event) {
+static int    wait_transition_isfailed_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
-void *wait_action_softreset_response(stStateMachine_t *sm, stEvent_t *event) {
+
+static void *wait_action_remove_failed_response(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int wait_transition_softreset_response(stStateMachine_t *sm, stEvent_t *event) {
+static int wait_transition_remove_failed_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
-void *wait_action_protocol_version(stStateMachine_t *sm, stEvent_t *event) {
+static void *wait_action_softreset_response(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int wait_transition_protocol_version(stStateMachine_t *sm, stEvent_t *event) {
+static int wait_transition_softreset_response(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
-void *wait_action_api_started(stStateMachine_t *sm, stEvent_t *event) {
+static void *wait_action_protocol_version(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int wait_transition_api_started(stStateMachine_t *sm, stEvent_t *event) {
+static int wait_transition_protocol_version(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
-void *wait_action_rfpower_level(stStateMachine_t *sm, stEvent_t *event) {
+static void *wait_action_api_started(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int wait_transition_rf_power_level(stStateMachine_t *sm, stEvent_t *event) {
+static int wait_transition_api_started(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
-void *wait_action_neighbor_count(stStateMachine_t *sm, stEvent_t *event) {
+static void *wait_action_rfpower_level(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int wait_transition_neighbor_count(stStateMachine_t *sm, stEvent_t *event) {
+static int wait_transition_rf_power_level(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
-void *wait_action_are_neighbors(stStateMachine_t *sm, stEvent_t *event) {
+static void *wait_action_neighbor_count(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int wait_transition_are_neighbors(stStateMachine_t *sm, stEvent_t *event) {
+static int wait_transition_neighbor_count(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
-void *wait_action_type_library(stStateMachine_t *sm, stEvent_t *event) {
+static void *wait_action_are_neighbors(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int wait_transition_type_library(stStateMachine_t *sm, stEvent_t *event) {
+static int wait_transition_are_neighbors(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
-void *wait_action_protocol_status(stStateMachine_t *sm, stEvent_t *event) {
+static void *wait_action_type_library(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int wait_transition_protocol_status(stStateMachine_t *sm, stEvent_t *event) {
+static int wait_transition_type_library(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
-void *wait_action_port_status(stStateMachine_t *sm, stEvent_t *event) {
+static void *wait_action_protocol_status(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int wait_transition_port_status(stStateMachine_t *sm, stEvent_t *event) {
+static int wait_transition_protocol_status(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }
 
-void *wait_action_io_port(stStateMachine_t *sm, stEvent_t *event) {
+static void *wait_action_port_status(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
 	return NULL;
 }
-int wait_transition_action_io_port(stStateMachine_t *sm, stEvent_t *event) {
+static int wait_transition_port_status(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s]-..----------", __func__);
+	return S_END;
+}
+
+static void *wait_action_io_port(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s]-..----------", __func__);
+	return NULL;
+}
+static int wait_transition_action_io_port(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	return S_END;
 }

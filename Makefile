@@ -1,7 +1,7 @@
 ROOTDIR=$(shell pwd)
 WORKDIR=$(ROOTDIR)/build
 
-#targets	 += zwdevd
+targets	 += zwdevd
 #targets := testlockqueue 
 #targets := testlog 
 #targets := testtimer
@@ -12,7 +12,7 @@ WORKDIR=$(ROOTDIR)/build
 #targets := frame
 #targets := testsession
 #targets := statemachine
-targets	:= testclasscmd
+#targets	:= testclasscmd
 
 .PHONY: targets
 
@@ -20,18 +20,27 @@ all : $(targets)
 
 
 srcs							:= $(ROOTDIR)/main.c
+
 srcs							+= $(ROOTDIR)/src/ayla/log.c
 srcs							+= $(ROOTDIR)/src/ayla/lookup_by_name.c
+srcs							+= $(ROOTDIR)/src/ayla/timer.c
+srcs							+= $(ROOTDIR)/src/ayla/time_utils.c
+srcs							+= $(ROOTDIR)/src/ayla/assert.c
+srcs							+= $(ROOTDIR)/src/ayla/file_event.c
+srcs							+= $(ROOTDIR)/src/ayla/file_io.c
+srcs							+= $(ROOTDIR)/src/ayla/hashmap.c
+srcs							+= $(ROOTDIR)/src/ayla/parse_argv.c
+
 srcs							+= $(ROOTDIR)/product/zwave/src/serial.c
 srcs							+= $(ROOTDIR)/product/zwave/src/transport.c
 srcs							+= $(ROOTDIR)/product/zwave/src/frame.c
 srcs							+= $(ROOTDIR)/product/zwave/src/session.c
 srcs							+= $(ROOTDIR)/product/zwave/src/api.c
 srcs							+= $(ROOTDIR)/product/zwave/src/statemachine.c
-srcs							+= $(ROOTDIR)/src/ayla/timer.c
-srcs							+= $(ROOTDIR)/src/ayla/time_utils.c
-srcs							+= $(ROOTDIR)/src/ayla/assert.c
-srcs							+= $(ROOTDIR)/src/ayla/file_event.c
+srcs							+= $(ROOTDIR)/product/zwave/src/classcmd.c
+srcs							+= $(ROOTDIR)/product/zwave/src/app.c
+srcs							+= $(ROOTDIR)/product/zwave/src/cmd.c
+
 srcs							+= $(ROOTDIR)/src/lockqueue.c
 srcs							+= $(ROOTDIR)/src/mutex.c
 srcs							+= $(ROOTDIR)/src/cond.c

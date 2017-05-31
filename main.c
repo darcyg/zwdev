@@ -19,7 +19,9 @@
 #include "file_event.h"
 #include "session.h"
 #include "api.h"
-
+#include "app.h"
+#include "cmd.h"
+#include "classcmd.h"
 
 ///////////////////////////////////////////////////////////////
 //test module
@@ -121,10 +123,10 @@ void timerout_cb(struct timer *t) {
 #endif
 
 #if 0
-	stAddNodeToNetworkIn_t antni = {0x81, 0x02, 0x00, 0x00};
-	api_call(CmdZWaveAddNodeToNetwork, (stParam_t*)&antni, sizeof(antni));
-	//stNodeInfoIn_t nii = {0x26};
-	//api_call(CmdZWaveRequestNodeInfo, (stParam_t*)&nii, sizeof(nii));
+	//stAddNodeToNetworkIn_t antni = {0x81, 0x02, 0x00, 0x00};
+	//api_call(CmdZWaveAddNodeToNetwork, (stParam_t*)&antni, sizeof(antni));
+	stNodeInfoIn_t nii = {0x3B};
+	api_call(CmdZWaveRequestNodeInfo, (stParam_t*)&nii, sizeof(nii));
 #elif 0
 	stRemoveNodeFromNetworkIn_t rnfn = {0x01, 0x13};
 	api_call(CmdZWaveRemoveNodeFromNetwork, (stParam_t*)&rnfn, sizeof(rnfn));
@@ -175,6 +177,8 @@ void timerout_cb(struct timer *t) {
 	api_call(CmdZWaveIsFailedNode, (stParam_t*)&ifni, sizeof(ifni));
 #endif
 
+	//app_util_push(E_INIT, NULL);
+
 	/*
 	static int funcID = 0x1;
 	stAddNodeToNetworkIn_t antni = {0x81, funcID++};
@@ -191,7 +195,7 @@ void api_test() {
 
 	struct timer tr;
 	timer_init(&tr, timerout_cb);
-	timer_set(&th, &tr, 1000);
+	//timer_set(&th, &tr, 1000);
 
 	struct file_event_table fet;
 	file_event_init(&fet);
@@ -204,6 +208,10 @@ void api_test() {
 		exit(-1);
 	}
 	file_event_reg(&fet, api_getfd(), api_in, NULL, NULL);
+
+	app_init(&th, &fet);
+	cmd_init(&th, &fet);
+	class_cmd_init();
 
 	while (1) {
 		s64 next_timeout_ms;
