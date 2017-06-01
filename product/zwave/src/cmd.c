@@ -139,7 +139,9 @@ void do_cmd_exit(char *argv[], int argc) {
 	exit(0);
 }
 void do_cmd_init(char *argv[], int argc) {
-	app_util_push(E_INIT, NULL);
+	app_util_push_cmd(E_INIT, NULL, 0);
+	app_util_push_cmd(E_CLASS, NULL, 0);
+	do_cmd_list(NULL, 0);
 }
 void do_cmd_list(char *argv[], int argc) {
 	stAppEnv_t *ae = app_util_getae();

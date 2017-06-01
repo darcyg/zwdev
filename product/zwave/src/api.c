@@ -2860,10 +2860,7 @@ static void * wait_action_suc_node_id(stStateMachine_t *sm, stEvent_t *event) {
 static int    wait_transition_suc_node_id(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 
-	stEvent_t *e = MALLOC(sizeof(stEvent_t));
-	e->eid = E_INIT_OVER;
-	e->param = NULL;
-	app_push(e);
+	app_util_push_msg(E_INIT_OVER, NULL, 0);
 	
 	return S_END;
 }
@@ -2960,23 +2957,19 @@ static void * wait_action_node_info(stStateMachine_t *sm, stEvent_t *event) {
 		return NULL;
 	}
 
+	stNodeInfo_t ni;
 
-	stEvent_t *e = MALLOC(sizeof(stEvent_t) + sizeof(stNodeInfo_t));
-	e->eid = E_CLASS_STEP;
-	e->param = e+1;
-
-	stNodeInfo_t *ni = (stNodeInfo_t*)e->param;
-	ni->bStatus = df->payload[0];
-	ni->bNodeID = df->payload[1];
-	ni->len = df->payload[2];
-	if (ni->len > 0) {
-		ni->basic = df->payload[3];
-		ni->generic = df->payload[4];
-		ni->specific = df->payload[5];
-		memcpy(ni->commandclasses, df->payload+6, ni->len - 3);
+	ni.bStatus = df->payload[0];
+	ni.bNodeID = df->payload[1];
+	ni.len = df->payload[2];
+	if (ni.len > 0) {
+		ni.basic = df->payload[3];
+		ni.generic = df->payload[4];
+		ni.specific = df->payload[5];
+		memcpy(ni.commandclasses, df->payload+6, ni.len - 3);
 	}
 
-	app_push(e);
+	app_util_push_msg(E_CLASS_STEP, &ni, sizeof(ni));
 
 	return NULL;
 }

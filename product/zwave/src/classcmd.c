@@ -6,6 +6,7 @@
 #include "common.h"
 #include "file_io.h"
 #include "log.h"
+#include "app.h"
 
 static void basic_get(int did, int cid, int aid, char *argv[], int argc);
 static void basic_set(int did, int cid, int aid, char *argv[], int argc);
@@ -455,7 +456,7 @@ static int device_set_attr(int did, int cid, int aid, char *buf, int size) {
 	sdi.pData_data[2+size] = sdi.txOptions;
 	sdi.pData_data[3+size] = sdi.funcID;
 
-	api_call(CmdZWaveSendData, (stParam_t*)&sdi, sdi.pData_len + 4);
+	app_util_push_cmd(E_COMMAND, (stParam_t*)&sdi, sdi.pData_len + 4);
 
 	funcID++;
 
@@ -481,7 +482,7 @@ static int device_get_attr(int did, int cid, int aid, char *buf, int size) {
 	sdi.pData_data[2+size] = sdi.txOptions;
 	sdi.pData_data[3+size] = sdi.funcID;
 
-	api_call(CmdZWaveSendData, (stParam_t*)&sdi, sdi.pData_len + 4);
+	app_util_push_cmd(E_COMMAND, (stParam_t*)&sdi, sdi.pData_len + 4);
 
 	funcID++;
 

@@ -82,6 +82,8 @@ int app_init(void *_th, void *_fet) {
 	
 	timer_init(&ae.step_timer, app_run);
 	lockqueue_init(&ae.eq);
+	lockqueue_init(&ae.cmdq);
+	lockqueue_init(&ae.msgq);
 
 	ae.dev_num = 0;
 	memset(ae.devs, 0, sizeof(ae.devs));
@@ -106,31 +108,75 @@ void app_in(void *arg, int fd) {
 
 void app_run(struct timer *timer) {
 	stEvent_t *e;
+	while (lockqueue_pop(&ae.eq, (void**)&e) && e != NULL) {
+		FREE(e);
+	}
 
-	if (!lockqueue_pop(&ae.eq, (void**)&e)) {
+	if (lockqueue_pop(&ae.msgq, (void**)&e) && e != NULL) {
+		state_machine_step(&smApp, e);
+		FREE(e);
+		app_step();
 		return;
 	}
 
-	if (e == NULL) {
+	int s = state_machine_get_state(&smApp);
+	if (s != S_IDLEING) {
 		return;
 	}
 
-	state_machine_step(&smApp, e);
+	if (lockqueue_pop(&ae.cmdq, (void**)&e) && e != NULL) {
+		state_machine_step(&smApp, e);
+		FREE(e);
+		app_step();
+	}
 
-	FREE(e);
-	
-	app_step();
 }
 
-void app_util_push(int eid, void *param) {
-	stEvent_t *e = MALLOC(sizeof(stEvent_t));
+void app_util_push_cmd(int eid, void *param, int len) {
+	stEvent_t *e = MALLOC(sizeof(stEvent_t) + sizeof(stAppCmd_t) + len);
 	if (e == NULL) {
 		return;
 	}
 	e->eid = eid;
-	e->param = param;
-	app_push(e);
+	e->param = e+1;
+	stAppCmd_t *cmd = (stAppCmd_t*)e->param;
+
+	if (len > 0) {
+		cmd->len = len;
+		cmd->param = cmd + 1;
+
+		memcpy(cmd->param, param, len);
+	} else {
+		cmd->len = 0;
+		cmd->param = 0;
+	}
+	lockqueue_push(&ae.cmdq, e);
+	app_step();
 }
+
+void app_util_push_msg(int eid, void *param, int len) {
+	stEvent_t *e = MALLOC(sizeof(stEvent_t) + sizeof(stAppCmd_t) + len);
+	if (e == NULL) {
+		return;
+	}
+	e->eid = eid;
+	e->param = e+1;
+	stAppCmd_t *cmd = (stAppCmd_t*)e->param;
+
+	if (len > 0) {
+		cmd->len = len;
+		cmd->param = cmd + 1;
+
+		memcpy(cmd->param, param, len);
+	} else {
+		cmd->len = 0;
+		cmd->param = 0;
+	}
+	
+	lockqueue_push(&ae.msgq, e);
+	app_step();
+}
+
 
 stAppEnv_t *app_util_getae() {
 	return &ae;
@@ -138,7 +184,7 @@ stAppEnv_t *app_util_getae() {
 
 //////////////////////////////////////////////////////////////////
 static void *wait_action_init(stStateMachine_t *sm, stEvent_t *event) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	api_call(CmdZWaveGetVersion, NULL, 0);
 	api_call(CmdSerialApiGetInitData, NULL, 0);
 	api_call(CmdSerialApiGetCapabilities, NULL, 0);
@@ -156,14 +202,14 @@ static void *wait_action_init(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 static int		wait_transition_init(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 
 	return S_INITTING;
 }
 
 
 static void *wait_action_class(stStateMachine_t *sm, stEvent_t *event) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	
 	int i = 0;
 	for (i = 0; i < ae.initdata.nodes_map_size * 8; i++) {
@@ -183,40 +229,42 @@ static void *wait_action_class(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 static int		wait_transition_class(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	return S_CLASSING;
 }
 
 static void *wait_action_include(stStateMachine_t *sm, stEvent_t *event) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	return NULL;
 }
 static int		wait_transition_include(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	return S_INITTING;
 }
 
+
 static void *wait_action_exclude(stStateMachine_t *sm, stEvent_t *event) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	return NULL;
 }
 static int		wait_transition_exclude(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	return S_EXCLUDING;
 }
 
 static void *wait_action_command(stStateMachine_t *sm, stEvent_t *event) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	return NULL;
 }
 static int		wait_transition_command(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	return S_COMMANDING;
 }
 
 
+
 static void *wait_action_init_over(stStateMachine_t *sm, stEvent_t *event) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	
 	api_app_init_over_fetch(&ae);
 	
@@ -237,17 +285,18 @@ static void *wait_action_init_over(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("HomeId:%08X, NodeId:%02x", ae.id.HomeID, ae.id.NodeID);
 	log_debug("SucId--->:sudid:%02x", ae.sucid.SUCNodeID);
 
-	app_util_push(E_CLASS, NULL);
 	return NULL;
 }
 static int		wait_transition_init_over(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	app_step();
 	return S_IDLEING;
 }
 
 static void *wait_action_class_step(stStateMachine_t *sm, stEvent_t *event) {
-	log_debug("----------[%s]-..----------", __func__);
-	stNodeInfo_t *ni = event->param;
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	stAppCmd_t *cmd = (stAppCmd_t*)event->param;
+	stNodeInfo_t *ni = cmd->param;
 
 	int id = ni->bNodeID&0xff;
 	ae.devs[id].id = id;
@@ -262,36 +311,42 @@ static void *wait_action_class_step(stStateMachine_t *sm, stEvent_t *event) {
 		return (void*)S_CLASSING;
 	}
 
-	do_cmd_list();
 	
 	return (void*)S_IDLEING;
 }
 static int		wait_transition_class_step(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s]-..----------2", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	app_step();
 	return (int)acret;
 }
+
 
 static void *wait_action_include_over(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 static int		wait_transition_include_over(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	app_step();
 	return S_IDLEING;
 }
+
 
 static void *wait_action_exclude_over(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 static int		wait_transition_exclude_over(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	app_step();
 	return S_IDLEING;
 }
+
 
 static void *wait_action_command_over(stStateMachine_t *sm, stEvent_t *event) {
 	return NULL;
 }
 static int		wait_transition_command_over(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s]-..----------", __func__);
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	app_step();
 	return S_IDLEING;
 }
 

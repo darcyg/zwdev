@@ -27,6 +27,8 @@ typedef struct stAppEnv {
 
 	struct timer step_timer;
 	stLockQueue_t eq;
+	stLockQueue_t cmdq;
+	stLockQueue_t msgq;
 
 
 
@@ -42,6 +44,11 @@ typedef struct stAppEnv {
 	int lastid;
 }stAppEnv_t;
 
+
+typedef struct stAppCmd {
+	int len;
+	void *param;
+}stAppCmd_t;
 
 
 enum {
@@ -80,7 +87,8 @@ int app_step();
 int app_push(stEvent_t *e);
 void app_run(struct timer *timer);
 void app_in(void *arg, int fd);
-void app_util_push(int eid, void *param);
+void app_util_push_cmd(int eid, void *param, int len);
+void app_util_push_msg(int eid, void *param, int len);
 stAppEnv_t* app_util_getae();
 
 
