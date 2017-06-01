@@ -206,7 +206,7 @@ int frame_receive_step() {
 					fs.stateRecv = FRS_LENGTH;
 					timer_set(fs.th, &fs.timerRecv, FRAME_RECV_NEXT_CH_TIMEOUT);
 				} else if ((ch&0xff) == ACK_CHAR) {
-					//log_debug("%d", __LINE__);
+					log_debug("%d", __LINE__);
 					if (fs.frameSend != NULL) {
 						fs.frameSend->error = FE_SEND_ACK;
 						fs.frameSend->trycnt++;
@@ -222,7 +222,7 @@ int frame_receive_step() {
 					}
 					return 0;
 				} else if ((0xff&ch) == NAK_CHAR) {
-					//log_debug("%d", __LINE__);
+					log_debug("%d", __LINE__);
 					if (fs.frameSend != NULL) {
 						fs.frameSend->error = FE_SEND_NAK;
 						fs.frameSend->trycnt++;
@@ -238,15 +238,14 @@ int frame_receive_step() {
 					}
 					return 0;
 				} else if ((0xff&ch) == CAN_CHAR) {
-					//log_debug("%d", __LINE__);
 					if (fs.frameSend != NULL) {
 						fs.frameSend->error = FE_SEND_CAN;
 						fs.frameSend->trycnt++;
 					}
 
 					timer_cancel(fs.th, &fs.timerSend);
-					fs.frameSend = NULL;
 					stDataFrame_t *tmp = fs.frameSend;
+					fs.frameSend = NULL;
 					fs.stateSend = FSS_READY;
 
 					if (send_over_cb != NULL) {
@@ -254,7 +253,7 @@ int frame_receive_step() {
 					}
 					return 0;
 				} else {
-					//log_debug("%d", __LINE__);
+					log_debug("%d", __LINE__);
 					;
 				}
 				break;
@@ -351,6 +350,7 @@ int frame_receive_step() {
 }
 
 static void frame_receive_timer_callback(struct timer *timer) {
+	log_debug("[%s]", __func__);
 	fs.stateRecv = FRS_SOF_HUNT;
 	timer_cancel(fs.th, &fs.timerRecv);
 
@@ -433,6 +433,7 @@ int frame_send(stDataFrame_t *df) {
   transport_write(&x, 1, 80);
 	debug_buf[debug_len++] = x;
 
+	log_debug("start send timer................................................");
 	timer_set(fs.th, &fs.timerSend, FRAME_WAIT_NAK_ACK_TIMEOUT);
 
 

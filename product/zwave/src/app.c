@@ -261,6 +261,8 @@ static void *wait_action_class_step(stStateMachine_t *sm, stEvent_t *event) {
 	if (id != ae.lastid) {
 		return (void*)S_CLASSING;
 	}
+
+	do_cmd_list();
 	
 	return (void*)S_IDLEING;
 }

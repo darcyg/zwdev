@@ -2248,8 +2248,8 @@ static int api_post_apicall_over_event(int eid, stDataFrame_t *df) {
 	memcpy(ac, df, sizeof(stDataFrame_t));
 
 	ac->payload = (char *)(ac + 1);
-	if (df->len > 0) {
-		memcpy(ac->payload, df->payload, df->len);
+	if (df->size > 0) {
+		memcpy(ac->payload, df->payload, df->size);
 	}
 
 	lockqueue_push(&env.qSend, e);
@@ -2270,8 +2270,8 @@ static int api_post_recv_over_event(int eid, stDataFrame_t *df) {
 	memcpy(ac, df, sizeof(stDataFrame_t));
 
 	ac->payload = (char *)(ac + 1);
-	if (df->len > 0) {
-		memcpy(ac->payload, df->payload, df->len);
+	if (df->size > 0) {
+		memcpy(ac->payload, df->payload, df->size);
 	}
 
 	lockqueue_push(&env.qRecv, e);
@@ -2533,7 +2533,8 @@ static void * idle_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
 		log_debug("api call make frame error !");
 		return NULL;
 	}
-	frame_send(df);
+	//frame_send(df);
+	session_send(df);
 
 	//Fixed here to a correct one
 	//timer_set(env.th, &env.timerSend, API_EXEC_TIMEOUT_MS);
@@ -2561,7 +2562,7 @@ static void * idle_action_async_data(stStateMachine_t *sm, stEvent_t *event) {
 		char op = df->payload[4];
 		char *value = &df->payload[5];
 		int value_len = len -2;
-		if (rxStatus == 0 && cid == COMMAND_CLASS_SWITCH_BINARY_V1) { //binary class report
+		if (rxStatus == 0) { //binary class report
 			class_cmd_save(sourceNode, cid, op, value, value_len);
 		}
 	}
@@ -2638,7 +2639,7 @@ static void * running_action_async_data(stStateMachine_t *sm, stEvent_t *event) 
 		char op = df->payload[4];
 		char *value = &df->payload[5];
 		int value_len = len -2;
-		if (rxStatus == 0 && cid == COMMAND_CLASS_SWITCH_BINARY_V1) { //binary class report
+		if (rxStatus == 0) { //binary class report
 			class_cmd_save(sourceNode, cid, op, value, value_len);
 		}
 	}
@@ -2705,7 +2706,8 @@ static void * running_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
 		if (df == NULL) {
 			log_debug("api call make frame error !");
 		}
-		frame_send(df);
+		//frame_send(df);
+		session_send(df);
 	}
 	return (void*)sid;
 }

@@ -100,9 +100,6 @@ void api_return_callback(emApi_t api, stParam_t *param, emApiState_t state, emAp
 }
 
 void timerout_cb(struct timer *t) {
-	log_info("========================api test==================");
-	timer_set(&th, t, 20000);
-	
 #if 0
 	api_call(CmdZWaveGetVersion, NULL, 0);
 
@@ -184,6 +181,7 @@ void timerout_cb(struct timer *t) {
 	stAddNodeToNetworkIn_t antni = {0x81, funcID++};
 	api_exec(CmdZWaveAddNodeToNetwork, &antni);
 	*/
+	do_cmd_init();
 }
 
 void api_in(void *arg, int fd) {
@@ -195,7 +193,6 @@ void api_test() {
 
 	struct timer tr;
 	timer_init(&tr, timerout_cb);
-	//timer_set(&th, &tr, 1000);
 
 	struct file_event_table fet;
 	file_event_init(&fet);
@@ -208,11 +205,12 @@ void api_test() {
 		exit(-1);
 	}
 	file_event_reg(&fet, api_getfd(), api_in, NULL, NULL);
-
 	app_init(&th, &fet);
-	cmd_init(&th, &fet);
-	class_cmd_init();
 
+	class_cmd_init();
+	cmd_init(&th, &fet);
+
+	timer_set(&th, &tr, 10);
 	while (1) {
 		s64 next_timeout_ms;
 		next_timeout_ms = timer_advance(&th);

@@ -21,6 +21,9 @@ void do_cmd_include(char *argv[], int argc);
 void do_cmd_exclude(char *argv[], int argc);
 void do_cmd_onoff(char *argv[], int argc);
 void do_cmd_help(char *argv[], int argc);
+void do_cmd_get(char *argv[], int argc);
+void do_cmd_set(char *argv[], int argc);
+void do_cmd_info(char *argv[], int argc);
 
 static stCmd_t cmds[] = {
 	{"exit", do_cmd_exit, "exit the programe!"},
@@ -29,6 +32,9 @@ static stCmd_t cmds[] = {
 	{"include", do_cmd_include, "include a zwave device"},
 	{"exclude", do_cmd_exclude, "exclude a zwave device"},
 	{"onoff", do_cmd_onoff, "onff light"},
+	{"get", do_cmd_get, "get device class/attr : get 0x3B 0x25 0x03"},
+	{"set", do_cmd_set, "set device class/attr : set 0x3B 0x25 0x03 0x00/0x01"},
+	{"info", do_cmd_info, "get zwave network info"},
 	{"help", do_cmd_help, "help info"},
 };
 
@@ -179,6 +185,79 @@ void do_cmd_help(char *argv[], int argc) {
 	int i = 0;
 	for (i = 0; i < sizeof(cmds)/sizeof(cmds[0]); i++) {
 		log_debug("%-12s\t-\t%s", cmds[i].name, cmds[i].desc);
+	}
+}
+
+void do_cmd_get(char *argv[], int argc) {
+	int did, cid, aid;
+	if (argc != 4) {
+		log_debug("error argments!");
+		return;
+	}
+	if (sscanf(argv[1], "0x%02x", &did) != 1) {
+		log_debug("error argments!");
+		return;
+	}
+	if (sscanf(argv[2], "0x%02x", &cid) != 1) {
+		log_debug("error argments!");
+		return;
+	}
+	if (sscanf(argv[3], "0x%02x", &aid) != 1) {
+		log_debug("error argments!");
+		return;
+	}
+	
+	log_debug("get did:%02x,cid:%02x,aid:%02x", did&0xff, cid&0xff, aid&0xff);
+	//device_get_attr(did, cid, aid);
+	class_cmd_get_attr(did, cid, aid, argv+4, argc-4);
+}
+
+void do_cmd_set(char *argv[], int argc) {
+	int did, cid, aid;
+	if (argc != 5) {
+		log_debug("error argments!");
+		return;
+	}
+	if (sscanf(argv[1], "0x%02x", &did) != 1) {
+		log_debug("error argments!");
+		return;
+	}
+	if (sscanf(argv[2], "0x%02x", &cid) != 1) {
+		log_debug("error argments!");
+		return;
+	}
+	if (sscanf(argv[3], "0x%02x", &aid) != 1) {
+		log_debug("error argments!");
+		return;
+	}
+	
+	log_debug("get did:%02x,cid:%02x,aid:%02x", did&0xff, cid&0xff, aid&0xff);
+
+	class_cmd_set_attr(did, cid, aid, argv+4, argc-4);
+	class_cmd_get_attr(did, cid, aid, argv+4, argc-4);
+}
+
+
+void do_cmd_info(char *argv[], int argc) {
+	stAppEnv_t *ae = app_util_getae();
+	json_t *jinfo = json_object();
+	if (jinfo != NULL) {
+		char buf[32];
+		sprintf(buf, "%08X", ae->id.HomeID);
+		json_object_set_new(jinfo, "HomeID",		json_string(buf));
+
+		sprintf(buf, "%02X", ae->id.NodeID);
+		json_object_set_new(jinfo, "NodeID",		json_string(buf));
+
+		sprintf(buf, "%02X", ae->sucid.SUCNodeID);
+		json_object_set_new(jinfo, "SUCNOdeID", json_string(buf));
+
+		char *jinfo_str = json_dumps(jinfo, 0);
+		if (jinfo_str != NULL) {
+				log_debug("jinfo [%s]",jinfo_str);
+				free(jinfo_str);
+		}
+		json_decref(jinfo);
 	}
 }
 

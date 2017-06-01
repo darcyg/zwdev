@@ -79,7 +79,7 @@ int session_send(void *sf) {
 static void session_send_over_callback(stDataFrame_t *_sf) {
 	stDataFrame_t *sf = (stDataFrame_t *)_sf;
 	if (sf != NULL) {
-		if (sf->error == FE_NONE || sf->error == FE_SEND_ACK || sf->error == FE_SEND_CAN) {
+		if (sf->error == FE_NONE || sf->error == FE_SEND_ACK ) {
 			stDataFrame_t *x = NULL;
 			lockqueue_pop(&ss.qSend, (void **)&x);
 
@@ -104,7 +104,7 @@ static void session_send_over_callback(stDataFrame_t *_sf) {
 
 				send_cb(sf);
 			}
-		} else if (sf->error == FE_SEND_NAK) {
+		} else if (sf->error == FE_SEND_NAK || sf->error == FE_SEND_CAN) {
 			if (sf->trycnt < SESSION_MAX_SEND_TRY_CNT) {
 				log_debug("send nak, retry : %d", sf->trycnt);
 				frame_send(sf);

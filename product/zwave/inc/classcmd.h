@@ -38,17 +38,24 @@ typedef enum emCmd {
 
 #define CLASS_MAX_ATTR_NUM 0x32
 
+
+typedef void (*SET_FUNC)(int did, int cid, int aid, char *argv[], int argc);
+typedef void (*GET_FUNC)(int did, int cid, int aid, char *argv[], int argc);
+typedef void (*REPORT_FUNC)(int did, int cid, int aid, char *buf, char *value, int value_len);
+typedef void (*REMOVE_FUNC)(int did, int cid, int aid, char *argv[], int argc);
+typedef void (*NOTIFY_FUNC)(int did, int cid, int aid, char *argv[], int argc);
+
 typedef struct stAttr {
 	int		aid;	
 	char	*name;
 	int		usenick;
 	char	*nick;
-	void	*set;
-	void	*get;
-	void	*report;
-	void  *remove;
-	void	*notify;
-	void  *parse;
+
+	SET_FUNC set;
+	GET_FUNC get;
+	REPORT_FUNC report;
+	REMOVE_FUNC remove;
+	NOTIFY_FUNC notify;
 }stAttr_t;
 
 typedef struct stClass {
@@ -60,20 +67,8 @@ typedef struct stClass {
 	stAttr_t	attrs[CLASS_MAX_ATTR_NUM];
 }stClass_t;
 
-extern stClass_t classes[];
-
-/*
-int class_cmd_get(emClass_t class, emCmd_t cmd, stClassCmdParam_t *param, stSendDataIn_t *sdi);
-int class_cmd_set(emClass_t class, emCmd_t cmd, stClassCmdParam_t *param, stSendDataIn_t *sdi);
-int class_cmd_report(emClass_t class, emCmd_t cmd, stClassCmdParam_t *param, stSendDAtaInt_t *sdi);
-int class_cmd_remove(emClass_t class, emCmd_t cmd, stClassCmdParam_t *param, stSendDAtaInt_t *sdi);
-int class_cmd_parse(emClass_t *class, emCmd_t *cmd, stClassCmdParam_t *param, stSendDataIn_t *sdi);
-*/
-
-
 int memory_module_init();
 int flash_module_init();
-int device_module_init();
 
 int memory_get_attr(int did, const char *attr, char *value);
 int memory_set_attr(int did, const char *attr, char *value);
@@ -81,13 +76,10 @@ int memory_set_attr(int did, const char *attr, char *value);
 int flash_load_attr(int did, const char *attr, char *value);
 int flash_save_attr(int did, const char *attr, char *value);
 
-int device_get_attr(int did, int cid, int aid);
-//int device_set_attr(int did, const char *attr, char *value);
-
-
-int class_cmd_to_attrs(int did, emClass_t *class, int class_cnt, void *jattrs);
-void class_cmd_save(int did, char cid, char op, char *value, char value_len);
-
 void class_cmd_init();
+int  class_cmd_to_attrs(int did, emClass_t *class, int class_cnt, void *jattrs);
+void class_cmd_get_attr(int did, int cid, int aid, char *argv[], int argc);
+void class_cmd_set_attr(int did, int cid, int aid, char *argv[], int argc);
+void class_cmd_save(int did, char cid, char op, char *value, char value_len);
 #endif
 
