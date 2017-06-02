@@ -469,6 +469,9 @@ void class_cmd_set_attr(int did, int cid, int aid, char *argv[], int argc) {
 
 		if (attr->set != NULL) {
 			attr->set(did, cid, aid, argv, argc);
+			if (attr->get != NULL) {
+				attr->get(did, cid, aid, NULL, 0);
+			}
 		}
 }
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -490,7 +493,7 @@ static int device_set_attr(int did, int cid, int aid, char *buf, int size) {
 	sdi.pData_data[2+size] = sdi.txOptions;
 	sdi.pData_data[3+size] = sdi.funcID;
 
-	//app_push(E_SUB_ATTR, (stParam_t*)&sdi, sdi.pData_len + 4);
+	app_push(E_SUB_ATTR, (stParam_t*)&sdi, sdi.pData_len + 4);
 
 	funcID++;
 

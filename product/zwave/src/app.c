@@ -31,10 +31,6 @@ static int		wait_transition_exclude(stStateMachine_t *sm, stEvent_t *event, void
 static void *wait_action_command(stStateMachine_t *sm, stEvent_t *event);
 static int		wait_transition_command(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-
-
-
-
 static void *wait_action_init_over(stStateMachine_t *sm, stEvent_t *event);
 static int		wait_transition_init_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
@@ -56,6 +52,16 @@ static void *wait_action_exclude_over(stStateMachine_t *sm, stEvent_t *event);
 static int		wait_transition_exclude_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
+
+static void *wait_action_sub_command(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_sub_command(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void *wait_action_command_over(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_command_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+
+
+
 static stStateMachine_t smApp = {
 	1,  S_IDLEING, S_IDLEING, {
 		{S_IDLEING, 6, NULL, {
@@ -64,7 +70,7 @@ static stStateMachine_t smApp = {
 				{E_ATTR,		wait_action_attr,			wait_transition_attr},
 				{E_INCLUDE, wait_action_include,	wait_transition_include},
 				{E_EXCLUDE, wait_action_exclude,	wait_transition_exclude},
-				{E_COMMAND, wait_action_comamnd,  wait_transition_command},
+				{E_COMMAND, wait_action_command,  wait_transition_command},
 			},
 		},
 	},
@@ -72,7 +78,8 @@ static stStateMachine_t smApp = {
 
 static stStateMachine_t	smCommand = {
 	2, S_IDLEING, S_IDLEING, {
-		{S_IDLEING, 0, NULL, {
+		{S_IDLEING, 1, NULL, {
+				{E_SUB_COMMAND, wait_action_sub_command, wait_transition_sub_command},
 			},
 		},
 		{S_COMMANDING, 1, NULL, {
@@ -398,6 +405,19 @@ static int		wait_transition_exclude(stStateMachine_t *sm, stEvent_t *event, void
 	return S_EXCLUDING;
 }
 
+static void *wait_action_command(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	return NULL;
+}
+static int		wait_transition_command(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	ae.subsm = &smCommand;
+	state_machine_reset(ae.subsm);
+	return S_COMMANDING;
+}
+
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 static void *wait_action_init_over(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
@@ -508,4 +528,29 @@ static int		wait_transition_exclude_over(stStateMachine_t *sm, stEvent_t *event,
 	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	return 0;
 }
+
+static void *wait_action_sub_command(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	stAppCmd_t *cmd = (stAppCmd_t*)event->param;
+	stSendDataIn_t *sdi = cmd->param;
+	api_call(CmdZWaveSendData, (stParam_t*)sdi, cmd->len);
+	return NULL;
+}
+
+static int		wait_transition_sub_command(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	return S_COMMANDING;
+}
+
+
+static void *wait_action_command_over(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	return NULL;
+}
+static int		wait_transition_command_over(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	app_step();
+	return (int)S_IDLEING;
+}
+
+
 

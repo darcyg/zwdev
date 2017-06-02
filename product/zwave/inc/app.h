@@ -66,6 +66,8 @@ enum {
 	
 	S_EXCLUDING = 5,
 	
+
+	S_COMMANDING = 6,
 };
 
 enum {
@@ -83,6 +85,9 @@ enum {
 	E_SUB_CLASS = 11,
 	E_SUB_ATTR = 12,
 
+	E_COMMAND = 13,
+	E_COMMAND_OVER = 14,
+	E_SUB_COMMAND = 12,
 };
 
 int app_init(void *_th, void *_fet);

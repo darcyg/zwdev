@@ -3070,6 +3070,7 @@ static void * wait_action_tx_status(stStateMachine_t *sm, stEvent_t *event) {
 }
 static int    wait_transition_tx_status(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
+	app_util_push_msg(E_COMMAND_OVER, NULL, 0);
 	return S_END;
 }
 

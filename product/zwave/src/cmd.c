@@ -206,8 +206,8 @@ void do_cmd_get(char *argv[], int argc) {
 	}
 	
 	log_debug("get did:%02x,cid:%02x,aid:%02x", did&0xff, cid&0xff, aid&0xff);
-	//device_get_attr(did, cid, aid);
-	//class_cmd_get_attr(did, cid, aid, argv+4, argc-4);
+	app_util_push_cmd(E_COMMAND, NULL, 0);
+	class_cmd_get_attr(did, cid, aid, argv+4, argc-4);
 }
 
 void do_cmd_set(char *argv[], int argc) {
@@ -231,8 +231,8 @@ void do_cmd_set(char *argv[], int argc) {
 	
 	log_debug("get did:%02x,cid:%02x,aid:%02x", did&0xff, cid&0xff, aid&0xff);
 
-	//class_cmd_set_attr(did, cid, aid, argv+4, argc-4);
-	//class_cmd_get_attr(did, cid, aid, argv+4, argc-4);
+	app_util_push_cmd(E_COMMAND, NULL, 0);
+	class_cmd_set_attr(did, cid, aid, argv+4, argc-4);
 }
 
 
