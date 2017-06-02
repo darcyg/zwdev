@@ -953,8 +953,9 @@ int am_action_idle_async_data(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
 		char op = df->payload[4];
 		char *value = df->payload[5];
 		int value_len = len -2;
-		if (rxStatus == 0 && cid == COMMAND_CLASS_SWITCH_BINARY_V1) { //binary class report
+		if (rxStatus == 0) { //binary class report
 			class_cmd_save(sourceNode, cid, op, value, value_len);
+			app_util_push_msg(E_ATTR_OVER, NULL, 0);
 		}
 	}
 	return 0;
@@ -2564,6 +2565,7 @@ static void * idle_action_async_data(stStateMachine_t *sm, stEvent_t *event) {
 		int value_len = len -2;
 		if (rxStatus == 0) { //binary class report
 			class_cmd_save(sourceNode, cid, op, value, value_len);
+			app_util_push_msg(E_ATTR_OVER, NULL, 0);
 		}
 	}
 
@@ -2641,6 +2643,7 @@ static void * running_action_async_data(stStateMachine_t *sm, stEvent_t *event) 
 		int value_len = len -2;
 		if (rxStatus == 0) { //binary class report
 			class_cmd_save(sourceNode, cid, op, value, value_len);
+			app_util_push_msg(E_ATTR_OVER, NULL, 0);
 		}
 	}
 
@@ -2969,7 +2972,7 @@ static void * wait_action_node_info(stStateMachine_t *sm, stEvent_t *event) {
 		memcpy(ni.commandclasses, df->payload+6, ni.len - 3);
 	}
 
-	app_util_push_msg(E_CLASS_STEP, &ni, sizeof(ni));
+	app_util_push_msg(E_CLASS_OVER, &ni, sizeof(ni));
 
 	return NULL;
 }

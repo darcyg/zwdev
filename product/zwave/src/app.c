@@ -10,6 +10,7 @@
 #include "app.h"
 #include "api.h"
 #include "frame.h"
+#include "classcmd.h"
 
 
 static void *wait_action_init(stStateMachine_t *sm, stEvent_t *event);
@@ -17,6 +18,9 @@ static int		wait_transition_init(stStateMachine_t *sm, stEvent_t *event, void *a
 
 static void *wait_action_class(stStateMachine_t *sm, stEvent_t *event);
 static int		wait_transition_class(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void *wait_action_attr(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_attr(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 static void *wait_action_include(stStateMachine_t *sm, stEvent_t *event);
 static int		wait_transition_include(stStateMachine_t *sm, stEvent_t *event, void *acret);
@@ -28,42 +32,47 @@ static void *wait_action_command(stStateMachine_t *sm, stEvent_t *event);
 static int		wait_transition_command(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
+
+
+
 static void *wait_action_init_over(stStateMachine_t *sm, stEvent_t *event);
 static int		wait_transition_init_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
-static void *wait_action_class_step(stStateMachine_t *sm, stEvent_t *event);
-static int		wait_transition_class_step(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void *wait_action_sub_class(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_sub_class(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void *wait_action_class_over(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_class_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+
+static void *wait_action_sub_attr(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_sub_attr(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void *wait_action_attr_over(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_attr_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
 static void *wait_action_include_over(stStateMachine_t *sm, stEvent_t *event);
 static int		wait_transition_include_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
 static void *wait_action_exclude_over(stStateMachine_t *sm, stEvent_t *event);
 static int		wait_transition_exclude_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
-static void *wait_action_command_over(stStateMachine_t *sm, stEvent_t *event);
-static int		wait_transition_command_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
-stStateMachine_t smApp = {
-	6,  S_IDLEING, S_IDLEING, {
-		{S_IDLEING, 5, NULL, {
+static stStateMachine_t smApp = {
+	1,  S_IDLEING, S_IDLEING, {
+		{S_IDLEING, 6, NULL, {
 				{E_INIT,		wait_action_init,			wait_transition_init},
 				{E_CLASS,		wait_action_class,		wait_transition_class},
+				{E_ATTR,		wait_action_attr,			wait_transition_attr},
 				{E_INCLUDE, wait_action_include,	wait_transition_include},
 				{E_EXCLUDE, wait_action_exclude,	wait_transition_exclude},
-				{E_COMMAND, wait_action_command,	wait_transition_command},
+				{E_COMMAND, wait_action_comamnd,  wait_transition_command},
 			},
 		},
-		{S_INITTING, 1, NULL, {
-				{E_INIT_OVER, wait_action_init_over, wait_transition_init_over},
-			},
-		},
-		{S_CLASSING, 1, NULL, {
-				{E_CLASS_STEP, wait_action_class_step, wait_transition_class_step},
-			},
-		},
-		{S_INCLUDING, 1, NULL, {
-				{E_INCLUDE_OVER, wait_action_include_over, wait_transition_include_over},
-			},
-		},
-		{S_EXCLUDING, 1, NULL, {
-				{E_EXCLUDE_OVER, wait_action_exclude_over, wait_transition_exclude_over},
+	},
+};
+
+static stStateMachine_t	smCommand = {
+	2, S_IDLEING, S_IDLEING, {
+		{S_IDLEING, 0, NULL, {
 			},
 		},
 		{S_COMMANDING, 1, NULL, {
@@ -74,20 +83,88 @@ stStateMachine_t smApp = {
 };
 
 
-static stAppEnv_t ae;
+
+static stStateMachine_t	smInit = {
+	2, S_INITTING, S_INITTING, {
+		{S_IDLEING, 0, NULL, {
+			},
+		},
+		{S_INITTING, 1, NULL, {
+				{E_INIT_OVER, wait_action_init_over, wait_transition_init_over},
+			},
+		},
+	},
+};
+
+static stStateMachine_t smClass = {
+	2, S_IDLEING, S_IDLEING, {
+		{S_IDLEING, 1, NULL, {
+				{E_SUB_CLASS, wait_action_sub_class, wait_transition_sub_class},
+			},
+		},
+		{S_CLASSING, 1, NULL, {
+				{E_CLASS_OVER, wait_action_class_over, wait_transition_class_over},
+			},
+		},
+	},
+};
+
+static stStateMachine_t smAttr = {
+	2, S_IDLEING, S_IDLEING, {
+		{S_IDLEING, 1, NULL, {
+				{E_SUB_ATTR, wait_action_sub_attr, wait_transition_sub_attr}, 
+			},
+		},
+		{S_ATTRING, 1, NULL, {
+				{E_ATTR_OVER, wait_action_attr_over, wait_transition_attr_over},
+			},
+		},
+	}
+};
+
+static stStateMachine_t smInclude = {
+	2, S_INCLUDING, S_INCLUDING, {
+		{S_IDLEING, 0, NULL, {
+			},
+		},
+		{S_INCLUDING, 1, NULL, {
+				{E_INCLUDE_OVER, wait_action_include_over, wait_transition_include_over},
+			},
+		},
+	},
+};
+
+static stStateMachine_t smExclude = {
+	2, S_EXCLUDING, S_EXCLUDING, {
+		{S_IDLEING, 0, NULL, {
+			},
+		},
+		{S_EXCLUDING, 1, NULL, {
+				{E_EXCLUDE_OVER, wait_action_exclude_over, wait_transition_exclude_over},
+			},
+		},
+	},
+};
+
+
+static stAppEnv_t ae = {
+	.subsm = NULL,
+};
 
 int app_init(void *_th, void *_fet) {
 	ae.th = _th;
 	ae.fet = _fet;
 	
 	timer_init(&ae.step_timer, app_run);
-	lockqueue_init(&ae.eq);
 	lockqueue_init(&ae.cmdq);
+	lockqueue_init(&ae.subcmdq);
 	lockqueue_init(&ae.msgq);
 
 	ae.dev_num = 0;
 	memset(ae.devs, 0, sizeof(ae.devs));
 
+
+	state_machine_reset(&smApp);
 	return 0;
 }
 
@@ -97,39 +174,69 @@ int app_step() {
 	return 0;
 }
 
-int app_push(stEvent_t *e) {
-	lockqueue_push(&ae.eq, e);
-	app_step();
-	return 0;
-}
+
 
 void app_in(void *arg, int fd) {
 }
 
 void app_run(struct timer *timer) {
 	stEvent_t *e;
-	while (lockqueue_pop(&ae.eq, (void**)&e) && e != NULL) {
-		FREE(e);
-	}
-
 	if (lockqueue_pop(&ae.msgq, (void**)&e) && e != NULL) {
-		state_machine_step(&smApp, e);
+		if (ae.subsm != NULL) {
+			state_machine_step(ae.subsm, e);
+		} else {
+			state_machine_step(&smApp, e);
+		}
 		FREE(e);
 		app_step();
 		return;
 	}
 
-	int s = state_machine_get_state(&smApp);
-	if (s != S_IDLEING) {
+	if (ae.subsm != NULL) {	
+		int s = state_machine_get_state(ae.subsm);
+		if (s != S_IDLEING) {	
+			return;
+		}
+		if (lockqueue_pop(&ae.subcmdq, (void**)&e) && e != NULL) {
+			state_machine_step(ae.subsm, e);
+			FREE(e);
+			app_step();
+			return;
+		}
+		ae.subsm = NULL;
+		state_machine_set_state(&smApp, S_IDLEING);
+		app_step();
+		return;
+	} else {
+		if (lockqueue_pop(&ae.cmdq, (void**)&e) && e != NULL) {
+			state_machine_step(&smApp, e);
+			FREE(e);
+			app_step();
+			return;
+		}
+	}
+}
+
+void app_push(int eid, void *param, int len) {
+	stEvent_t *e = MALLOC(sizeof(stEvent_t) + sizeof(stAppCmd_t) + len);
+	if (e == NULL) {
 		return;
 	}
+	e->eid = eid;
+	e->param = e+1;
+	stAppCmd_t *cmd = (stAppCmd_t*)e->param;
 
-	if (lockqueue_pop(&ae.cmdq, (void**)&e) && e != NULL) {
-		state_machine_step(&smApp, e);
-		FREE(e);
-		app_step();
+	if (len > 0) {
+		cmd->len = len;
+		cmd->param = cmd + 1;
+
+		memcpy(cmd->param, param, len);
+	} else {
+		cmd->len = 0;
+		cmd->param = 0;
 	}
-
+	lockqueue_push(&ae.subcmdq, e);
+	app_step();
 }
 
 void app_util_push_cmd(int eid, void *param, int len) {
@@ -182,7 +289,7 @@ stAppEnv_t *app_util_getae() {
 	return &ae;
 }
 
-//////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 static void *wait_action_init(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	api_call(CmdZWaveGetVersion, NULL, 0);
@@ -199,14 +306,14 @@ static void *wait_action_init(stStateMachine_t *sm, stEvent_t *event) {
 	api_call(CmdZWaveTypeLibrary, NULL, 0);
 	api_call(CmdZWaveGetProtocolStatus, NULL, 0);
 	*/
+
 	return NULL;
 }
 static int		wait_transition_init(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
-
+	ae.subsm = &smInit;
+	state_machine_reset(ae.subsm);
 	return S_INITTING;
 }
-
 
 static void *wait_action_class(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
@@ -221,48 +328,77 @@ static void *wait_action_class(stStateMachine_t *sm, stEvent_t *event) {
 		if (id == 0x01) {
 			continue;
 		}
-		stNodeInfoIn_t nii = {id};
 		ae.devs[id].id = id;
 		ae.lastid = id;
-		api_call(CmdZWaveRequestNodeInfo, (stParam_t*)&nii, sizeof(nii));
+
+		stNodeInfoIn_t nii = {id};
+		app_push(E_SUB_CLASS, &nii, sizeof(nii));
 	}
 	return NULL;
 }
 static int		wait_transition_class(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	ae.subsm = &smClass;
+	state_machine_reset(ae.subsm);
 	return S_CLASSING;
+}
+
+
+static void *wait_action_attr(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	int i = 0;
+	for (i = 0; i < ae.initdata.nodes_map_size * 8; i++) {
+		int id			= i+1;
+		int id_bit	= (ae.initdata.nodes_map[i/8] >> (i%8))&0x1;
+		if (id_bit == 0) {
+			continue;
+		}
+		if (id == 0x01) {
+			continue;
+		}
+
+		log_debug_hex("ae.devs[id].class:", ae.devs[id].class, ae.devs[id].clen);
+		emClass_t class[32];
+		int j;
+		for (j = 0; j < ae.devs[id].clen; j++) {
+			class[j] = ae.devs[id].class[j];
+		}
+
+		class_cmd_get_dev_attr(id, class, ae.devs[id].clen);
+	}
+
+	return NULL;
+}
+static int		wait_transition_attr(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	ae.subsm = &smAttr;
+	state_machine_reset(ae.subsm);
+	return S_ATTRING;
 }
 
 static void *wait_action_include(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	//api_call(CmdZWaveGetSucNodeId, NULL, 0);
 	return NULL;
 }
 static int		wait_transition_include(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
-	return S_INITTING;
+	ae.subsm = &smInclude;
+	state_machine_reset(ae.subsm);
+	return S_INCLUDING;
 }
-
 
 static void *wait_action_exclude(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	//api_call(CmdZWaveIn, NULL, 0);
 	return NULL;
 }
 static int		wait_transition_exclude(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	ae.subsm = &smExclude;
+	state_machine_reset(ae.subsm);
 	return S_EXCLUDING;
 }
 
-static void *wait_action_command(stStateMachine_t *sm, stEvent_t *event) {
-	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
-	return NULL;
-}
-static int		wait_transition_command(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
-	return S_COMMANDING;
-}
-
-
-
+////////////////////////////////////////////////////////////////////////////////////////////////////
 static void *wait_action_init_over(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	
@@ -286,6 +422,7 @@ static void *wait_action_init_over(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("SucId--->:sudid:%02x", ae.sucid.SUCNodeID);
 
 	return NULL;
+
 }
 static int		wait_transition_init_over(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
@@ -293,7 +430,19 @@ static int		wait_transition_init_over(stStateMachine_t *sm, stEvent_t *event, vo
 	return S_IDLEING;
 }
 
-static void *wait_action_class_step(stStateMachine_t *sm, stEvent_t *event) {
+static void *wait_action_sub_class(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	stAppCmd_t *cmd = (stAppCmd_t*)event->param;
+	stNodeInfoIn_t *nii = cmd->param;
+	api_call(CmdZWaveRequestNodeInfo, (stParam_t*)nii, sizeof(*nii));
+	return NULL;
+}
+static int		wait_transition_sub_class(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	app_step();
+	return (int)S_CLASSING;
+}
+static void *wait_action_class_over(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	stAppCmd_t *cmd = (stAppCmd_t*)event->param;
 	stNodeInfo_t *ni = cmd->param;
@@ -306,50 +455,57 @@ static void *wait_action_class_step(stStateMachine_t *sm, stEvent_t *event) {
 	ae.devs[id].clen = ni->len - 3;
 	memcpy(ae.devs[id].class, ni->commandclasses, ae.devs[id].clen);
 
-	log_debug("id is %d, ae.lastid:%d, clen:%d", id, ae.lastid, ni->len-3);
-	if (id != ae.lastid) {
-		return (void*)S_CLASSING;
-	}
+	return NULL;
 
-	
-	return (void*)S_IDLEING;
 }
-static int		wait_transition_class_step(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+static int		wait_transition_class_over(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	app_step();
-	return (int)acret;
+	return (int)S_IDLEING;
+}
+
+
+
+static void *wait_action_sub_attr(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+
+	stAppCmd_t *cmd = (stAppCmd_t*)event->param;
+	stSendDataIn_t *sdi = cmd->param;
+	api_call(CmdZWaveSendData, (stParam_t*)sdi,  cmd->len);
+
+	return NULL;
+}
+static int		wait_transition_sub_attr(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	app_step();
+	return S_ATTRING;
+}
+static void *wait_action_attr_over(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	return NULL;
+}
+static int		wait_transition_attr_over(stStateMachine_t *sm, stEvent_t *event, void *acret) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	app_step();
+	return (int)S_IDLEING;
 }
 
 
 static void *wait_action_include_over(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	return NULL;
 }
 static int		wait_transition_include_over(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
-	app_step();
-	return S_IDLEING;
+	return 0;
 }
 
-
 static void *wait_action_exclude_over(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
 	return NULL;
 }
 static int		wait_transition_exclude_over(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
-	app_step();
-	return S_IDLEING;
+	return 0;
 }
-
-
-static void *wait_action_command_over(stStateMachine_t *sm, stEvent_t *event) {
-	return NULL;
-}
-static int		wait_transition_command_over(stStateMachine_t *sm, stEvent_t *event, void *acret) {
-	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
-	app_step();
-	return S_IDLEING;
-}
-
-
-
 

@@ -350,6 +350,40 @@ int class_cmd_to_attrs(int did, emClass_t *class_array, int class_cnt, void *jat
 	return 0;
 }
 
+int class_cmd_get_dev_attr(int did, emClass_t *class_array, int class_cnt) {
+	int i = 0;
+	for (i = 0; i < class_cnt; i++) {
+		int cid = class_array[i]&0xff;
+		stClass_t *class = &classes[cid];
+
+
+		if ((class->cid&0xff) != cid) {
+			continue;
+		}
+	
+		if (class->attrs_cnt == 0) {
+			continue;
+		}
+	
+		int j = 0;
+		for (j = 0; j < CLASS_MAX_ATTR_NUM; j++) {
+			stAttr_t *attr = &class->attrs[j];
+			if (attr->name == NULL || attr->name[0] == 0) {
+				continue;
+			}
+			if (attr->usenick == 0 || attr->nick[0] == 0) {
+				continue;
+			}
+
+			if (attr->get != NULL) {
+				attr->get(did, class->cid, attr->aid, NULL, 0);
+			}
+		}
+	}
+	return 0;
+}
+
+
 void class_cmd_save(int did, char cid, char op, char *value, char value_len) {
 		log_debug("[%s] ----->%02x, %02x", __func__, did&0xff, cid&0xff);
 		log_debug_hex("value:", value, value_len);
@@ -456,7 +490,7 @@ static int device_set_attr(int did, int cid, int aid, char *buf, int size) {
 	sdi.pData_data[2+size] = sdi.txOptions;
 	sdi.pData_data[3+size] = sdi.funcID;
 
-	app_util_push_cmd(E_COMMAND, (stParam_t*)&sdi, sdi.pData_len + 4);
+	//app_push(E_SUB_ATTR, (stParam_t*)&sdi, sdi.pData_len + 4);
 
 	funcID++;
 
@@ -482,7 +516,7 @@ static int device_get_attr(int did, int cid, int aid, char *buf, int size) {
 	sdi.pData_data[2+size] = sdi.txOptions;
 	sdi.pData_data[3+size] = sdi.funcID;
 
-	app_util_push_cmd(E_COMMAND, (stParam_t*)&sdi, sdi.pData_len + 4);
+	app_push(E_SUB_ATTR, (stParam_t*)&sdi, sdi.pData_len + 4);
 
 	funcID++;
 

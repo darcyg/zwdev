@@ -17,13 +17,13 @@ void do_cmd_exit(char *argv[], int argc);
 void do_cmd_quit(char *argv[], int argc);
 void do_cmd_init(char *argv[], int argc);
 void do_cmd_list(char *argv[], int argc);
-void do_cmd_include(char *argv[], int argc);
-void do_cmd_exclude(char *argv[], int argc);
-void do_cmd_onoff(char *argv[], int argc);
 void do_cmd_help(char *argv[], int argc);
+void do_cmd_info(char *argv[], int argc);
+
 void do_cmd_get(char *argv[], int argc);
 void do_cmd_set(char *argv[], int argc);
-void do_cmd_info(char *argv[], int argc);
+void do_cmd_include(char *argv[], int argc);
+void do_cmd_exclude(char *argv[], int argc);
 
 static stCmd_t cmds[] = {
 	{"exit", do_cmd_exit, "exit the programe!"},
@@ -31,7 +31,6 @@ static stCmd_t cmds[] = {
 	{"list", do_cmd_list, "list all zwave devices"},
 	{"include", do_cmd_include, "include a zwave device"},
 	{"exclude", do_cmd_exclude, "exclude a zwave device"},
-	{"onoff", do_cmd_onoff, "onff light"},
 	{"get", do_cmd_get, "get device class/attr : get 0x3B 0x25 0x03"},
 	{"set", do_cmd_set, "set device class/attr : set 0x3B 0x25 0x03 0x00/0x01"},
 	{"info", do_cmd_info, "get zwave network info"},
@@ -141,7 +140,7 @@ void do_cmd_exit(char *argv[], int argc) {
 void do_cmd_init(char *argv[], int argc) {
 	app_util_push_cmd(E_INIT, NULL, 0);
 	app_util_push_cmd(E_CLASS, NULL, 0);
-	do_cmd_list(NULL, 0);
+	app_util_push_cmd(E_ATTR, NULL, 0);
 }
 void do_cmd_list(char *argv[], int argc) {
 	stAppEnv_t *ae = app_util_getae();
@@ -179,9 +178,6 @@ void do_cmd_include(char *argv[], int argc) {
 void do_cmd_exclude(char *argv[], int argc) {
 	log_debug("not implement!");
 }
-void do_cmd_onoff(char *argv[], int argc) {
-	log_debug("not implement!");
-}
 
 void do_cmd_help(char *argv[], int argc) {
 	int i = 0;
@@ -211,7 +207,7 @@ void do_cmd_get(char *argv[], int argc) {
 	
 	log_debug("get did:%02x,cid:%02x,aid:%02x", did&0xff, cid&0xff, aid&0xff);
 	//device_get_attr(did, cid, aid);
-	class_cmd_get_attr(did, cid, aid, argv+4, argc-4);
+	//class_cmd_get_attr(did, cid, aid, argv+4, argc-4);
 }
 
 void do_cmd_set(char *argv[], int argc) {
@@ -235,8 +231,8 @@ void do_cmd_set(char *argv[], int argc) {
 	
 	log_debug("get did:%02x,cid:%02x,aid:%02x", did&0xff, cid&0xff, aid&0xff);
 
-	class_cmd_set_attr(did, cid, aid, argv+4, argc-4);
-	class_cmd_get_attr(did, cid, aid, argv+4, argc-4);
+	//class_cmd_set_attr(did, cid, aid, argv+4, argc-4);
+	//class_cmd_get_attr(did, cid, aid, argv+4, argc-4);
 }
 
 

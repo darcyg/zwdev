@@ -81,5 +81,6 @@ int  class_cmd_to_attrs(int did, emClass_t *class, int class_cnt, void *jattrs);
 void class_cmd_get_attr(int did, int cid, int aid, char *argv[], int argc);
 void class_cmd_set_attr(int did, int cid, int aid, char *argv[], int argc);
 void class_cmd_save(int did, char cid, char op, char *value, char value_len);
+int class_cmd_get_dev_attr(int did, emClass_t *class_array, int class_cnt);
 #endif
 
