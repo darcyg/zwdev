@@ -24,6 +24,6 @@ bool list_peek_front(stList_t *l, void **data);
 bool list_peek_back(stList_t *l, void **data);
 void list_destroy(stList_t *l, void (*freefunc)(void*));
 int  list_size(stList_t *l);
-bool list_empty();
+bool list_is_empty();
 
 #endif

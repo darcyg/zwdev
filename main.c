@@ -22,6 +22,7 @@
 #include "app.h"
 #include "cmd.h"
 #include "classcmd.h"
+#include "uproto.h"
 
 ///////////////////////////////////////////////////////////////
 //test module
@@ -209,6 +210,8 @@ void api_test() {
 
 	class_cmd_init();
 	cmd_init(&th, &fet);
+
+	uproto_init(&th, &fet);
 
 	timer_set(&th, &tr, 10);
 	while (1) {

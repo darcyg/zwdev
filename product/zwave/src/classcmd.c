@@ -36,11 +36,11 @@ static void association_groupings_report(int did, int cid, int aid, char *buf, c
 
 /* if usenick = 1, nick must has value */
 stClass_t classes[] = {
-#if 0
+#if 1
 	[COMMAND_CLASS_BASIC_V1] = {
 		COMMAND_CLASS_BASIC_V1, "basic_v1", 1, "basic", 1, {
 			[BASIC] = {BASIC, "basic", 1, "basic", 
-					basic_get, basic_set, basic_report, NULL, NULL},  
+					basic_set, basic_get, basic_report, NULL, NULL},  
 		},
 	},
 #endif
@@ -528,6 +528,7 @@ static int device_get_attr(int did, int cid, int aid, char *buf, int size) {
 
 static void basic_get(int did, int cid, int aid, char *argv[], int argc) {
 	log_debug("-");
+	device_get_attr(did, cid, aid, NULL, 0);
 }
 static void basic_set(int did, int cid, int aid, char *argv[], int argc) {
 	log_debug("-");

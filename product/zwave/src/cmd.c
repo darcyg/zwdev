@@ -11,6 +11,7 @@
 #include "api.h"
 #include "classcmd.h"
 #include "jansson.h"
+#include "json_parser.h"
 
 
 void do_cmd_exit(char *argv[], int argc);
@@ -145,14 +146,23 @@ void do_cmd_init(char *argv[], int argc) {
 void do_cmd_list(char *argv[], int argc) {
 	stAppEnv_t *ae = app_util_getae();
 	
-	int i = 0;
+	json_t *jdevs = json_array();
 
+	int i = 0;
 	for (i = 0; i < sizeof(ae->devs)/sizeof(ae->devs[0]); i++) {
 		stDevice_t *dev = &ae->devs[i];
 		if (dev->id == 0) {
 			continue;
 		}
-	
+		json_t *jdev = json_object();
+		json_object_set_new(jdev,	"mac",			json_integer(dev->id));
+		json_object_set_new(jdev,	"type",			json_string("1111"));
+		//json_object_set_new(jdev,	"version",	json_string(json_get_string(jattrs, "version")));
+		json_object_set_new(jdev,	"model",		json_string("NULL"));
+		json_object_set_new(jdev,	"online",		json_integer(1));
+		json_object_set_new(jdev,	"battery",	json_integer(100));
+
+		log_debug("dev %d", dev->id);
 		log_debug_hex("class:", dev->class, dev->clen);
 		json_t *jattrs = json_object();
 		if (jattrs != NULL) {
@@ -163,14 +173,25 @@ void do_cmd_list(char *argv[], int argc) {
 			}
 			class_cmd_to_attrs(dev->id, class, dev->clen, jattrs);
 			
-			char *jattr_str = json_dumps(jattrs, 0);
-			if (jattr_str != NULL) {
-				log_debug("id: %d, attrs is [%s]", dev->id, jattr_str);
-				free(jattr_str);
+			const char *version = json_get_string(jattrs, "version");
+			if (version != NULL) {
+				json_object_set_new(jdev,	"version",	json_string(version));
+				json_object_del(jattrs, "version");
 			}
-			json_decref(jattrs);
+	
+			json_object_set_new(jdev, "attrs", jattrs);
 		}
+
+		json_array_append_new(jdevs, jdev);
 	}
+
+	char *jdevs_str = json_dumps(jdevs, 0);
+	if (jdevs_str != NULL) {
+		log_debug("devss is [%s]", jdevs_str);
+		free(jdevs_str);
+	}
+
+	json_decref(jdevs);
 }
 void do_cmd_include(char *argv[], int argc) {
 	log_debug("not implement!");
