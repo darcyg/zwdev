@@ -2201,7 +2201,7 @@ static int api_post_api_call_event(emApi_t api, stParam_t *param, int param_size
 	ac->api = api;
 	ac->param_size = param_size;
 	if (ac->param_size > 0) {
-		memcpy(&ac->param, param, sizeof(stParam_t));
+		memcpy(&ac->param, param, param_size);
 	} 
 
 	lockqueue_push(&env.qSend, e);

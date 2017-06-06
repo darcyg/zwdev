@@ -209,7 +209,7 @@ static int uproto_handler_cmd(const char *cmd) {
   }
 
   const char *mac = json_get_string(jpkt, "mac");
-  int   dtime; json_get_int(jpkt, "time", &dtime);
+  int   dtime = 0; json_get_int(jpkt, "time", &dtime);
 
 	/* verify jdata */
   json_t	*jdata = json_object_get(jpkt, "data");
@@ -229,6 +229,7 @@ static int uproto_handler_cmd(const char *cmd) {
 	const char *cmdmac = json_get_string(jarg, "mac");
 	const char *attr   = json_get_string(jarg, "attribute");
 	json_t *    value  = json_object_get(jarg, "value");
+
 
   log_debug("from:%s,to:%s,type:%s,time:%d,,uuid:%s,command:%s,cmdmac:%s, attr:%s",
 						from, to, ctype, dtime, uuid, command, cmdmac, attr);

@@ -10,7 +10,10 @@ FIND='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data
 
 ONOFF='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"setAttribute\", \"arguments\": {\"mac\": \"59\", \"attribute\": \"device.light.onoff\", \"value\":{\"value\":\"'$2'\"}}}}"}'
 
-#sudo ubus send "DS.ZWAVE" "$LISTMSG"
+
+STATUS='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"getAttribute\", \"arguments\": {\"mac\": \"0000000000000000\", \"attribute\": \"gateway.status\", \"value\":\"\"}}}"}'
+
+TIME='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"getAttribute\", \"arguments\": {\"mac\": \"0000000000000000\", \"attribute\": \"gateway.current_time\", \"value\":\"\"}}}"}'
 
 case $1 in
 	"list")
@@ -27,6 +30,12 @@ case $1 in
 		;;
 	"onoff")
 		sudo ubus send "DS.ZWAVE" "$ONOFF"
+		;;
+	"gstatus")
+		sudo ubus send "DS.ZWAVE" "$STATUS"
+		;;
+	"time")
+		sudo ubus send "DS.ZWAVE" "$TIME"
 		;;
 	*)
 		echo "not support cmd"

@@ -161,6 +161,10 @@ void do_cmd_list(char *argv[], int argc) {
 		json_object_set_new(jdev,	"model",		json_string("NULL"));
 		json_object_set_new(jdev,	"online",		json_integer(1));
 		json_object_set_new(jdev,	"battery",	json_integer(100));
+		json_object_set_new(jdev, "basic",    json_integer(dev->basic&0xff));
+		json_object_set_new(jdev, "generic",  json_integer(dev->generic&0xff));
+		json_object_set_new(jdev, "specific", json_integer(dev->specific&0xff));
+	
 
 		log_debug("dev %d", dev->id);
 		log_debug_hex("class:", dev->class, dev->clen);

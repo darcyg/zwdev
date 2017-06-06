@@ -56,7 +56,8 @@ int system_runtime_get() {
 }
 
 int system_eth_ip_get(char *ethip) {
-	FILE *fp  = popen("fconfig ra0 | grep \"inet addr\" | xargs | cut -d \" \" -f 2 | cut -d \":\" -f 2", "r");
+	//FILE *fp  = popen("ifconfig ra0 | grep \"inet addr\" | xargs | cut -d \" \" -f 2 | cut -d \":\" -f 2", "r");
+	FILE *fp  = popen("ifconfig eth0 | grep \"inet addr\" | xargs | cut -d \" \" -f 2 | cut -d \":\" -f 2", "r");
 	if (fp == NULL) {
 		strcpy(ethip, "");
 		return -1;
@@ -76,7 +77,8 @@ int system_eth_ip_get(char *ethip) {
 }
 
 int system_wifi_ip_get(char *wifiip) {
-	FILE *fp  = popen("fconfig eth0.2 | grep \"inet addr\" | xargs | cut -d \" \" -f 2 | cut -d \":\" -f 2", "r");
+	//FILE *fp  = popen("ifconfig eth0.2 | grep \"inet addr\" | xargs | cut -d \" \" -f 2 | cut -d \":\" -f 2", "r");
+	FILE *fp  = popen("ifconfig eth0 | grep \"inet addr\" | xargs | cut -d \" \" -f 2 | cut -d \":\" -f 2", "r");
 	if (fp == NULL) {
 		strcpy(wifiip, "");
 		return -1;
