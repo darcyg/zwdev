@@ -207,24 +207,18 @@ void app_online_check(struct timer *timer) {
 
 		long curr = time(NULL);
 		if (curr - dev->lasttime > 15 * 60) {
-			if (dev->online != 0) {
 				dev->online = 0;
-				log_debug("dev %d online status change: offline", dev->id);
-			}
 		}
 
-		/*
-		if (dev->online != 0 && fBattery != 1) {
-			if (curr - dev->lasttime > (dev->online_checknum + 1) * 5) {
-				if (state_machine_get_state(&smApp) == S_IDLEING) {
-					app_util_push_cmd(E_ATTR, NULL, 0);
-					class_cmd_get_attr(dev->id, COMMAND_CLASS_BASIC_V1, BASIC, NULL, 0);
-					dev->online_checknum++;
+		if (dev->online != 0) {
+			if (curr - dev->lasttime) % (5 * 60) == 0) {
+				if (fBattery != 1 && state_machine_get_state(&smApp) == S_IDLEING) {
+					app_util_push_cmd(E_COMMAND, NULL, 0);
+					class_cmd_get_attr(dev->id, COMMAND_CLASS_BASIC_V1, BASIC, NULL, NULL);
 					break;
 				}
 			}
 		}
-		*/
 	}
 
 	timer_set(ae.th, &ae.online_timer, 1000 * 15);
@@ -516,9 +510,6 @@ static void *wait_action_class_over(stStateMachine_t *sm, stEvent_t *event) {
 	ae.devs[id].generic = ni->generic;
 	ae.devs[id].specific = ni->specific;
 	ae.devs[id].clen = ni->len - 3;
-	ae.devs[id].lasttime = time(NULL);
-	ae.devs[id].online = 1;
-	ae.devs[id].online_checknum = 0;
 	memcpy(ae.devs[id].class, ni->commandclasses, ae.devs[id].clen);
 
 	return NULL;
@@ -548,25 +539,6 @@ static int		wait_transition_sub_attr(stStateMachine_t *sm, stEvent_t *event, voi
 }
 static void *wait_action_attr_over(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
-
-	stAppCmd_t *cmd = (stAppCmd_t*)event->param;
-	if (cmd != NULL && cmd->param != NULL) {
-		char src = ((char *)cmd->param)[0];
-		int did = src&0xff;
-		int i;
-		for (i = 0; i < sizeof(ae.devs)/sizeof(ae.devs[0]); i++) {
-			stDevice_t *dev = &ae.devs[i];
-			if (dev->id == 0 || dev->id != did) {
-				continue;
-			}
-			dev->lasttime = time(NULL);
-			if (dev->online == 0) {
-				dev->online = 1;
-				log_debug("dev %d online status change: online", dev->id);
-			}
-		}
-	}
-	
 	return NULL;
 }
 static int		wait_transition_attr_over(stStateMachine_t *sm, stEvent_t *event, void *acret) {

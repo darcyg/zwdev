@@ -22,7 +22,7 @@ json_t *zwave_device_list() {
 		json_object_set_new(jdev,	"type",			json_string(specific2str(dev->generic, dev->specific)));
 		//json_object_set_new(jdev,	"version",	json_string(json_get_string(jattrs, "version")));
 		json_object_set_new(jdev,	"model",		json_string(generic2str(dev->generic)));
-		json_object_set_new(jdev,	"online",		json_integer(1));
+		json_object_set_new(jdev,	"online",		json_integer(dev->online));
 
 		log_debug("dev %d", dev->id);
 		log_debug_hex("class:", dev->class, dev->clen);

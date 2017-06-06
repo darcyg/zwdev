@@ -37,12 +37,15 @@ static void battery_get(int did, int cid, int aid, char *argv[], int argc);
 static void battery_report(int did, int cid, int aid, char *buf, char *value, int value_len);
 
 
+static void manufacturer_specific_get(int did, int cid, int aid, char *argv[], int argc);
+static void manufacturer_specific_report(int did, int cid, int aid, char *buf, char *value, int value_len);
+
 /* if usenick = 1, nick must has value */
 stClass_t classes[] = {
 #if 1
 	[COMMAND_CLASS_BASIC_V1] = {
 		COMMAND_CLASS_BASIC_V1, "basic_v1", 1, "basic", 1, {
-			[BASIC] = {BASIC, "basic", 1, "basic", 
+			[BASIC] = {BASIC, "basic", 0, "basic", 
 					basic_set, basic_get, basic_report, NULL, NULL},  
 		},
 	},
@@ -131,13 +134,14 @@ stClass_t classes[] = {
 			},
 		},
 	},
+#endif
 	[COMMAND_CLASS_MANUFACTURER_SPECIFIC_V1] = {
-		{COMMAND_CLASS_MANUFACTURER_SPECIFIC_V1, "manufacturer_specific_v1", 0, "", 1, {
-				{MANUFACTURER_SPECIFIC, "manufacturer_specific", 0, "", 
-					manufacturer_specific_get,NULL, manufacturer_specific_report, NULL, NULL},
-			},
+		COMMAND_CLASS_MANUFACTURER_SPECIFIC_V1, "manufacturer_specific_v1", 1, "msv1", 1, {
+				[MANUFACTURER_SPECIFIC] = {MANUFACTURER_SPECIFIC, "manufacturer_specific", 1, "msv1", 
+					NULL, manufacturer_specific_get, manufacturer_specific_report, NULL, NULL},
 		},
 	},
+#if 0
 	[COMMAND_CLASS_MANUFACTURER_SPECIFIC_V2] = {
 		{COMMAND_CLASS_MANUFACTURER_SPECIFIC_V2, "manufacturer_specific_v2", 0, "", 1, {
 				{MANUFACTURER_SPECIFIC, "manufacturer_specific", 0, "", 
@@ -700,16 +704,28 @@ static void battery_get(int did, int cid, int aid, char *argv[], int argc) {
 }
 static void battery_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
-	char battery = buf[0];
+	char battery = value[0];
 	if (battery >= 0x00 && battery <= 0x64) {
-		sprintf(value, "%d", battery);
+		sprintf(buf, "%d", battery);
 	} else {
 		/* low warning */
-		sprintf(value, "0");
+		sprintf(buf, "0");
 	}
 }
 
-
+static void manufacturer_specific_get(int did, int cid, int aid, char *argv[], int argc) {
+	log_debug("-");
+	device_get_attr(did, cid, aid, NULL, 0);
+}
+static void manufacturer_specific_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
+	log_debug("-");
+	/*
+	short wid = *(short *)(value + 0);
+	short tid = *(short *)(value + 2);	
+	short pid = *(short *)(value + 4);
+	*/
+	sprintf(buf, "%02x%02X%02x%02x%02x%02x", value[0], value[1], value[2], value[3], value[4], value[5]);
+}
 
 
 

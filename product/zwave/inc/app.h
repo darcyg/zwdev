@@ -19,6 +19,10 @@ typedef struct stDevice {
 	char specific;
 	int  clen;
 	char class[MAX_CLASS_NUM];
+
+	int online;
+	long lasttime;
+	int online_checknum;
 }stDevice_t;
 
 typedef struct stAppEnv {
@@ -29,6 +33,7 @@ typedef struct stAppEnv {
 	stLockQueue_t cmdq;
 	stLockQueue_t msgq;
 	stLockQueue_t subcmdq;
+	struct timer online_timer;
 
 
 
@@ -66,7 +71,6 @@ enum {
 	
 	S_EXCLUDING = 5,
 	
-
 	S_COMMANDING = 6,
 };
 
@@ -93,6 +97,7 @@ enum {
 int app_init(void *_th, void *_fet);
 int app_step();
 void app_run(struct timer *timer);
+void app_online_check(struct timer *timer);
 void app_in(void *arg, int fd);
 void app_push(int eid, void *param, int len);
 void app_util_push_cmd(int eid, void *param, int len);

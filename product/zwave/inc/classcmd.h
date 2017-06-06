@@ -29,7 +29,7 @@ typedef enum emClass {
 }emClass_t;
 
 typedef enum emCmd {
-	BASIC = 0x00,
+	BASIC = 0x03,
 	VERSION_COMMAND_CLASS = 0x14,
 	VERSION = 0x12,
 	ZWAVEPLUS_INFO = 0x02,
@@ -37,6 +37,7 @@ typedef enum emCmd {
 	ASSOCIATION = 0x03,
 	ASSOCIATION_GROUPINGS = 0x06,
 	BATTERY = 0x03,
+	MANUFACTURER_SPECIFIC = 0x05, 
 }emCmd_t;
 
 #define CLASS_MAX_ATTR_NUM 0x32

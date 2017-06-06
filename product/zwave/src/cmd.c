@@ -159,7 +159,7 @@ void do_cmd_list(char *argv[], int argc) {
 		json_object_set_new(jdev,	"type",			json_string(specific2str(dev->generic, dev->specific)));
 		//json_object_set_new(jdev,	"version",	json_string(json_get_string(jattrs, "version")));
 		json_object_set_new(jdev,	"model",		json_string(generic2str(dev->generic)));
-		json_object_set_new(jdev,	"online",		json_integer(1));
+		json_object_set_new(jdev,	"online",		json_integer(dev->online));
 		json_object_set_new(jdev,	"battery",	json_integer(100));
 		//json_object_set_new(jdev, "basic",    json_integer(dev->basic&0xff));
 		//json_object_set_new(jdev, "generic",  json_integer(dev->generic&0xff));

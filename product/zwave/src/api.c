@@ -943,21 +943,6 @@ int am_transition_call_exit(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
 }
 int am_action_idle_async_data(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
 	log_debug("idel data->event : %d when state: %d", e->event, env->state);
-	/* not not support async data */
-	stDataFrame_t *df = e->param;
-	if (df->cmd == 0x04) { //class get, ApplicationCommandHandler
-		char rxStatus = df->payload[0];
-		char sourceNode = df->payload[1];
-		char len = df->payload[2];
-		char cid = df->payload[3];
-		char op = df->payload[4];
-		char *value = df->payload[5];
-		int value_len = len -2;
-		if (rxStatus == 0) { //binary class report
-			class_cmd_save(sourceNode, cid, op, value, value_len);
-			app_util_push_msg(E_ATTR_OVER, NULL, 0);
-		}
-	}
 	return 0;
 }
 int am_action_running_data(stApiMachineEnv_t *env, stApiMachineEvent_t *e) {
@@ -2415,6 +2400,8 @@ static void api_send_timer_callback(struct timer *timer) {
 	state_machine_reset(&smApi);
 	api_post_beat_event();
 	api_beat(0);
+
+	app_util_push_msg(E_ATTR_OVER, NULL, 0);
 }
 
 
@@ -2538,7 +2525,11 @@ static void * idle_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
 	session_send(df);
 
 	//Fixed here to a correct one
-	//timer_set(env.th, &env.timerSend, API_EXEC_TIMEOUT_MS);
+	if (df->cmd == CmdZWaveSendData) {
+		timer_set(env.th, &env.timerSend, API_EXEC_TIMEOUT_MS);
+	} else {
+		timer_cancel(env.th, &env.timerSend);
+	}
 
 	return (void *)S_RUNNING;
 }
@@ -2565,7 +2556,7 @@ static void * idle_action_async_data(stStateMachine_t *sm, stEvent_t *event) {
 		int value_len = len -2;
 		if (rxStatus == 0) { //binary class report
 			class_cmd_save(sourceNode, cid, op, value, value_len);
-			app_util_push_msg(E_ATTR_OVER, NULL, 0);
+			app_util_push_msg(E_ATTR_OVER, &sourceNode, 1);
 		}
 	}
 
@@ -2643,7 +2634,7 @@ static void * running_action_async_data(stStateMachine_t *sm, stEvent_t *event) 
 		int value_len = len -2;
 		if (rxStatus == 0) { //binary class report
 			class_cmd_save(sourceNode, cid, op, value, value_len);
-			app_util_push_msg(E_ATTR_OVER, NULL, 0);
+			app_util_push_msg(E_ATTR_OVER, &sourceNode, 1);
 		}
 	}
 
@@ -3071,6 +3062,7 @@ static void * wait_action_tx_status(stStateMachine_t *sm, stEvent_t *event) {
 static int    wait_transition_tx_status(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	log_debug("----------[%s]-..----------", __func__);
 	app_util_push_msg(E_COMMAND_OVER, NULL, 0);
+	timer_cancel(env.th, &env.timerSend);
 	return S_END;
 }
 
