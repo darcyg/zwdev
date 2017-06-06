@@ -24,6 +24,8 @@ typedef enum emClass {
 	COMMAND_CLASS_DEVICE_RESET_LOCALLY_V1 = 0x5A,
 
 	COMMAND_CLASS_POWERLEVEL_V1 = 0x73,
+
+	COMMAND_CLASS_BATTERY = 0X80,
 }emClass_t;
 
 typedef enum emCmd {
@@ -34,9 +36,11 @@ typedef enum emCmd {
 	SWITCH_BINARY = 0x03,
 	ASSOCIATION = 0x03,
 	ASSOCIATION_GROUPINGS = 0x06,
+	BATTERY = 0x03,
 }emCmd_t;
 
 #define CLASS_MAX_ATTR_NUM 0x32
+#define MAX_SPECIFIC_NUM 0x32
 
 
 typedef void (*SET_FUNC)(int did, int cid, int aid, char *argv[], int argc);
@@ -67,6 +71,22 @@ typedef struct stClass {
 	stAttr_t	attrs[CLASS_MAX_ATTR_NUM];
 }stClass_t;
 
+typedef struct stBasic {
+	char			val;
+	char			*name;
+}stBasic_t;
+typedef struct stSpecific {
+	char			val;
+	char			*name;
+	char			*nick;
+}stSpecific_t;
+typedef struct stGeneric {
+	char			val;
+	char			*name;
+	stSpecific_t specifics[MAX_SPECIFIC_NUM];
+}stGeneric_t;
+
+
 int memory_module_init();
 int flash_module_init();
 
@@ -82,5 +102,21 @@ void class_cmd_get_attr(int did, int cid, int aid, char *argv[], int argc);
 void class_cmd_set_attr(int did, int cid, int aid, char *argv[], int argc);
 void class_cmd_save(int did, char cid, char op, char *value, char value_len);
 int class_cmd_get_dev_attr(int did, emClass_t *class_array, int class_cnt);
+
+
+const char *basic2str(char b);
+const char *generic2str(char g);
+const char *specific2str(char g, char s);
+
+
+
+
+
+
+
+
+
+
+
 #endif
 

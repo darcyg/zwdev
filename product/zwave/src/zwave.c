@@ -19,11 +19,10 @@ json_t *zwave_device_list() {
 		}
 		json_t *jdev = json_object();
 		json_object_set_new(jdev,	"mac",			json_integer(dev->id));
-		json_object_set_new(jdev,	"type",			json_string("1111"));
+		json_object_set_new(jdev,	"type",			json_string(specific2str(dev->generic, dev->specific)));
 		//json_object_set_new(jdev,	"version",	json_string(json_get_string(jattrs, "version")));
-		json_object_set_new(jdev,	"model",		json_string("NULL"));
+		json_object_set_new(jdev,	"model",		json_string(generic2str(dev->generic)));
 		json_object_set_new(jdev,	"online",		json_integer(1));
-		json_object_set_new(jdev,	"battery",	json_integer(100));
 
 		log_debug("dev %d", dev->id);
 		log_debug_hex("class:", dev->class, dev->clen);
@@ -40,6 +39,15 @@ json_t *zwave_device_list() {
 			if (version != NULL) {
 				json_object_set_new(jdev,	"version",	json_string(version));
 				json_object_del(jattrs, "version");
+			}
+
+			const char *battery = json_get_string(jattrs, "battery");
+			if (battery != NULL) {
+				int battery_value;
+				sscanf(battery, "%d", &battery_value);
+				json_object_set_new(jdev,	"battery",	json_integer(battery_value));
+			} else {
+				json_object_set_new(jdev,	"battery",	json_integer(100));
 			}
 	
 			json_object_set_new(jdev, "attrs", jattrs);
