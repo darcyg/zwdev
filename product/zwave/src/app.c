@@ -28,132 +28,40 @@ static int		wait_transition_include(stStateMachine_t *sm, stEvent_t *event, void
 static void *wait_action_exclude(stStateMachine_t *sm, stEvent_t *event);
 static int		wait_transition_exclude(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-static void *wait_action_command(stStateMachine_t *sm, stEvent_t *event);
-static int		wait_transition_command(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void *wait_action_set(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_set(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-static void *wait_action_init_over(stStateMachine_t *sm, stEvent_t *event);
-static int		wait_transition_init_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void *wait_action_get(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_get(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-static void *wait_action_sub_class(stStateMachine_t *sm, stEvent_t *event);
-static int		wait_transition_sub_class(stStateMachine_t *sm, stEvent_t *event, void *acret);
-static void *wait_action_class_over(stStateMachine_t *sm, stEvent_t *event);
-static int		wait_transition_class_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
+static void *wait_action_online_check(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_online_check(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-
-static void *wait_action_sub_attr(stStateMachine_t *sm, stEvent_t *event);
-static int		wait_transition_sub_attr(stStateMachine_t *sm, stEvent_t *event, void *acret);
-static void *wait_action_attr_over(stStateMachine_t *sm, stEvent_t *event);
-static int		wait_transition_attr_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-static void *wait_action_include_over(stStateMachine_t *sm, stEvent_t *event);
-static int		wait_transition_include_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-static void *wait_action_exclude_over(stStateMachine_t *sm, stEvent_t *event);
-static int		wait_transition_exclude_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-static void *wait_action_sub_command(stStateMachine_t *sm, stEvent_t *event);
-static int		wait_transition_sub_command(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
-static void *wait_action_command_over(stStateMachine_t *sm, stEvent_t *event);
-static int		wait_transition_command_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
+static void *wait_action_over(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 
 static stStateMachine_t smApp = {
 	1,  S_IDLEING, S_IDLEING, {
 		{S_IDLEING, 6, NULL, {
-				{E_INIT,		wait_action_init,			wait_transition_init},
-				{E_CLASS,		wait_action_class,		wait_transition_class},
-				{E_ATTR,		wait_action_attr,			wait_transition_attr},
-				{E_INCLUDE, wait_action_include,	wait_transition_include},
-				{E_EXCLUDE, wait_action_exclude,	wait_transition_exclude},
-				{E_COMMAND, wait_action_command,  wait_transition_command},
+				{aE_INIT,					wait_action_init,						wait_transition_init},
+				{aE_CLASS,					wait_action_class,					wait_transition_class},
+				{aE_ATTR,					wait_action_attr,						wait_transition_attr},
+				{aE_INCLUDE,				wait_action_include,				wait_transition_include},
+				{aE_EXCLUDE,				wait_action_exclude,				wait_transition_exclude},
+				{aE_SET,						wait_action_set,						wait_transition_set},
+				{aE_GET,						wait_action_get,						wait_transition_get},
+				{aE_ONLINE_CHECK,	wait_action_online_check,		wait_transition_online_check},
+			},
+		},
+		{S_WORKING, 6, NULL, {
+				{aE_OVER,					wait_action_over,						wait_transition_over},
 			},
 		},
 	},
 };
 
-static stStateMachine_t	smCommand = {
-	2, S_IDLEING, S_IDLEING, {
-		{S_IDLEING, 1, NULL, {
-				{E_SUB_COMMAND, wait_action_sub_command, wait_transition_sub_command},
-			},
-		},
-		{S_COMMANDING, 1, NULL, {
-				{E_COMMAND_OVER, wait_action_command_over, wait_transition_command_over},
-			},
-		},
-	},
-};
-
-
-
-static stStateMachine_t	smInit = {
-	2, S_INITTING, S_INITTING, {
-		{S_IDLEING, 0, NULL, {
-			},
-		},
-		{S_INITTING, 1, NULL, {
-				{E_INIT_OVER, wait_action_init_over, wait_transition_init_over},
-			},
-		},
-	},
-};
-
-static stStateMachine_t smClass = {
-	2, S_IDLEING, S_IDLEING, {
-		{S_IDLEING, 1, NULL, {
-				{E_SUB_CLASS, wait_action_sub_class, wait_transition_sub_class},
-			},
-		},
-		{S_CLASSING, 1, NULL, {
-				{E_CLASS_OVER, wait_action_class_over, wait_transition_class_over},
-			},
-		},
-	},
-};
-
-static stStateMachine_t smAttr = {
-	2, S_IDLEING, S_IDLEING, {
-		{S_IDLEING, 1, NULL, {
-				{E_SUB_ATTR, wait_action_sub_attr, wait_transition_sub_attr}, 
-			},
-		},
-		{S_ATTRING, 1, NULL, {
-				{E_ATTR_OVER, wait_action_attr_over, wait_transition_attr_over},
-			},
-		},
-	}
-};
-
-static stStateMachine_t smInclude = {
-	2, S_INCLUDING, S_INCLUDING, {
-		{S_IDLEING, 0, NULL, {
-			},
-		},
-		{S_INCLUDING, 1, NULL, {
-				{E_INCLUDE_OVER, wait_action_include_over, wait_transition_include_over},
-			},
-		},
-	},
-};
-
-static stStateMachine_t smExclude = {
-	2, S_EXCLUDING, S_EXCLUDING, {
-		{S_IDLEING, 0, NULL, {
-			},
-		},
-		{S_EXCLUDING, 1, NULL, {
-				{E_EXCLUDE_OVER, wait_action_exclude_over, wait_transition_exclude_over},
-			},
-		},
-	},
-};
-
-
-static stAppEnv_t ae = {
-	.subsm = NULL,
-};
+static stAppEnv_t ae;
 
 int app_init(void *_th, void *_fet) {
 	ae.th = _th;
@@ -161,13 +69,10 @@ int app_init(void *_th, void *_fet) {
 	
 	timer_init(&ae.step_timer, app_run);
 	timer_init(&ae.online_timer, app_online_check);
-	lockqueue_init(&ae.cmdq);
-	lockqueue_init(&ae.subcmdq);
-	lockqueue_init(&ae.msgq);
+	lockqueue_init(&ae.eq);
 
-	ae.dev_num = 0;
-	memset(ae.devs, 0, sizeof(ae.devs));
-
+	ae.inventory.dev_num = 0;
+	memset(ae.inventory.devs, 0, sizeof(ae.inventory.devs));
 
 	state_machine_reset(&smApp);
 
@@ -181,11 +86,11 @@ int app_step() {
 	return 0;
 }
 
-
 void app_in(void *arg, int fd) {
 }
 
 void app_online_check(struct timer *timer) {
+#if 0
 	int i = 0;
 	for (i = 0; i < sizeof(ae.devs)/sizeof(ae.devs[0]); i++) {
 		stDevice_t *dev = &ae.devs[i];
@@ -223,44 +128,16 @@ void app_online_check(struct timer *timer) {
 		}
 		*/
 	}
+#endif
 
 	timer_set(ae.th, &ae.online_timer, 1000 * 15);
 }
 void app_run(struct timer *timer) {
 	stEvent_t *e;
-	if (lockqueue_pop(&ae.msgq, (void**)&e) && e != NULL) {
-		if (ae.subsm != NULL) {
-			state_machine_step(ae.subsm, e);
-		} else {
-			state_machine_step(&smApp, e);
-		}
+	if (lockqueue_pop(&ae.eq, (void**)&e) && e != NULL) {
+		state_machine_step(&smApp, e);
 		FREE(e);
 		app_step();
-		return;
-	}
-
-	if (ae.subsm != NULL) {	
-		int s = state_machine_get_state(ae.subsm);
-		if (s != S_IDLEING) {	
-			return;
-		}
-		if (lockqueue_pop(&ae.subcmdq, (void**)&e) && e != NULL) {
-			state_machine_step(ae.subsm, e);
-			FREE(e);
-			app_step();
-			return;
-		}
-		ae.subsm = NULL;
-		state_machine_set_state(&smApp, S_IDLEING);
-		app_step();
-		return;
-	} else {
-		if (lockqueue_pop(&ae.cmdq, (void**)&e) && e != NULL) {
-			state_machine_step(&smApp, e);
-			FREE(e);
-			app_step();
-			return;
-		}
 	}
 }
 
@@ -282,59 +159,46 @@ void app_push(int eid, void *param, int len) {
 		cmd->len = 0;
 		cmd->param = 0;
 	}
-	lockqueue_push(&ae.subcmdq, e);
+	lockqueue_push(&ae.eq, e);
 	app_step();
 }
-
-void app_util_push_cmd(int eid, void *param, int len) {
-	stEvent_t *e = MALLOC(sizeof(stEvent_t) + sizeof(stAppCmd_t) + len);
-	if (e == NULL) {
-		return;
-	}
-	e->eid = eid;
-	e->param = e+1;
-	stAppCmd_t *cmd = (stAppCmd_t*)e->param;
-
-	if (len > 0) {
-		cmd->len = len;
-		cmd->param = cmd + 1;
-
-		memcpy(cmd->param, param, len);
-	} else {
-		cmd->len = 0;
-		cmd->param = 0;
-	}
-	lockqueue_push(&ae.cmdq, e);
-	app_step();
+////////////////////////////////////////////////////////////////////////////////////////////////////
+static void *wait_action_init(stStateMachine_t *sm, stEvent_t *event) {
+	log_debug("----------[%s] [%s]-..----------", __FILE__, __func__);
+	api_call(CmdZWaveGetVersion, NULL, 0);
+	api_call(CmdSerialApiGetInitData, NULL, 0);
+	api_call(CmdSerialApiGetCapabilities, NULL, 0);
+	api_call(CmdMemoryGetId, NULL, 0);
+	api_call(CmdZWaveGetSucNodeId, NULL, 0);
+	return NULL;
+}
+static int		wait_transition_init(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 }
 
-void app_util_push_msg(int eid, void *param, int len) {
-	stEvent_t *e = MALLOC(sizeof(stEvent_t) + sizeof(stAppCmd_t) + len);
-	if (e == NULL) {
-		return;
-	}
-	e->eid = eid;
-	e->param = e+1;
-	stAppCmd_t *cmd = (stAppCmd_t*)e->param;
+static void *wait_action_class(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_class(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-	if (len > 0) {
-		cmd->len = len;
-		cmd->param = cmd + 1;
+static void *wait_action_attr(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_attr(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-		memcpy(cmd->param, param, len);
-	} else {
-		cmd->len = 0;
-		cmd->param = 0;
-	}
-	
-	lockqueue_push(&ae.msgq, e);
-	app_step();
-}
+static void *wait_action_include(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_include(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
+static void *wait_action_exclude(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_exclude(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-stAppEnv_t *app_util_getae() {
-	return &ae;
-}
+static void *wait_action_set(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_set(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void *wait_action_get(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_get(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void *wait_action_online_check(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_online_check(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
+static void *wait_action_over(stStateMachine_t *sm, stEvent_t *event);
+static int		wait_transition_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 static void *wait_action_init(stStateMachine_t *sm, stEvent_t *event) {
@@ -656,6 +520,19 @@ static int app_class_cmd_to_attrs(int did, emClass_t *class_array, int class_cnt
 	return 0;
 }
 
+int	app_zinit() {
+	app_push(E_INIT, NULL, 0);
+	return 0;
+}
+int	app_zclass() {
+	app_push(E_CLASS, NULL, 0);
+	return 0;
+}
+int	app_zattr() {
+	app_push(E_ATTR, NULL, 0);
+	return 0;
+}
+
 json_t *	app_list() {
 	json_t *jdevs = json_array();
 
@@ -723,16 +600,40 @@ json_t *	app_list() {
 	return jdevs;
 }
 
-int				app_include() {
+int	app_include() {
+	app_push(E_INCLUDE, NULL, 0);
+	return 0;
 }
 
-int				app_exclude() {
+int	app_exclude() {
+	app_push(E_EXCLUDE, NULL, 0);
+	return 0;
 }
 
-int				app_class_cmd_set(int did, char *attr, char *value) {
+int	app_class_cmd_set(int did, char *attr, char *value) {
+	int aLen = strlen(attr);
+	int vLen = strlen(value);
+	stSetParam_t *p = (stSetParam_t*)MALLOC(aLen + vLen + 2);
+	strcpy(p, attr);
+	strcpy(p + aLen+1, value);
+	app_push(E_SET, p, aLen + vLen + 2);
+	FREE(p);
+	return 0;
 }
 
-int				app_class_cmd_get(int did, char *attr, char *value) {
+int	app_class_cmd_get(int did, char *attr, char *value) {
+	int aLen = strlen(attr);
+	int vLen = strlen(value);
+	stGetParam_t *p = (stGetParam_t*)MALLOC(aLen + vLen + 2);
+	strcpy(p, attr);
+	strcpy(p + aLen+1, value);
+	app_push(E_GET, p, aLen + vLen + 2);
+	FREE(p);
+	return 0;
+}
+
+stInventory_t *app_get_inventory() {
+	return &ae.inventory;
 }
 
 

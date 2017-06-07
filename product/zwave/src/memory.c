@@ -3,7 +3,7 @@
 #include "log.h"
 #include "hashmap.h"
 
-static struct hashmap hmattrs;
+static struct hashmap *hmattrs = NULL;
 
 static void *hashmap_alloc_key(const void *_key) {
 	const char *key = (const char *)_key;
@@ -24,8 +24,10 @@ static void hashmap_free_key(void * _key) {
 
 
 int memory_init() {
-	hashmap_init(&hmattrs, hashmap_hash_string, hashmap_compare_string, 254);
-	hashmap_set_key_alloc_funcs(&hmattrs, hashmap_alloc_key, hashmap_free_key);
+	hmattrs = &(app_get_inventory()->hmattrs);
+
+	hashmap_init(hmattrs, hashmap_hash_string, hashmap_compare_string, 254);
+	hashmap_set_key_alloc_funcs(hmattrs, hashmap_alloc_key, hashmap_free_key);
 	return 0;
 }
 
@@ -34,7 +36,7 @@ int memory_get_attr(int did, const char *attr, char *value) {
 
 	char sdid[32];
 	sprintf(sdid, "%d", did);
-	void *vhm = hashmap_get(&hmattrs, sdid);
+	void *vhm = hashmap_get(hmattrs, sdid);
 	if (vhm == NULL) {
 		value[0] = 0;
 		return -1;
@@ -57,7 +59,7 @@ int memory_set_attr(int did, const char *attr, char *value) {
 
 	//log_debug("memory_set_attr: %d, %s, %s", did, attr, value);
 
-	void *vhm = hashmap_get(&hmattrs, sdid);
+	void *vhm = hashmap_get(hmattrs, sdid);
 	if (vhm == NULL) {
 		struct hashmap *hm = MALLOC(sizeof(struct hashmap));
 		if (hm == NULL) {
@@ -68,7 +70,7 @@ int memory_set_attr(int did, const char *attr, char *value) {
 		hashmap_set_key_alloc_funcs(hm, hashmap_alloc_key, hashmap_free_key);
 		vhm = hm;
 
-		if (hashmap_put(&hmattrs, sdid, vhm) == NULL) {
+		if (hashmap_put(hmattrs, sdid, vhm) == NULL) {
 			log_debug("error : %s %d", __func__, __LINE__);
 			return -2;
 		}

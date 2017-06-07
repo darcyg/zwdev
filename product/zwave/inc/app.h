@@ -12,7 +12,7 @@
 #define MAX_DEVICE_NUM 234
 
 typedef struct stDevice {
-	int id;
+	int  id;
 	char mac[MAC_MAX_LEN];
 	char basic;
 	char generic;
@@ -22,95 +22,85 @@ typedef struct stDevice {
 
 	int online;
 	long lasttime;
-	int online_checknum;
 }stDevice_t;
 
-typedef struct stAppEnv {
-	struct file_event_table *fet;
-	struct timer_head *th;
-
-	struct timer step_timer;
-	stLockQueue_t cmdq;
-	stLockQueue_t msgq;
-	stLockQueue_t subcmdq;
-	struct timer online_timer;
-
-
-
-	int dev_num;
-	stDevice_t devs[MAX_DEVICE_NUM];
-
+typedef struct stInventory {
 	stVersion_t ver;
 	stInitData_t initdata;
 	stCapabilities_t caps;
 	stId_t id;
 	stSucNodeId_t sucid;
 
-	int lastid;
-	
-	stStateMachine_t *subsm;
+	int dev_num;
+	stDevice_t devs[MAX_DEVICE_NUM];
+
+	struct hashmap hmattrs;
+}stInventory_t;
+
+typedef struct stAppEnv {
+	struct file_event_table *fet;
+	struct timer_head *th;
+
+	struct timer step_timer;
+	stLockQueue_t eq;
+	struct timer online_timer;
+
+	stInventory inventory;
 }stAppEnv_t;
 
+enum {
+	aS_IDLEING = 0,
+
+	aS_WORKING = 1
+};
+
+enum {
+	aE_INIT = 0,
+	aE_CLASS = 1,
+	aE_ATTR = 2,
+	aE_INCLUDE = 3,
+	aE_EXCLUDE = 4,
+	aE_GET = 5,
+	aE_SET = 6,
+	aE_ONLINE_CHECK = 7,
+
+	aE_OVER = 8,
+
+	aE_ASYNC_DATA = 9,
+	aE_VERSION = 10,
+};
 
 typedef struct stAppCmd {
+	void* param;
 	int len;
-	void *param;
 }stAppCmd_t;
 
-
-enum {
-	S_IDLEING = 0,
-
-	S_INITTING = 1,
-
-	S_CLASSING = 2,
-
-	S_ATTRING = 3,
-
-	S_INCLUDING = 4,
-	
-	S_EXCLUDING = 5,
-	
-	S_COMMANDING = 6,
-};
-
-enum {
-	E_INIT = 0,
-	E_CLASS = 1,
-	E_ATTR = 2,
-	E_INCLUDE = 3,
-	E_EXCLUDE = 4,
-
-	E_INIT_OVER = 5,
-	E_CLASS_OVER = 7,
-	E_ATTR_OVER = 8,
-	E_INCLUDE_OVER = 9,
-	E_EXCLUDE_OVER = 10,
-	E_SUB_CLASS = 11,
-	E_SUB_ATTR = 12,
-
-	E_COMMAND = 13,
-	E_COMMAND_OVER = 14,
-	E_SUB_COMMAND = 12,
-};
-
 int		app_init(void *_th, void *_fet);
+void	app_push(int eid, void *param, int len);
 int		app_step();
 void	app_run(struct timer *timer);
 void	app_in(void *arg, int fd);
-void	app_push(int eid, void *param, int len);
-void	app_util_push_cmd(int eid, void *param, int len);
-void	app_util_push_msg(int eid, void *param, int len);
+
 void	app_online_check(struct timer *timer);
 
+typedef struct stGetParam {
+	char *attr;
+	char *value;
+}stGetParam_t;
+typedef struct stSetParam {
+	char *attr;
+	char *value;
+}stSetParam_t;
 
-json_t *	app_list();
-int				app_include();
-int				app_exclude();
-int				app_class_cmd_set(int did, char *attr, char *value);
-int				app_class_cmd_get(int did, char *attr, char *value);
+int				app_zinit();
+int				app_zclass();
+int				app_zattr();
+json_t *	app_zlist();
+int				app_zinclude();
+int				app_zexclude();
+int				app_zclass_cmd_get(int did, char *attr, char *value);
+int				app_zclass_cmd_set(int did, char *attr, char *value);
 
-stAppEnv_t* app_util_getae();
-
+stInventory_t *app_get_inventory();
 
 #endif
