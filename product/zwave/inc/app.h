@@ -94,14 +94,22 @@ enum {
 	E_SUB_COMMAND = 12,
 };
 
-int app_init(void *_th, void *_fet);
-int app_step();
-void app_run(struct timer *timer);
-void app_online_check(struct timer *timer);
-void app_in(void *arg, int fd);
-void app_push(int eid, void *param, int len);
-void app_util_push_cmd(int eid, void *param, int len);
-void app_util_push_msg(int eid, void *param, int len);
+int		app_init(void *_th, void *_fet);
+int		app_step();
+void	app_run(struct timer *timer);
+void	app_in(void *arg, int fd);
+void	app_push(int eid, void *param, int len);
+void	app_util_push_cmd(int eid, void *param, int len);
+void	app_util_push_msg(int eid, void *param, int len);
+void	app_online_check(struct timer *timer);
+
+
+json_t *	app_list();
+int				app_include();
+int				app_exclude();
+int				app_class_cmd_set(int did, char *attr, char *value);
+int				app_class_cmd_get(int did, char *attr, char *value);
+
 stAppEnv_t* app_util_getae();
 
 

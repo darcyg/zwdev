@@ -51,14 +51,11 @@ static int		wait_transition_include_over(stStateMachine_t *sm, stEvent_t *event,
 static void *wait_action_exclude_over(stStateMachine_t *sm, stEvent_t *event);
 static int		wait_transition_exclude_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
-
-
 static void *wait_action_sub_command(stStateMachine_t *sm, stEvent_t *event);
 static int		wait_transition_sub_command(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
 static void *wait_action_command_over(stStateMachine_t *sm, stEvent_t *event);
 static int		wait_transition_command_over(stStateMachine_t *sm, stEvent_t *event, void *acret);
-
 
 
 
@@ -615,6 +612,127 @@ static void *wait_action_command_over(stStateMachine_t *sm, stEvent_t *event) {
 static int		wait_transition_command_over(stStateMachine_t *sm, stEvent_t *event, void *acret) {
 	app_step();
 	return (int)S_IDLEING;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+static int app_class_cmd_to_attrs(int did, emClass_t *class_array, int class_cnt, void *jattrs) {
+	int i = 0;
+	for (i = 0; i < class_cnt; i++) {
+		int cid = class_array[i]&0xff;
+		stClass_t *class = &classes[cid];
+
+		if ((class->cid&0xff) != cid) {
+			continue;
+		}
+	
+		if (class->attrs_cnt == 0) {
+			continue;
+		}
+	
+		int j = 0;
+		for (j = 0; j < CLASS_MAX_ATTR_NUM; j++) {
+			stAttr_t *attr = &class->attrs[j];
+			if (attr->name == NULL || attr->name[0] == 0) {
+				continue;
+			}
+			if (attr->usenick == 0 || attr->nick[0] == 0) {
+				continue;
+			}
+
+			char value[32];
+			if (memory_get_attr(did, attr->name, value) == 0)  {
+				json_object_set_new(jattrs, attr->nick, json_string(value));
+			} else if (flash_load_attr(did, attr->name, value) == 0) {
+				memory_set_attr(did, attr->name, value);
+				json_object_set_new(jattrs, attr->nick, json_string(value));
+			} else {
+				if (attr->get != NULL) {
+					app_class_cmd_get(did, attr->nick, "");
+				}
+				json_object_set_new(jattrs, attr->nick, json_string(""));
+			}
+		}
+	}
+	return 0;
+}
+
+json_t *	app_list() {
+	json_t *jdevs = json_array();
+
+	int i = 0;
+	for (i = 0; i < sizeof(ae.devs)/sizeof(ae.devs[0]); i++) {
+		stDevice_t *dev = &ae.devs[i];
+		if (dev->id == 0) {
+			continue;
+		}
+
+		json_t *jdev = json_object();
+		json_object_set_new(jdev,	"mac",			json_integer(dev->id));
+		json_object_set_new(jdev,	"type",			json_string(specific2str(dev->generic, dev->specific)));
+		json_object_set_new(jdev,	"model",		json_string(generic2str(dev->generic)));
+		json_object_set_new(jdev,	"online",		json_integer(dev->online));
+		json_object_set_new(jdev,	"version",	json_string("unknow"));
+		json_object_set_new(jdev,	"battery",	json_integer(100));
+	
+		log_debug("dev %d", dev->id);
+		log_debug_hex("class:", dev->class, dev->clen);
+
+		json_t *jattrs = json_object();
+		if (jattrs != NULL) {
+			emClass_t class[32];
+			int j;
+			for (j = 0; j < dev->clen; j++) {
+				class[j] = dev->class[j];
+			}
+			app_class_cmd_to_attrs(dev->id, class, dev->clen, jattrs);
+			
+			const char *version = json_get_string(jattrs, "version");
+			if (version != NULL) {
+				json_object_del(jdev, "version");
+				json_object_set_new(jdev,	"version",	json_string(version));
+
+				json_object_del(jattrs, "version");
+			}
+
+			const char *battery = json_get_string(jattrs, "battery");
+			if (battery != NULL) {
+				int battery_value;
+				sscanf(battery, "%d", &battery_value);
+
+				json_object_del(jdev, "battery");
+				json_object_set_new(jdev,	"battery",	json_integer(battery_value));
+
+				json_object_del(jattrs, "battery");
+			} 
+
+			const char *mac = json_get_string(jattrs, "mac");
+			if (mac != NULL) {
+				json_object_del(jdev, "mac");
+				json_object_set_new(jdev,	"mac",	json_string(mac));
+
+				json_object_del(jattrs, "mac");
+			}
+	
+	
+			json_object_set_new(jdev, "attrs", jattrs);
+		}
+
+		json_array_append_new(jdevs, jdev);
+	}
+
+	return jdevs;
+}
+
+int				app_include() {
+}
+
+int				app_exclude() {
+}
+
+int				app_class_cmd_set(int did, char *attr, char *value) {
+}
+
+int				app_class_cmd_get(int did, char *attr, char *value) {
 }
 
 

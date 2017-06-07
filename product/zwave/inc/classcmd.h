@@ -41,13 +41,11 @@ typedef enum emCmd {
 }emCmd_t;
 
 #define CLASS_MAX_ATTR_NUM 0x32
-#define MAX_SPECIFIC_NUM 0x32
 
-
-typedef void (*SET_FUNC)(int did, int cid, int aid, char *argv[], int argc);
-typedef void (*GET_FUNC)(int did, int cid, int aid, char *argv[], int argc);
+typedef void (*SET_FUNC)(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
+typedef void (*GET_FUNC)(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 typedef void (*REPORT_FUNC)(int did, int cid, int aid, char *buf, char *value, int value_len);
-typedef void (*REMOVE_FUNC)(int did, int cid, int aid, char *argv[], int argc);
+typedef void (*REMOVE_FUNC)(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 typedef void (*NOTIFY_FUNC)(int did, int cid, int aid, char *argv[], int argc);
 
 typedef struct stAttr {
@@ -72,6 +70,13 @@ typedef struct stClass {
 	stAttr_t	attrs[CLASS_MAX_ATTR_NUM];
 }stClass_t;
 
+void class_cmd_get_attr(int did, int cid, int aid, char *argv[], int argc, char *param, int *len);
+void class_cmd_set_attr(int did, int cid, int aid, char *argv[], int argc, char *param, int *len);
+void class_cmd_rpt_attr(int did, int cid, int aid, char *buf, char *value, int value_len);
+
+
+#define MAX_SPECIFIC_NUM 0x32
+
 typedef struct stBasic {
 	char			val;
 	char			*name;
@@ -86,36 +91,9 @@ typedef struct stGeneric {
 	char			*name;
 	stSpecific_t specifics[MAX_SPECIFIC_NUM];
 }stGeneric_t;
-
-
-int memory_module_init();
-int flash_module_init();
-
-int memory_get_attr(int did, const char *attr, char *value);
-int memory_set_attr(int did, const char *attr, char *value);
-
-int flash_load_attr(int did, const char *attr, char *value);
-int flash_save_attr(int did, const char *attr, char *value);
-
-void class_cmd_init();
-int  class_cmd_to_attrs(int did, emClass_t *class, int class_cnt, void *jattrs);
-void class_cmd_get_attr(int did, int cid, int aid, char *argv[], int argc);
-void class_cmd_set_attr(int did, int cid, int aid, char *argv[], int argc);
-void class_cmd_save(int did, char cid, char op, char *value, char value_len);
-int class_cmd_get_dev_attr(int did, emClass_t *class_array, int class_cnt);
-
-
-const char *basic2str(char b);
-const char *generic2str(char g);
-const char *specific2str(char g, char s);
-
-
-
-
-
-
-
-
+const char *class_cmd_basic2str(char b);
+const char *class_cmd_generic2str(char g);
+const char *class_cmd_specific2str(char g, char s);
 
 
 

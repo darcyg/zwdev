@@ -8,6 +8,90 @@
 #include "log.h"
 #include "app.h"
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+stBasic_t basics[] = {
+	{0x01, "controller"},
+	{0x02, "static controller"},
+	{0x03, "slave"},
+	{0x04, "routing slave"},
+};
+stGeneric_t generics[] = {
+	{0x01, "controller"},
+	{0x02, "static controller"},
+	{0x03, "av control point"},
+	{0x04, "display"},
+	{0x05, "network extender"},
+	{0x06, "appliance"},
+	{0x07, "sensor notification"},
+	{0x08, "thermostat"},
+	{0x09, "window convering"},
+	{0x0F, "repeater slave"},
+	{0x10, "switch binary", {	
+			{0x00, "not used",							"1212"},
+			{0x01, "on/off power switch",		"1212"},
+			{0x02, "color tunable",					"1213"},
+			{0x03, "scene switch",					"1212"},
+			{0x04, "power strip",						"1212"},
+			{0x05, "siren",									"1212"},
+			{0x06, "open/close",						"1212"},
+			{0x07, "irrigation controller", "1212"},
+		},
+	},
+	{0x11, "switch multilevel"},
+	{0x12, "switch remote"},
+	{0x13, "switch toggle"},
+	{0x15, "zip node"},
+	{0x16, "ventilation"},
+	{0x17, "security pannel"},
+	{0x18, "wall controller"},
+	{0x20, "binary sensor"},
+	{0x21, "multilevel sensor"},
+	{0x30, "pulse meter"},
+	{0x31, "meter"},
+	{0x40, "entry control"},
+	{0x50, "semi interoperable"},
+	{0xA1, "sensor alarm"},
+	{0xFF, "non interoperable"},
+};
+
+const char *class_cmd_basic2str(char b) {
+	int i;
+	for (i = 0; i < sizeof(basics)/sizeof(basics[0]); i++) {
+		if (b == basics[i].val && basics[i].name[0] != 0) {
+			return basics[i].name;
+		}
+	}
+	return "unknown";
+}
+const char *class_cmd_generic2str(char g) {
+	int i;
+	for (i = 0; i < sizeof(generics)/sizeof(generics[0]); i++) {
+		if (g == generics[i].val && generics[i].name[0] != 0) {
+			return generics[i].name;
+		}
+	}
+	return "unknown";
+}
+const char *class_specific2str(char g, char s) {
+	int i;
+	for (i = 0; i < sizeof(generics)/sizeof(generics[0]); i++) {
+		if (g == generics[i].val && generics[i].name[0] != 0) {
+			int j;
+			for (j = 0; j < sizeof(generics[i].specifics)/sizeof(generics[i].specifics[0]); j++) {
+				if (s == generics[i].specifics[j].val && generics[i].specifics[j].name[0] != 0) {
+					if (generics[i].specifics[j].nick[0] != 0) {
+						return generics[i].specifics[j].nick;
+					} else {
+						return generics[i].specifics[j].name;
+					}
+				}
+			}
+		}
+	}
+	return "unknown";
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 static void basic_get(int did, int cid, int aid, char *argv[], int argc);
 static void basic_set(int did, int cid, int aid, char *argv[], int argc);
 static void basic_report(int did, int cid, int aid, char *buf, char *value, int value_len);
@@ -170,245 +254,7 @@ stClass_t classes[] = {
 #endif
 };
 
-stBasic_t basics[] = {
-	{0x01, "controller"},
-	{0x02, "static controller"},
-	{0x03, "slave"},
-	{0x04, "routing slave"},
-};
-stGeneric_t generics[] = {
-	{0x01, "controller"},
-	{0x02, "static controller"},
-	{0x03, "av control point"},
-	{0x04, "display"},
-	{0x05, "network extender"},
-	{0x06, "appliance"},
-	{0x07, "sensor notification"},
-	{0x08, "thermostat"},
-	{0x09, "window convering"},
-	{0x0F, "repeater slave"},
-	{0x10, "switch binary", {	
-			{0x00, "not used",							"1212"},
-			{0x01, "on/off power switch",		"1212"},
-			{0x02, "color tunable",					"1213"},
-			{0x03, "scene switch",					"1212"},
-			{0x04, "power strip",						"1212"},
-			{0x05, "siren",									"1212"},
-			{0x06, "open/close",						"1212"},
-			{0x07, "irrigation controller", "1212"},
-		},
-	},
-	{0x11, "switch multilevel"},
-	{0x12, "switch remote"},
-	{0x13, "switch toggle"},
-	{0x15, "zip node"},
-	{0x16, "ventilation"},
-	{0x17, "security pannel"},
-	{0x18, "wall controller"},
-	{0x20, "binary sensor"},
-	{0x21, "multilevel sensor"},
-	{0x30, "pulse meter"},
-	{0x31, "meter"},
-	{0x40, "entry control"},
-	{0x50, "semi interoperable"},
-	{0xA1, "sensor alarm"},
-	{0xFF, "non interoperable"},
-};
-stSpecific_t specifics[] = {
-};
-
-/////////////////////////////////////////////////////////////////////////////////////////
-static struct hashmap hmattrs;
-static char *inventory_dir = "/etc/config/dusun/zwave";
-
-
-static void add_attrs(json_t *jattrs, const char *attr,  const char *value) {
-	if (jattrs == NULL) {
-		return;
-	}
-
-	json_object_set_new(jattrs, attr, json_string(value));
-}
-
-static void *hashmap_alloc_key(const void *_key) {
-	const char *key = (const char *)_key;
-	int len = strlen(key);
-	void *newkey = malloc(len+1);
-	if (newkey != NULL) {
-		strcpy(newkey, key);
-	}
-	return newkey;
-}
-
-static void hashmap_free_key(void * _key) {
-	if (_key == NULL) {
-		return;
-	}
-	free(_key);
-}
-
-
-int memory_module_init() {
-	hashmap_init(&hmattrs, hashmap_hash_string, hashmap_compare_string, 254);
-	hashmap_set_key_alloc_funcs(&hmattrs, hashmap_alloc_key, hashmap_free_key);
-	return 0;
-}
-
-int memory_get_attr(int did, const char *attr, char *value) {
-	//log_debug("memory_get_attr: %d, %s", did, attr);
-
-	char sdid[32];
-	sprintf(sdid, "%d", did);
-	void *vhm = hashmap_get(&hmattrs, sdid);
-	if (vhm == NULL) {
-		value[0] = 0;
-		return -1;
-	}
-	
-	const char *v = hashmap_get((struct hashmap *)vhm, attr);
-	if (v == NULL) {
-		value[0] = 0;
-		return -2;
-	}
-	
-	strcpy(value, v);
-
-	return 0;
-}
-
-int memory_set_attr(int did, const char *attr, char *value) {
-	char sdid[32];
-	sprintf(sdid, "%d", did);
-
-	//log_debug("memory_set_attr: %d, %s, %s", did, attr, value);
-
-	void *vhm = hashmap_get(&hmattrs, sdid);
-	if (vhm == NULL) {
-		struct hashmap *hm = MALLOC(sizeof(struct hashmap));
-		if (hm == NULL) {
-			log_debug("out of memory!");
-			return -1;
-		} 
-		hashmap_init(hm, hashmap_hash_string, hashmap_compare_string, 16);
-		hashmap_set_key_alloc_funcs(hm, hashmap_alloc_key, hashmap_free_key);
-		vhm = hm;
-
-		if (hashmap_put(&hmattrs, sdid, vhm) == NULL) {
-			log_debug("error : %s %d", __func__, __LINE__);
-			return -2;
-		}
-	}
-
-	char *tmp_value = (char*)MALLOC(strlen(value)+1);
-	if (tmp_value == NULL) {
-		log_debug("out of memory!");
-		return -3;
-	}
-	strcpy(tmp_value, value);
-
-	void *old = hashmap_remove((struct hashmap*)vhm, attr);
-	if (old != NULL) {
-		FREE(old);
-	}
-
-	if (hashmap_put((struct hashmap*)vhm, attr, tmp_value) == NULL) {
-		return -3;
-	}
-
-	return 0;
-}
-
-
-int flash_module_init() {
-  if (!file_is_dir(inventory_dir)) {
-    file_create_dir(inventory_dir, 755);
-  }
-	return 0;
-}
-
-int flash_load_attr(int did, const char *attr, char *value) {
-  char f[256];
-
-  sprintf(f, "%s/%d/%s", inventory_dir, did, attr);
-  FILE *fp = fopen(f, "r");
-  if (fp != NULL) {
-    char buf[64+1];
-    fseek(fp, 0, SEEK_END);
-    long size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    size = size > sizeof(buf) ? sizeof(buf) : size;
-    int ret = fread(buf, size, 1, fp);
-    buf[ret*size] = 0;
-    fclose(fp);
-
-    log_debug("load string :%s", buf);
-    strcpy(value, buf);
-    log_debug("load value is %s", buf);
-		return 0;
-  }
-  *value = 0;
-  return -1;
-}
-int flash_save_attr(int did, const char *attr, char *value) {
-  char f[256];
-  sprintf(f, "%s/%d", inventory_dir, did);
-  if (!file_is_dir(f)) {
-    file_create_dir(f, 755);
-  }
-
-  strcat(f, "/");
-  strcat(f, attr);
-  FILE *fp = fopen(f, "w");
-  if (fp != NULL) {
-    char buf[32];
-    sprintf(buf, "%s", value);
-    fwrite(buf, strlen(buf), 1, fp);
-    fclose(fp);
-  }
-	return 0;
-}
-
-
-int class_cmd_to_attrs(int did, emClass_t *class_array, int class_cnt, void *jattrs) {
-	int i = 0;
-	for (i = 0; i < class_cnt; i++) {
-		int cid = class_array[i]&0xff;
-		stClass_t *class = &classes[cid];
-
-		if ((class->cid&0xff) != cid) {
-			continue;
-		}
-	
-		if (class->attrs_cnt == 0) {
-			continue;
-		}
-	
-		int j = 0;
-		for (j = 0; j < CLASS_MAX_ATTR_NUM; j++) {
-			stAttr_t *attr = &class->attrs[j];
-			if (attr->name == NULL || attr->name[0] == 0) {
-				continue;
-			}
-			if (attr->usenick == 0 || attr->nick[0] == 0) {
-				continue;
-			}
-
-			char value[32];
-			if (memory_get_attr(did, attr->name, value) == 0)  {
-				add_attrs(jattrs, attr->nick, value);
-			} else if (flash_load_attr(did, attr->name, value) == 0) {
-				memory_set_attr(did, attr->name, value);
-				add_attrs(jattrs, attr->nick, value);
-			} else {
-				if (attr->get != NULL) {
-					attr->get(did, class->cid, attr->aid, NULL, 0);
-				}
-				add_attrs(jattrs, attr->nick, "");
-			}
-		}
-	}
-	return 0;
-}
+#if 0
 
 int class_cmd_get_dev_attr(int did, emClass_t *class_array, int class_cnt) {
 	int i = 0;
@@ -474,13 +320,9 @@ void class_cmd_save(int did, char cid, char op, char *value, char value_len) {
 		log_debug("[%s] %s, %s, aid:%02x", __func__, attr->name, value_buf, attr->aid&0xff);
 		memory_set_attr(did, attr->name, value_buf);
 }
+#endif
 
-void class_cmd_init() {
-	memory_module_init();
-	flash_module_init();
-}
-
-void class_cmd_get_attr(int did, int cid, int aid, char *argv[], int argc) {
+void class_cmd_get_attr(int did, int cid, int aid, char *argv[], int argc, char *param, int *len) {
 		stClass_t *class = &classes[cid&0xff];
 		if ((class->cid&0xff) != (cid&0xff)) {
 		log_debug("%d - %d, %d", __LINE__, class->cid&0xff, cid&0xff);
@@ -509,7 +351,7 @@ void class_cmd_get_attr(int did, int cid, int aid, char *argv[], int argc) {
 
 		attr->get(did, cid, aid, argv, argc);
 }
-void class_cmd_set_attr(int did, int cid, int aid, char *argv[], int argc) {
+void class_cmd_set_attr(int did, int cid, int aid, char *argv[], int argc, char *param, int *len) {
 		stClass_t *class = &classes[cid&0xff];
 		if ((class->cid&0xff) != (cid&0xff)) {
 			return;
@@ -534,45 +376,40 @@ void class_cmd_set_attr(int did, int cid, int aid, char *argv[], int argc) {
 			}
 		}
 }
-const char *basic2str(char b) {
-	int i;
-	for (i = 0; i < sizeof(basics)/sizeof(basics[0]); i++) {
-		if (b == basics[i].val && basics[i].name[0] != 0) {
-			return basics[i].name;
+void class_cmd_rpt_attr(int did, int cid, int aid, char *buf, char *value, int value_len) {
+		log_debug("[%s] ----->%02x, %02x", __func__, did&0xff, cid&0xff);
+		log_debug_hex("value:", value, value_len);
+	
+		stClass_t *class = &classes[cid&0xff];
+		if ((class->cid&0xff) != (cid&0xff)) {
+			return;
 		}
-	}
-	return "unknown";
-}
-const char *generic2str(char g) {
-	int i;
-	for (i = 0; i < sizeof(generics)/sizeof(generics[0]); i++) {
-		if (g == generics[i].val && generics[i].name[0] != 0) {
-			return generics[i].name;
+	
+		if (class->attrs_cnt == 0) {
+			return;
 		}
-	}
-	return "unknown";
-}
-const char *specific2str(char g, char s) {
-	int i;
-	for (i = 0; i < sizeof(generics)/sizeof(generics[0]); i++) {
-		if (g == generics[i].val && generics[i].name[0] != 0) {
-			int j;
-			for (j = 0; j < sizeof(generics[i].specifics)/sizeof(generics[i].specifics[0]); j++) {
-				if (s == generics[i].specifics[j].val && generics[i].specifics[j].name[0] != 0) {
-					if (generics[i].specifics[j].nick[0] != 0) {
-						return generics[i].specifics[j].nick;
-					} else {
-						return generics[i].specifics[j].name;
-					}
-				}
-			}
+	
+		stAttr_t *attr = &class->attrs[op&0xff];
+		if (attr->name == NULL || attr->name[0] == 0) {
+			return;
 		}
-	}
-	return "unknown";
-}
+		if ((attr->aid&0xff) != op) {
+			return;
+		}
+	
+		char value_buf[32];
+		if (attr->report != NULL) {
+			attr->report(did, class->cid, attr->aid, value_buf, value, value_len&0xff);
+		} else {
+			sprintf(value_buf, "nil(report)");
+		}
+		log_debug("[%s] %s, %s, aid:%02x", __func__, attr->name, value_buf, attr->aid&0xff);
 
-/////////////////////////////////////////////////////////////////////////////////////////
-static int device_set_attr(int did, int cid, int aid, char *buf, int size) {
+		//memory_set_attr(did, attr->name, value_buf);
+		strcpy(buf, value_buf);
+}
+//------------------------------------------ funcs to implement -------------------------------------
+static int device_set_attr(int did, int cid, int aid, char *buf, int size, char *param, int *len) {
 	static char funcID = 0x01;
 	log_debug("did:%02x, cid:%02x, aid:%02x", did, cid, aid);
 	stSendDataIn_t sdi = {
@@ -590,7 +427,7 @@ static int device_set_attr(int did, int cid, int aid, char *buf, int size) {
 	sdi.pData_data[2+size] = sdi.txOptions;
 	sdi.pData_data[3+size] = sdi.funcID;
 
-	app_push(E_SUB_ATTR, (stParam_t*)&sdi, sdi.pData_len + 4);
+	memcpy(param, &sdi, sdi.pData_len + 4);
 
 	funcID++;
 
@@ -598,7 +435,7 @@ static int device_set_attr(int did, int cid, int aid, char *buf, int size) {
 }
 
 
-static int device_get_attr(int did, int cid, int aid, char *buf, int size) {
+static int device_get_attr(int did, int cid, int aid, char *buf, int size, char *param, int *len) {
 	static char funcID = 0x01;
 	log_debug("did:%02x, cid:%02x, aid:%02x", did, cid, aid);
 	stSendDataIn_t sdi = {
@@ -616,52 +453,52 @@ static int device_get_attr(int did, int cid, int aid, char *buf, int size) {
 	sdi.pData_data[2+size] = sdi.txOptions;
 	sdi.pData_data[3+size] = sdi.funcID;
 
-	app_push(E_SUB_ATTR, (stParam_t*)&sdi, sdi.pData_len + 4);
+	memcpy(param, &sdi, sdi.pData_len + 4);
 
 	funcID++;
 
 	return 0;
 }
 
-static void basic_get(int did, int cid, int aid, char *argv[], int argc) {
+static void basic_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
-	device_get_attr(did, cid, aid, NULL, 0);
+	device_get_attr(did, cid, aid, NULL, 0, param, len);
 }
-static void basic_set(int did, int cid, int aid, char *argv[], int argc) {
+static void basic_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
 }
 static void basic_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
 }
 
-static void version_command_class_get(int did, int cid, int aid, char *argv[], int argc) {
+static void version_command_class_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
 }
 static void version_command_class_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
 }
 
-static void version_get(int did, int cid, int aid, char *argv[], int argc) {
+static void version_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
-	device_get_attr(did, cid, aid, NULL, 0);
+	device_get_attr(did, cid, aid, NULL, 0, param, len);
 }
 static void version_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
 	sprintf(buf, "L%d-P%d.%d-A%d.%d", value[0], value[1], value[2], value[3], value[4]); 
 }
 
-static void zwaveplus_info_get(int did, int cid, int aid, char *argv[], int argc) {
+static void zwaveplus_info_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
 }
 static void zwaveplus_info_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
 }
 
-static void switch_binary_get(int did, int cid, int aid, char *argv[], int argc) {
+static void switch_binary_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
-	device_get_attr(did, cid, aid, NULL, 0);
+	device_get_attr(did, cid, aid, NULL, 0, param, len);
 }
-static void switch_binary_set(int did, int cid, int aid, char *argv[], int argc) {
+static void switch_binary_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
 
 	int onoff;
@@ -671,34 +508,34 @@ static void switch_binary_set(int did, int cid, int aid, char *argv[], int argc)
 	}
 	char buf[1] = {onoff ? 0xff : 0x00};
 
-	device_set_attr(did, cid, aid, buf, sizeof(buf));
+	device_set_attr(did, cid, aid, buf, sizeof(buf), param, len);
 }
 static void switch_binary_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
 	sprintf(buf, "%d", !!value[0]);
 }
 
-static void association_get(int did, int cid, int aid, char *argv[], int argc) {
+static void association_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
 }
-static void association_set(int did, int cid, int aid, char *argv[], int argc) {
+static void association_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
 }
 static void association_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
 }
-static void association_remove(int did, int cid, int aid, char *argv[], int argc) {
+static void association_remove(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
 }
 
-static void association_groupings_get(int did, int cid, int aid, char *argv[], int argc) {
+static void association_groupings_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
 }
 static void association_groupings_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
 }
 
-static void battery_get(int did, int cid, int aid, char *argv[], int argc) {
+static void battery_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
 	device_get_attr(did, cid, aid, NULL, 0);
 }
@@ -713,7 +550,7 @@ static void battery_report(int did, int cid, int aid, char *buf, char *value, in
 	}
 }
 
-static void manufacturer_specific_get(int did, int cid, int aid, char *argv[], int argc) {
+static void manufacturer_specific_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
 	device_get_attr(did, cid, aid, NULL, 0);
 }
@@ -724,7 +561,7 @@ static void manufacturer_specific_report(int did, int cid, int aid, char *buf, c
 	short tid = *(short *)(value + 2);	
 	short pid = *(short *)(value + 4);
 	*/
-	sprintf(buf, "%02x%02X%02x%02x%02x%02x", value[0], value[1], value[2], value[3], value[4], value[5]);
+	sprintf(buf, "%02x%02X%02x%02x%02x%02x", value[0],value[1],value[2],value[3],value[4],value[5]);
 }
 
 
