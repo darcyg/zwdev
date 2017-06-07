@@ -12,7 +12,7 @@
 #define MAX_DEVICE_NUM 234
 
 typedef struct stDevice {
-	int  id;
+	int id;
 	char mac[MAC_MAX_LEN];
 	char basic;
 	char generic;
@@ -65,9 +65,6 @@ enum {
 	aE_ONLINE_CHECK = 7,
 
 	aE_OVER = 8,
-
-	aE_ASYNC_DATA = 9,
-	aE_VERSION = 10,
 };
 
 typedef struct stAppCmd {
@@ -88,6 +85,7 @@ typedef struct stGetParam {
 	char *value;
 }stGetParam_t;
 typedef struct stSetParam {
+	int  did;
 	char *attr;
 	char *value;
 }stSetParam_t;
@@ -97,9 +95,10 @@ int				app_zclass();
 int				app_zattr();
 json_t *	app_zlist();
 int				app_zinclude();
-int				app_zexclude();
+int				app_zexclude(int did);
 int				app_zclass_cmd_get(int did, char *attr, char *value);
 int				app_zclass_cmd_set(int did, char *attr, char *value);
+int				app_zclass_cmd_rpt(int did, int cid, int aid, char *value, int value_lep);
 
 stInventory_t *app_get_inventory();
 

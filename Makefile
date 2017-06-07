@@ -36,14 +36,20 @@ srcs							+= $(ROOTDIR)/product/zwave/src/serial.c
 srcs							+= $(ROOTDIR)/product/zwave/src/transport.c
 srcs							+= $(ROOTDIR)/product/zwave/src/frame.c
 srcs							+= $(ROOTDIR)/product/zwave/src/session.c
-srcs							+= $(ROOTDIR)/product/zwave/src/api.c
 srcs							+= $(ROOTDIR)/product/zwave/src/statemachine.c
+srcs							+= $(ROOTDIR)/product/zwave/src/api.c
+
+srcs							+= $(ROOTDIR)/product/zwave/src/flash.c
+srcs							+= $(ROOTDIR)/product/zwave/src/memory.c
 srcs							+= $(ROOTDIR)/product/zwave/src/classcmd.c
 srcs							+= $(ROOTDIR)/product/zwave/src/app.c
+
 srcs							+= $(ROOTDIR)/product/zwave/src/cmd.c
+
 srcs							+= $(ROOTDIR)/product/zwave/src/uproto.c
 srcs							+= $(ROOTDIR)/product/zwave/src/system.c
 srcs							+= $(ROOTDIR)/product/zwave/src/zwave.c
+
 
 srcs							+= $(ROOTDIR)/src/lockqueue.c
 srcs							+= $(ROOTDIR)/src/mutex.c
