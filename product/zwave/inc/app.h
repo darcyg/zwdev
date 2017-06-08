@@ -105,6 +105,7 @@ int				app_zattr_new();
 json_t *	app_zlist();
 int				app_zinclude();
 int				app_zexclude(int did);
+int				app_zexclude_by_mac(const char *mac);
 int				app_zclass_cmd_get(int did, char *attr, char *value);
 int				app_zclass_cmd_set(int did, char *attr, char *value);
 int				app_zclass_cmd_get_by_mac(const char *mac, char *attr, char *value);

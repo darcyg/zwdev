@@ -673,7 +673,7 @@ json_t *	app_zlist() {
 	int i = 0;
 	for (i = 0; i < sizeof(inv->devs)/sizeof(inv->devs[0]); i++) {
 		stDevice_t *dev = &inv->devs[i];
-		if (dev->id == 0) {
+		if (dev->id == 0 || dev->id == 1) {
 			continue;
 		}
 
@@ -742,6 +742,29 @@ int	app_zinclude() {
 int	app_zexclude(int did) {
 	app_push(aE_EXCLUDE, &did, sizeof(did));
 	return 0;
+}
+
+int				app_zexclude_by_mac(const char *mac) {
+	int i = 0;
+	stInventory_t *inv = app_get_inventory();
+	for (i = 0; i < sizeof(inv->devs)/sizeof(inv->devs[0]); i++) {
+		stDevice_t *dev = &inv->devs[i];
+		if (dev->id == 0) {
+			continue;
+		}
+
+		char devmac[32];
+		memory_get_attr(dev->id, "manufacturer_specific", devmac);
+		if (strcmp(devmac, mac) != 0) {
+			continue;
+		}
+
+		app_zexclude(dev->id);
+		app_zfresh_nodemap();
+	}
+		
+	return 0;
+
 }
 
 int	app_zclass_cmd_set(int did, char *attr, char *value) {

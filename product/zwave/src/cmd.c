@@ -139,9 +139,9 @@ void do_cmd_exit(char *argv[], int argc) {
 	exit(0);
 }
 void do_cmd_init(char *argv[], int argc) {
-	app_push(aE_INIT,		NULL, 0);
-	app_push(aE_CLASS,	NULL, 0);
-	app_push(aE_ATTR,		NULL, 0);
+	app_zinit();
+	app_zclass();
+	app_zattr();
 }
 void do_cmd_list(char *argv[], int argc) {
 	json_t *jdevs = app_zlist();
@@ -155,12 +155,15 @@ void do_cmd_list(char *argv[], int argc) {
 	}
 }
 void do_cmd_include(char *argv[], int argc) {
-	app_push(aE_INCLUDE, NULL, 0);
+	app_zinclude();
 }
 void do_cmd_exclude(char *argv[], int argc) {
 	int did;
-	sscanf(argv[0], "%d", &did);
-	app_push(aE_EXCLUDE, &did, sizeof(did));
+	if (argc != 2) {
+		log_debug("exclude must has one argment as <mac>");
+		return;
+	}
+	app_zexclude_by_mac(argv[1]);
 }
 
 void do_cmd_help(char *argv[], int argc) {
