@@ -13,7 +13,13 @@ json_t *zwave_device_list() {
 
 int zwave_find_device() {
 	log_debug("[%s]", __func__);
+	app_zinclude();
 	return 0;
+}
+
+int zwave_del_device(const char *mac) {
+	log_debug("[%s]", __func__);
+	app_zexclude_by_mac(mac);
 }
 
 int zwave_device_light_onoff(const char *mac, int val) {

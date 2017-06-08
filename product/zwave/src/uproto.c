@@ -611,7 +611,8 @@ static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char 
 		return -2;
 	}
 
-	/* now not support */
+
+	zwave_del_device(mac);
 
 	uproto_response_ucmd(uuid, -1);
 
