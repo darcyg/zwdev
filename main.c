@@ -182,7 +182,10 @@ void timerout_cb(struct timer *t) {
 	stAddNodeToNetworkIn_t antni = {0x81, funcID++};
 	api_exec(CmdZWaveAddNodeToNetwork, &antni);
 	*/
-	do_cmd_init();
+	//do_cmd_init();
+	app_zinit();
+	app_zclass();
+	app_zattr();
 }
 
 void api_in(void *arg, int fd) {
@@ -208,9 +211,7 @@ void api_test() {
 	file_event_reg(&fet, api_getfd(), api_in, NULL, NULL);
 	app_init(&th, &fet);
 
-	class_cmd_init();
 	cmd_init(&th, &fet);
-
 	uproto_init(&th, &fet);
 
 	timer_set(&th, &tr, 10);

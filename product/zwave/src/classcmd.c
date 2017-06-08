@@ -72,7 +72,7 @@ const char *class_cmd_generic2str(char g) {
 	}
 	return "unknown";
 }
-const char *class_specific2str(char g, char s) {
+const char *class_cmd_specific2str(char g, char s) {
 	int i;
 	for (i = 0; i < sizeof(generics)/sizeof(generics[0]); i++) {
 		if (g == generics[i].val && generics[i].name[0] != 0) {
@@ -92,36 +92,36 @@ const char *class_specific2str(char g, char s) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-static void basic_get(int did, int cid, int aid, char *argv[], int argc);
-static void basic_set(int did, int cid, int aid, char *argv[], int argc);
+static void basic_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
+static void basic_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 static void basic_report(int did, int cid, int aid, char *buf, char *value, int value_len);
 
-static void version_command_class_get(int did, int cid, int aid, char *argv[], int argc);
+static void version_command_class_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 static void version_command_class_report(int did, int cid, int aid, char *buf, char *value, int value_len);
 
-static void version_get(int did, int cid, int aid, char *argv[], int argc);
+static void version_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 static void version_report(int did, int cid, int aid, char *buf, char *value, int value_len);
 
-static void zwaveplus_info_get(int did, int cid, int aid, char *argv[], int argc);
+static void zwaveplus_info_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 static void zwaveplus_info_report(int did, int cid, int aid, char *buf, char *value, int value_len);
 
-static void switch_binary_get(int did, int cid, int aid, char *argv[], int argc);
-static void switch_binary_set(int did, int cid, int aid, char *argv[], int argc);
+static void switch_binary_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
+static void switch_binary_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 static void switch_binary_report(int did, int cid, int aid, char *buf, char *value, int value_len);
 
-static void association_get(int did, int cid, int aid, char *argv[], int argc);
-static void association_set(int did, int cid, int aid, char *argv[], int argc);
+static void association_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
+static void association_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 static void association_report(int did, int cid, int aid, char *buf, char *value, int value_len);
-static void association_remove(int did, int cid, int aid, char *argv[], int argc);
+static void association_remove(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 
-static void association_groupings_get(int did, int cid, int aid, char *argv[], int argc);
+static void association_groupings_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 static void association_groupings_report(int did, int cid, int aid, char *buf, char *value, int value_len);
 
-static void battery_get(int did, int cid, int aid, char *argv[], int argc);
+static void battery_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 static void battery_report(int did, int cid, int aid, char *buf, char *value, int value_len);
 
 
-static void manufacturer_specific_get(int did, int cid, int aid, char *argv[], int argc);
+static void manufacturer_specific_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 static void manufacturer_specific_report(int did, int cid, int aid, char *buf, char *value, int value_len);
 
 /* if usenick = 1, nick must has value */
@@ -220,8 +220,8 @@ stClass_t classes[] = {
 	},
 #endif
 	[COMMAND_CLASS_MANUFACTURER_SPECIFIC_V1] = {
-		COMMAND_CLASS_MANUFACTURER_SPECIFIC_V1, "manufacturer_specific_v1", 1, "msv1", 1, {
-				[MANUFACTURER_SPECIFIC] = {MANUFACTURER_SPECIFIC, "manufacturer_specific", 1, "msv1", 
+		COMMAND_CLASS_MANUFACTURER_SPECIFIC_V1, "manufacturer_specific_v1", 1, "mac", 1, {
+				[MANUFACTURER_SPECIFIC] = {MANUFACTURER_SPECIFIC, "manufacturer_specific", 1, "mac", 
 					NULL, manufacturer_specific_get, manufacturer_specific_report, NULL, NULL},
 		},
 	},
@@ -349,7 +349,7 @@ void class_cmd_get_attr(int did, int cid, int aid, char *argv[], int argc, char 
 			return;
 		}
 
-		attr->get(did, cid, aid, argv, argc);
+		attr->get(did, cid, aid, argv, argc, param, len);
 }
 void class_cmd_set_attr(int did, int cid, int aid, char *argv[], int argc, char *param, int *len) {
 		stClass_t *class = &classes[cid&0xff];
@@ -369,12 +369,11 @@ void class_cmd_set_attr(int did, int cid, int aid, char *argv[], int argc, char 
 			return;
 		}
 
-		if (attr->set != NULL) {
-			attr->set(did, cid, aid, argv, argc);
-			if (attr->get != NULL) {
-				attr->get(did, cid, aid, NULL, 0);
-			}
+		if (attr->set == NULL) {
+			log_debug("%d", __LINE__);
+			return;
 		}
+		attr->set(did, cid, aid, argv, argc, param, len);
 }
 void class_cmd_rpt_attr(int did, int cid, int aid, char *buf, char *value, int value_len) {
 		log_debug("[%s] ----->%02x, %02x", __func__, did&0xff, cid&0xff);
@@ -389,11 +388,11 @@ void class_cmd_rpt_attr(int did, int cid, int aid, char *buf, char *value, int v
 			return;
 		}
 	
-		stAttr_t *attr = &class->attrs[op&0xff];
+		stAttr_t *attr = &class->attrs[aid&0xff];
 		if (attr->name == NULL || attr->name[0] == 0) {
 			return;
 		}
-		if ((attr->aid&0xff) != op) {
+		if ((attr->aid&0xff) != aid) {
 			return;
 		}
 	
@@ -428,6 +427,7 @@ static int device_set_attr(int did, int cid, int aid, char *buf, int size, char 
 	sdi.pData_data[3+size] = sdi.funcID;
 
 	memcpy(param, &sdi, sdi.pData_len + 4);
+	*len = sdi.pData_len + 4;
 
 	funcID++;
 
@@ -454,6 +454,7 @@ static int device_get_attr(int did, int cid, int aid, char *buf, int size, char 
 	sdi.pData_data[3+size] = sdi.funcID;
 
 	memcpy(param, &sdi, sdi.pData_len + 4);
+	*len = sdi.pData_len + 4;
 
 	funcID++;
 
@@ -502,7 +503,7 @@ static void switch_binary_set(int did, int cid, int aid, char *argv[], int argc,
 	log_debug("-");
 
 	int onoff;
-	if (argc != 1 || sscanf(argv[0], "0x%02x", &onoff) != 1) {
+	if (argc != 1 || sscanf(argv[0], "%d", &onoff) != 1) {
 		log_debug("error argments for %s", __func__);
 		return;
 	}
@@ -537,7 +538,7 @@ static void association_groupings_report(int did, int cid, int aid, char *buf, c
 
 static void battery_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
-	device_get_attr(did, cid, aid, NULL, 0);
+	device_get_attr(did, cid, aid, NULL, 0, param, len);
 }
 static void battery_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
@@ -552,7 +553,7 @@ static void battery_report(int did, int cid, int aid, char *buf, char *value, in
 
 static void manufacturer_specific_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
-	device_get_attr(did, cid, aid, NULL, 0);
+	device_get_attr(did, cid, aid, NULL, 0, param, len);
 }
 static void manufacturer_specific_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");

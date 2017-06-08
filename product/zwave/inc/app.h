@@ -6,6 +6,8 @@
 #include "file_event.h"
 #include "lockqueue.h"
 #include "api.h"
+#include "hashmap.h"
+#include "jansson.h"
 
 #define MAC_MAX_LEN 32
 #define MAX_CLASS_NUM 32
@@ -20,6 +22,7 @@ typedef struct stDevice {
 	int  clen;
 	char class[MAX_CLASS_NUM];
 
+	int fnew;
 	int online;
 	long lasttime;
 }stDevice_t;
@@ -43,9 +46,10 @@ typedef struct stAppEnv {
 
 	struct timer step_timer;
 	stLockQueue_t eq;
+	stLockQueue_t eqMsg;
 	struct timer online_timer;
 
-	stInventory inventory;
+	stInventory_t inventory;
 }stAppEnv_t;
 
 enum {
@@ -63,8 +67,10 @@ enum {
 	aE_GET = 5,
 	aE_SET = 6,
 	aE_ONLINE_CHECK = 7,
+	aE_ATTR_NEW = 8,
+	aE_FRESH_NODEMAP = 9,
 
-	aE_OVER = 8,
+	aE_OVER = 10,
 };
 
 typedef struct stAppCmd {
@@ -74,6 +80,7 @@ typedef struct stAppCmd {
 
 int		app_init(void *_th, void *_fet);
 void	app_push(int eid, void *param, int len);
+void	app_push_msg(int eid, void *param, int len);
 int		app_step();
 void	app_run(struct timer *timer);
 void	app_in(void *arg, int fd);
@@ -81,6 +88,7 @@ void	app_in(void *arg, int fd);
 void	app_online_check(struct timer *timer);
 
 typedef struct stGetParam {
+	int did;
 	char *attr;
 	char *value;
 }stGetParam_t;
@@ -93,12 +101,17 @@ typedef struct stSetParam {
 int				app_zinit();
 int				app_zclass();
 int				app_zattr();
+int				app_zattr_new();
 json_t *	app_zlist();
 int				app_zinclude();
 int				app_zexclude(int did);
 int				app_zclass_cmd_get(int did, char *attr, char *value);
 int				app_zclass_cmd_set(int did, char *attr, char *value);
+int				app_zclass_cmd_get_by_mac(const char *mac, char *attr, char *value);
+int				app_zclass_cmd_set_by_mac(const char *mac, char *attr, char *value);
 int				app_zclass_cmd_rpt(int did, int cid, int aid, char *value, int value_lep);
+int				app_zfresh_nodemap();
+json_t *	app_zinfo();
 
 stInventory_t *app_get_inventory();
 

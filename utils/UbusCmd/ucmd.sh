@@ -8,7 +8,7 @@ DEL='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\
 FIND='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"getAttribute\", \"arguments\": {\"mac\": \"0000000000000000\", \"attribute\": \"mod.find_device\", \"value\":\"\"}}}"}'
 
 
-ONOFF='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"setAttribute\", \"arguments\": {\"mac\": \"59\", \"attribute\": \"device.light.onoff\", \"value\":{\"value\":\"'$2'\"}}}}"}'
+ONOFF='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"setAttribute\", \"arguments\": {\"mac\": \"000000030002\", \"attribute\": \"device.light.onoff\", \"value\":{\"value\":\"'$2'\"}}}}"}'
 
 
 STATUS='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"getAttribute\", \"arguments\": {\"mac\": \"0000000000000000\", \"attribute\": \"gateway.status\", \"value\":\"\"}}}"}'

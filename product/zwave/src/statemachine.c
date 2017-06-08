@@ -64,6 +64,7 @@ int state_machine_step(stStateMachine_t *sm, stEvent_t *event) {
 	//	FREE(acret);
 	//}
 
+	state_machine_set_state_trigger(sm, next_state, event->eid);
 	state_machine_set_state(sm, next_state);
 
 	return 0;
@@ -83,4 +84,24 @@ stState_t *state_machine_search_state(stStateMachine_t *sm, int sid) {
 
 	return NULL;
 }
+
+
+int state_machine_set_state_trigger(stStateMachine_t *sm, int state, int trigger) {
+	stState_t *s = state_machine_search_state(sm, state);
+	if (s == NULL) {
+		return -1;
+	}
+
+	s->trigger = trigger;
+	return 0;
+}
+int state_machine_get_state_trigger(stStateMachine_t *sm, int state) {
+	stState_t *s = state_machine_search_state(sm, state);
+	if (s == NULL) {
+		return -1;
+	}
+
+	return s->trigger;
+}
+
 

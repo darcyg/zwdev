@@ -96,6 +96,4 @@ const char *class_cmd_generic2str(char g);
 const char *class_cmd_specific2str(char g, char s);
 
 
-
 #endif
-

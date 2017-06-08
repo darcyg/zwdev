@@ -43,7 +43,8 @@ int system_runtime_get() {
 	}
 
 	char buf[128];
-  fgets(buf, sizeof(buf), fp);
+  char *_yum = fgets(buf, sizeof(buf), fp);
+	_yum = _yum;
 	fclose(fp);
 	buf[strlen(buf)] = 0;
 
@@ -64,7 +65,8 @@ int system_eth_ip_get(char *ethip) {
 	}
 
 	char buf[128];
-  fgets(buf, sizeof(buf), fp);
+  char *_yum = fgets(buf, sizeof(buf), fp);
+	_yum = _yum;
 	fclose(fp);
 	int len = strlen(buf);
 	if (buf[len - 1] == '\n' || buf[len - 1] == '\r') {
@@ -128,7 +130,8 @@ int system_mac_get(char *mac) {
   if (fp == NULL) {
     return -1;
   }
-  fgets(mac, 20, fp);
+	char *_yum = fgets(mac, 20, fp);
+	_yum = _yum;
   fclose(fp);
 
   int len = strlen(mac);

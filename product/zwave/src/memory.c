@@ -2,8 +2,11 @@
 #include "common.h"
 #include "log.h"
 #include "hashmap.h"
+#include <string.h>
+#include "app.h"
 
 static struct hashmap *hmattrs = NULL;
+static struct hashmap  hmattrs_bak;
 
 static void *hashmap_alloc_key(const void *_key) {
 	const char *key = (const char *)_key;
@@ -23,8 +26,12 @@ static void hashmap_free_key(void * _key) {
 }
 
 
-int memory_init() {
-	hmattrs = &(app_get_inventory()->hmattrs);
+int memory_init(struct hashmap *_hm) {
+	if (_hm != NULL) {
+		hmattrs = _hm;
+	} else {
+		hmattrs = &hmattrs_bak;
+	}
 
 	hashmap_init(hmattrs, hashmap_hash_string, hashmap_compare_string, 254);
 	hashmap_set_key_alloc_funcs(hmattrs, hashmap_alloc_key, hashmap_free_key);

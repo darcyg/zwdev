@@ -21,6 +21,10 @@ typedef struct stApiEnv {
 
 	stApiCall_t *apicall;
 
+	struct timer_head *th;
+	struct timer timerSend;
+	struct timer timerBeat;
+
 }stApiEnv_t;
 
 static API_CALL_CALLBACK api_ccb = NULL;
@@ -314,7 +318,7 @@ static int wait_transition_action_io_port(stStateMachine_t *sm, stEvent_t *event
 
 stStateMachine_t smCmdZWaveGetVersion = {
 	1, S_WAIT_VERSION_DATA, S_WAIT_VERSION_DATA, {
-		{S_WAIT_VERSION_DATA, 1, NULL, {
+		{S_WAIT_VERSION_DATA, 1, NULL, -1, {
 				{E_VERSION_DATA, wait_action_version_data, wait_transition_version_data},
 			},
 		},
@@ -323,7 +327,7 @@ stStateMachine_t smCmdZWaveGetVersion = {
 
 stStateMachine_t smCmdSerialApiGetInitData = {
 	1, S_WAIT_INIT_DATA, S_WAIT_INIT_DATA, {
-		{S_WAIT_INIT_DATA, 1, NULL, {
+		{S_WAIT_INIT_DATA, 1, NULL, -1, {
 				{E_INIT_DATA, wait_action_init_data, wait_transition_init_data},
 			},
 		},
@@ -332,7 +336,7 @@ stStateMachine_t smCmdSerialApiGetInitData = {
 
 stStateMachine_t smCmdZWaveGetNodeProtoInfo = {
 	1, S_WAIT_NODE_PROTOINFO, S_WAIT_NODE_PROTOINFO, {
-		{S_WAIT_NODE_PROTOINFO, 1, NULL, {
+		{S_WAIT_NODE_PROTOINFO, 1, NULL, -1, {
 				{E_NODE_PROTOINFO, wait_action_node_protoinfo, wait_transition_node_protoinfo},
 			},
 		},
@@ -341,7 +345,7 @@ stStateMachine_t smCmdZWaveGetNodeProtoInfo = {
 
 stStateMachine_t smCmdSerialApiGetCapalibities = {
 	1, S_WAIT_CAPABILITIES, S_WAIT_CAPABILITIES, {
-		{S_WAIT_CAPABILITIES, 1, NULL, {
+		{S_WAIT_CAPABILITIES, 1, NULL, -1, {
 				{E_CAPABILITIES, wait_action_capabilities, wait_transition_capabilities},
 			},
 		},
@@ -351,7 +355,7 @@ stStateMachine_t smCmdSerialApiGetCapalibities = {
 
 stStateMachine_t smCmdZWaveGetControllerCapabilities = {
 	1, S_WAIT_CONTROLLER_CAPABILITIES, S_WAIT_CONTROLLER_CAPABILITIES, {
-		{S_WAIT_CONTROLLER_CAPABILITIES, 1, NULL, {
+		{S_WAIT_CONTROLLER_CAPABILITIES, 1, NULL, -1, {
 				{E_CONTROLLER_CAPABILITIES, wait_action_controller_capabilities, wait_transition_controller_capabilities},
 			},
 		},
@@ -361,7 +365,7 @@ stStateMachine_t smCmdZWaveGetControllerCapabilities = {
 
 stStateMachine_t smCmdMemoryGetId = {
 	1, S_WAIT_ID, S_WAIT_ID, {
-		{S_WAIT_ID, 1, NULL, {
+		{S_WAIT_ID, 1, NULL, -1, {
 				{E_ID, wait_action_id,  wait_transition_id},
 			},
 		},
@@ -371,7 +375,7 @@ stStateMachine_t smCmdMemoryGetId = {
 
 stStateMachine_t smCmdZWaveGetSucNodeId = {
 	1, S_WAIT_SUC_NODE_ID, S_WAIT_SUC_NODE_ID, {
-		{S_WAIT_SUC_NODE_ID, 1, NULL, {
+		{S_WAIT_SUC_NODE_ID, 1, NULL, -1, {
 				{E_SUC_NODE_ID, wait_action_suc_node_id,  wait_transition_suc_node_id},
 			},
 		},
@@ -381,7 +385,7 @@ stStateMachine_t smCmdZWaveGetSucNodeId = {
 
 stStateMachine_t smCmdSerialApiApplNodeInformation= {
 	1, S_WAIT_APPL_NODE_INFORMATION, S_WAIT_APPL_NODE_INFORMATION, {
-		{S_WAIT_APPL_NODE_INFORMATION, 1, NULL, {
+		{S_WAIT_APPL_NODE_INFORMATION, 1, NULL, -1, {
 				{E_APPL_NODE_INFORMATION, wait_action_appl_node_information,  wait_transition_appl_node_information},
 			},
 		},
@@ -391,28 +395,28 @@ stStateMachine_t smCmdSerialApiApplNodeInformation= {
 
 stStateMachine_t smCmdZWaveAddNodeToNetWork = {
 	6, S_WAIT_CTR_STATUS, S_WAIT_CTR_STATUS, {
-		{S_WAIT_CTR_STATUS, 1, NULL, {
+		{S_WAIT_CTR_STATUS, 1, NULL,-1,  {
 				{E_CTR_STATUS, wait_action_ctr_status, wait_transition_ctr_status},
 			},
 		},
-		{S_WAIT_ADDED_OR_CANCLE, 2, NULL, {
+		{S_WAIT_ADDED_OR_CANCLE, 2, NULL, -1, {
 				{E_NEWDEV_ADDED, wait_action_newdev_added, wait_transition_newdev_added},
 				{E_CANCLE_ADD, wait_action_cancle_add, wait_transition_cancle_add}, /* async cancle api */
 			},
 		},
-		{S_WAIT_ADDED_NODE, 1, NULL, {
+		{S_WAIT_ADDED_NODE, 1, NULL, -1, {
 				{E_ADDED_NODE, wait_action_added_node, wait_transition_added_node},
 			},
 		},
-		{S_WAIT_ADD_COMP, 1, NULL, {
+		{S_WAIT_ADD_COMP, 1, NULL, -1, {
 				{E_ADD_COMP, wait_action_add_comp, wait_transition_add_comp},
 			},
 		},
-		{S_WAIT_CANCLE_CONFIRM, 1, NULL, {
+		{S_WAIT_CANCLE_CONFIRM, 1, NULL, -1, {
 				{E_CANCLE_CONFIRM, wait_action_cancle_confirm, wait_transition_cancle_confirm}, /* async confirm api */
 			},
 		},
-		{S_WAIT_CANCLE_COMP, 1, NULL, {
+		{S_WAIT_CANCLE_COMP, 1, NULL, -1, {
 				{E_CANCLE_COMP, wait_action_cancle_comp, wait_transition_cancle_comp},
 			},
 		},
@@ -421,11 +425,11 @@ stStateMachine_t smCmdZWaveAddNodeToNetWork = {
 
 stStateMachine_t smCmdZWaveRequestNodeInfo = {
 	2, S_WAIT_NODE_INFO_ACK, S_WAIT_NODE_INFO_ACK, {
-		{S_WAIT_NODE_INFO_ACK, 1, NULL, {
+		{S_WAIT_NODE_INFO_ACK, 1, NULL, -1, {
 				{E_NODE_INFO_ACK, wait_action_node_info_ack, wait_transition_node_info_ack},
 			},
 		},
-		{S_WAIT_NODE_INFO, 1, NULL, {
+		{S_WAIT_NODE_INFO, 1, NULL, -1, {
 				{E_NODE_INFO, wait_action_node_info,  wait_transition_node_info},
 			},
 		},
@@ -434,28 +438,28 @@ stStateMachine_t smCmdZWaveRequestNodeInfo = {
 
 stStateMachine_t smCmdZWaveRemoveNodeFromNetwork = {
 	5, S_WAIT_REMOVE_RESPONSE, S_WAIT_REMOVE_RESPONSE, {
-		{S_WAIT_REMOVE_RESPONSE, 1, NULL, {
+		{S_WAIT_REMOVE_RESPONSE, 1, NULL, -1, {
 				{E_REMOVE_RESPONSE, wait_action_remove_response, wait_transition_remove_response},
 			},
 		},
 
-		{S_WAIT_LEAVE_OR_CANCLE, 2, NULL, {
+		{S_WAIT_LEAVE_OR_CANCLE, 2, NULL, -1, {
 				{E_LEAVING, wait_action_leaving, wait_transition_leaving},
 				{E_CANCLE_REMOVE, wait_action_cancle_remove, wait_transition_cancle_remove},
 			},
 		},
 
-		{S_WAIT_LEAVED_NODE_S1, 1, NULL, {
+		{S_WAIT_LEAVED_NODE_S1, 1, NULL, -1, {
 				{E_LEAVED_NODE_S1, wait_action_leaved_node_s1, wait_transition_leaved_node_s1},
 			},
 		},
 
-		{S_WAIT_LEAVED_NODE_S2, 1, NULL, {
+		{S_WAIT_LEAVED_NODE_S2, 1, NULL, -1, {
 				{E_LEAVED_NODE_S2, wait_action_leaved_node_s2, wait_transition_leaved_node_s2},
 			},
 		},
 
-		{S_WAIT_LEAVE_COMP, 1, NULL, {
+		{S_WAIT_LEAVE_COMP, 1, NULL, -1, {
 				{E_LEAVE_COMP, wait_action_leave_comp, wait_transition_leave_comp},
 			},
 		},
@@ -464,7 +468,7 @@ stStateMachine_t smCmdZWaveRemoveNodeFromNetwork = {
 
 stStateMachine_t smCmdZWaveSetSucNodeId = {
 	1, S_WAIT_SETSUC_RESPONSE, S_WAIT_SETSUC_RESPONSE, {
-		{S_WAIT_SETSUC_RESPONSE, 1, NULL, {
+		{S_WAIT_SETSUC_RESPONSE, 1, NULL, -1, {
 				{E_SETSUC_RESPONSE, wait_action_setsuc_response, wait_transition_setsuc_response},
 			},
 		},
@@ -473,11 +477,11 @@ stStateMachine_t smCmdZWaveSetSucNodeId = {
 
 stStateMachine_t smCmdZWaveSendData = {
 	2, S_WAIT_SENDDATA_RESPONSE, S_WAIT_SENDDATA_RESPONSE, {
-		{S_WAIT_SENDDATA_RESPONSE, 1, NULL, {
+		{S_WAIT_SENDDATA_RESPONSE, 1, NULL, -1, {
 				{E_SENDDATA_RESPONSE, wait_action_senddata_response, wait_transition_senddata_response},
 			},
 		},
-		{S_WAIT_TX_STATUS, 1, NULL, {
+		{S_WAIT_TX_STATUS, 1, NULL, -1, {
 				{E_TX_STATUS, wait_action_tx_status, wait_transition_tx_status},
 			},
 		},
@@ -486,7 +490,7 @@ stStateMachine_t smCmdZWaveSendData = {
 
 stStateMachine_t smCmdZWaveIsFailedNode = {
 	1, S_WAIT_ISFAILED_RESPONSE, S_WAIT_ISFAILED_RESPONSE, {
-		{S_WAIT_ISFAILED_RESPONSE, 1, NULL, {
+		{S_WAIT_ISFAILED_RESPONSE, 1, NULL, -1, {
 				{E_ISFAILED_RESPONSE, wait_action_isfailed_response, wait_transition_isfailed_response},
 			},
 		},
@@ -499,7 +503,7 @@ stStateMachine_t smCmdZWaveIsFailedNode = {
 
 stStateMachine_t smCmdZWaveRemoveFailedNodeId = {
 	1, S_WAIT_REMOVE_FAILED_RESPONSE, S_WAIT_REMOVE_FAILED_RESPONSE, {
-		{S_WAIT_REMOVE_FAILED_RESPONSE, 1, NULL, {
+		{S_WAIT_REMOVE_FAILED_RESPONSE, 1, NULL, -1, {
 				{E_REMOVE_FAILED_RESPONSE, wait_action_remove_failed_response, wait_transition_remove_failed_response},
 			},
 		},
@@ -507,7 +511,7 @@ stStateMachine_t smCmdZWaveRemoveFailedNodeId = {
 };
 stStateMachine_t smCmdSerialApiSoftReset = {
 	0, S_WAIT_SOFTRESET_RESPONSE, S_WAIT_SOFTRESET_RESPONSE, {
-		{S_WAIT_SOFTRESET_RESPONSE, 1, NULL, {
+		{S_WAIT_SOFTRESET_RESPONSE, 1, NULL, -1, {
 				{E_SOFTRESET_RESPONSE, wait_action_softreset_response, wait_transition_softreset_response},
 			},
 		},
@@ -515,7 +519,7 @@ stStateMachine_t smCmdSerialApiSoftReset = {
 };
 stStateMachine_t smCmdZWaveGetProtocolVersion = {
 	1, S_WAIT_PROTOCOL_VERSION, S_WAIT_PROTOCOL_VERSION, {
-		{S_WAIT_PROTOCOL_VERSION, 1, NULL, {
+		{S_WAIT_PROTOCOL_VERSION, 1, NULL, -1, {
 				{E_PROTOCOL_VERSION, wait_action_protocol_version, wait_transition_protocol_version},
 			},
 		},
@@ -523,7 +527,7 @@ stStateMachine_t smCmdZWaveGetProtocolVersion = {
 };
 stStateMachine_t smCmdSerialApiStarted = {
 	1, S_WAIT_API_STARTED, S_WAIT_API_STARTED, {
-		{S_WAIT_API_STARTED, 1, NULL, {
+		{S_WAIT_API_STARTED, 1, NULL, -1, {
 				{E_API_STARTED, wait_action_api_started, wait_transition_api_started},
 			},
 		},
@@ -531,7 +535,7 @@ stStateMachine_t smCmdSerialApiStarted = {
 };
 stStateMachine_t smCmdZWaveRfPowerLevelGet = {
 	1, S_WAIT_RFPOWER_LEVEL, S_WAIT_RFPOWER_LEVEL, {
-		{S_WAIT_RFPOWER_LEVEL, 1, NULL, {
+		{S_WAIT_RFPOWER_LEVEL, 1, NULL, -1, {
 				{E_RFPOWER_LEVEL, wait_action_rfpower_level, wait_transition_rf_power_level},
 			},
 		},
@@ -540,7 +544,7 @@ stStateMachine_t smCmdZWaveRfPowerLevelGet = {
 };
 stStateMachine_t smCmdZWaveGetNeighborCount = {
 	1, S_WAIT_NEIGHBOR_COUNT, S_WAIT_NEIGHBOR_COUNT, {
-		{S_WAIT_NEIGHBOR_COUNT, 1, NULL, {
+		{S_WAIT_NEIGHBOR_COUNT, 1, NULL, -1, {
 				{E_NEIGHBOR_COUNT, wait_action_neighbor_count, wait_transition_neighbor_count},
 			},
 		},
@@ -549,7 +553,7 @@ stStateMachine_t smCmdZWaveGetNeighborCount = {
 };
 stStateMachine_t smCmdZWaveAreNodesNeighbours = {
 	1, S_WAIT_ARE_NEIGHBORS, S_WAIT_ARE_NEIGHBORS, {
-		{S_WAIT_ARE_NEIGHBORS, 1, NULL, {
+		{S_WAIT_ARE_NEIGHBORS, 1, NULL, -1, {
 				{E_ARE_NEIGHBORS, wait_action_are_neighbors, wait_transition_are_neighbors},
 			},
 		},
@@ -558,7 +562,7 @@ stStateMachine_t smCmdZWaveAreNodesNeighbours = {
 };
 stStateMachine_t smCmdZWaveTypeLibrary = {
 	1, S_WAIT_TYPE_LIBRARY, S_WAIT_TYPE_LIBRARY, {
-		{S_WAIT_TYPE_LIBRARY, 1, NULL, {
+		{S_WAIT_TYPE_LIBRARY, 1, NULL, -1, {
 				{E_TYPE_LIBRARY, wait_action_type_library, wait_transition_type_library},
 			},
 		},
@@ -567,7 +571,7 @@ stStateMachine_t smCmdZWaveTypeLibrary = {
 };
 stStateMachine_t smCmdZWaveGetProtocolStatus = {
 	1, S_WAIT_PROTOCOL_STATUS, S_WAIT_PROTOCOL_STATUS, {
-		{S_WAIT_PROTOCOL_STATUS, 1, NULL, {
+		{S_WAIT_PROTOCOL_STATUS, 1, NULL, -1, {
 				{E_PROTOCOL_STATUS, wait_action_protocol_status, wait_transition_protocol_status},
 			},
 		},
@@ -576,7 +580,7 @@ stStateMachine_t smCmdZWaveGetProtocolStatus = {
 };
 stStateMachine_t smCmdIoPortStatus = {
 	1, S_WAIT_PORT_STATUS, S_WAIT_PORT_STATUS, {
-		{S_WAIT_PORT_STATUS, 1, NULL, {
+		{S_WAIT_PORT_STATUS, 1, NULL, -1, {
 				{E_PORT_STATUS, wait_action_port_status, wait_transition_port_status},
 			},
 		},
@@ -585,7 +589,7 @@ stStateMachine_t smCmdIoPortStatus = {
 };
 stStateMachine_t smCmdIoPort = {
 	1, S_WAIT_IO_PORT, S_WAIT_IO_PORT, {
-		{S_WAIT_IO_PORT, 1, NULL, {
+		{S_WAIT_IO_PORT, 1, NULL, -1, {
 				{E_IO_PORT, wait_action_io_port, wait_transition_action_io_port},
 			},
 		},
@@ -597,14 +601,14 @@ stStateMachine_t smCmdIoPort = {
 stStateMachine_t smApi = {
 	2, S_IDLE, S_IDLE, {
 
-		{S_IDLE, 3, NULL, {
+		{S_IDLE, 3, NULL, -1, {
 				{E_BEAT, idle_action_beat, NULL},
 				{E_CALL_API, idle_action_call_api, idle_transition_call_api},
 				{E_ASYNC_DATA, idle_action_async_data, NULL},
 			},
 		},
 
-		{S_RUNNING, 5, NULL, {	
+		{S_RUNNING, 5, NULL, -1, {	
 				{E_ERROR, running_action_error, running_transition_error}, //nak can timeout
 				{E_ACK, running_action_ack, running_transition_ack},
 				{E_ASYNC_DATA, running_action_async_data, running_transition_async_data},
@@ -1196,7 +1200,7 @@ static bool handlerOneEvent() {
 			event = NULL;
 
 			if (lockqueue_size(&env.qSend) == 0 && state_machine_get_state(&smApi) == S_IDLE) {
-				app_push(aE_OVER, NULL, 0);
+				app_push_msg(aE_OVER, NULL, 0);
 			}
 
 			return true;
@@ -1771,6 +1775,40 @@ static int    wait_transition_cancle_add(stStateMachine_t *sm, stEvent_t *event,
 
 static void * wait_action_added_node(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
+
+	stDataFrame_t *df = event->param;
+	stAddNodeToNetwork_t antn;
+
+	antn.funcID		= df->payload[0];
+	antn.bStatus	= df->payload[1];
+	antn.bSource	= df->payload[2];
+	antn.len			= df->payload[3];
+	antn.basic		= df->payload[4];
+	antn.generic	= df->payload[5];
+	antn.specific	= df->payload[6];
+	if (antn.len - 3 > 0) {
+		memcpy(antn.commandclasses, &df->payload[7], antn.len - 3);
+	}
+	
+	stInventory_t *inv = app_get_inventory();
+	int id = antn.bSource&0xff;
+	inv->devs[id].id = id;
+	inv->devs[id].basic = antn.basic;
+	inv->devs[id].generic = antn.generic;
+	inv->devs[id].specific = antn.specific;
+	inv->devs[id].clen = antn.len - 3;
+	inv->devs[id].lasttime = time(NULL);
+	inv->devs[id].online = 1;
+	//inv->devs[id].online_checknum = 0;
+	memcpy(inv->devs[id].class, antn.commandclasses, inv->devs[id].clen);
+
+	inv->devs[id].fnew = 1;
+
+	log_debug("device %d added", id);
+
+	app_zfresh_nodemap();
+	app_zattr_new();
+
 	return NULL;
 }
 static int    wait_transition_added_node(stStateMachine_t *sm, stEvent_t *event, void *acret) {
@@ -1834,15 +1872,16 @@ static void * wait_action_node_info(stStateMachine_t *sm, stEvent_t *event) {
 	}
 
 	stInventory_t *inv = app_get_inventory();
-	inv->devs[id].id = ni.id;
+	int id = ni.bNodeID&0xff;
+	inv->devs[id].id = id;
 	inv->devs[id].basic = ni.basic;
 	inv->devs[id].generic = ni.generic;
 	inv->devs[id].specific = ni.specific;
 	inv->devs[id].clen = ni.len - 3;
 	inv->devs[id].lasttime = time(NULL);
 	inv->devs[id].online = 1;
-	inv->devs[id].online_checknum = 0;
-	memcpy(inv->devs[id].class, ni->commandclasses, inv->devs[id].clen);
+	//inv->devs[id].online_checknum = 0;
+	memcpy(inv->devs[id].class, ni.commandclasses, inv->devs[id].clen);
 
 
 	return NULL;

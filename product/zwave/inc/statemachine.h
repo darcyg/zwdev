@@ -20,6 +20,7 @@ typedef struct stState {
 	int stateid;
 	int numevent;
 	void *param;
+	int trigger;
 	stEventHandler_t eventhandlers[MAX_EVENT_NUM];
 }stState_t;
 
@@ -39,6 +40,8 @@ int state_machine_get_state(stStateMachine_t *sm);
 int state_machine_set_state(stStateMachine_t *sm, int state);
 int state_machine_step(stStateMachine_t *sm, stEvent_t *event);
 int state_machine_free(stStateMachine_t *sm);
+int state_machine_set_state_trigger(stStateMachine_t *sm, int state, int trigger);
+int state_machine_get_state_trigger(stStateMachine_t *sm, int state);
 
 stState_t *state_machine_search_state(stStateMachine_t *sm, int sid);
 

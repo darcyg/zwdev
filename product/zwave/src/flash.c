@@ -6,7 +6,11 @@
 
 static char *inventory_dir = "/etc/config/dusun/zwave";
 
-int flash_module_init() {
+int flash_init(const char *base) {
+	if (base != NULL) {
+		inventory_dir = base;
+	}
+	
   if (!file_is_dir(inventory_dir)) {
     file_create_dir(inventory_dir, 755);
   }
