@@ -185,7 +185,7 @@ int    list_size(stList_t *l) {
   return l->size;
 }
 
-bool list_empty(stList_t *l) {
+bool list_is_empty(stList_t *l) {
   ASSERT(l != NULL);
 	return (list_size(l) == 0);
 }

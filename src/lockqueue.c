@@ -15,7 +15,7 @@ void lockqueue_push(stLockQueue_t *lq, void *elem) {
 bool lockqueue_pop(stLockQueue_t *lq, void **elem) {
   bool ret = false;
   mutex_lock(&lq->mtx);
-	if (!list_empty(&lq->list)) {
+	if (!list_is_empty(&lq->list)) {
     list_pop_back(&lq->list, elem);
     ret = true;
   }
@@ -25,7 +25,7 @@ bool lockqueue_pop(stLockQueue_t *lq, void **elem) {
 bool lockqueue_pop_back(stLockQueue_t *lq, void **elem) {
   bool ret = false;
   mutex_lock(&lq->mtx);
-	if (!list_empty(&lq->list)) {
+	if (!list_is_empty(&lq->list)) {
     list_pop_front(&lq->list, elem);
     ret = true;
   }

@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 			mutex_unlock(&lock);
 		}
 
-		while (!list_empty(&l)) {
+		while (!list_is_empty(&l)) {
 			int x;
 			mutex_lock(&lock);
 			if (list_pop_back(&l, (void **)&x)) {
