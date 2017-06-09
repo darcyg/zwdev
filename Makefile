@@ -8,7 +8,7 @@ targets	 += zwdevd
 #targets := hashmap
 #targets := filemonitorio
 #targets := jsontest
-#targets := testserial
+targets  += testserial
 #targets := frame
 #targets := testsession
 #targets := statemachine
@@ -122,7 +122,6 @@ testjsonsrcs		+= $(ROOTDIR)/src/platform/crypto.c
 testjsonsrcs		+= $(ROOTDIR)/src/platform/ota.c
 testjsonsrcs		+= $(ROOTDIR)/src/platform/system.c
 testjsonsrcs		+= $(ROOTDIR)/src/platform/conf.c
-
 testjsonsrcs		+= $(ROOTDIR)/src/ayla/file_io.c
 
 testserialsrcs	:= $(ROOTDIR)/test/testserial.c

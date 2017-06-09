@@ -10,8 +10,8 @@
 #include "transport.h"
 
 //#define DEV "/dev/pts/3"
-//#define DEV "/dev/ttyUSB0"
-#define DEV "/dev/ttyACM0"
+#define DEV "/dev/ttyUSB0"
+//#define DEV "/dev/ttyACM0"
 #define BAUD 115200
 
 typedef struct stFrameState {
