@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 #include <string.h>
 #include "frame.h"
 #include "api.h"
@@ -13,6 +14,8 @@
 #include "statemachine.h"
 #include "app.h"
 #include "classcmd.h"
+
+#include "flash.h"
 
 typedef struct stApiEnv {
 	stLockQueue_t qSend;
@@ -964,6 +967,8 @@ static int api_ack_event_id_step(stStateMachine_t *sm, int id) {
 				switch (sm->state) {
 					case S_WAIT_LEAVE_COMP:
 						return E_LEAVE_COMP;
+					case S_WAIT_LEAVE_OR_CANCLE:
+						return E_CANCLE_REMOVE;
 					break;
 				}
 				break;
@@ -1298,9 +1303,22 @@ static void api_recv_over(void *_df) {
 }
 
 static void api_send_timer_callback(struct timer *timer) {
-	state_machine_reset(&smApi);
-	api_post_beat_event();
-	api_beat(0);
+	log_debug("send timeout");
+
+	int sid = state_machine_get_state(&smApi);
+	stState_t * state = state_machine_search_state(&smApi, sid);
+	if (state->param == &smCmdZWaveAddNodeToNetWork) {
+		stAddNodeToNetworkIn_t antni = {0x05, 0x00, 0x00, 0x00};
+		api_call(CmdZWaveAddNodeToNetwork, (stParam_t*)&antni, sizeof(antni));
+	} else if (state->param == &smCmdZWaveRemoveNodeFromNetwork) {
+		stRemoveNodeFromNetworkIn_t rnfn = {0x05, 0x00};
+		api_call(CmdZWaveRemoveNodeFromNetwork, (stParam_t*)&rnfn, sizeof(rnfn));
+	} else {
+		state_machine_reset(&smApi);
+		api_post_beat_event();
+		api_beat(0);
+	}
+	timer_cancel(env.th, &env.timerSend);
 }
 
 
@@ -1399,6 +1417,10 @@ static void * idle_action_call_api(stStateMachine_t *sm, stEvent_t *event) {
 	//Fixed here to a correct one
 	if (df->cmd == CmdZWaveSendData) {
 		timer_set(env.th, &env.timerSend, API_EXEC_TIMEOUT_MS);
+	} else if (df->cmd == CmdZWaveAddNodeToNetwork) {
+		timer_set(env.th, &env.timerSend, API_INCLUDE_TIMEOUT_MS);
+	} else if (df->cmd == CmdZWaveRemoveNodeFromNetwork) {
+		timer_set(env.th, &env.timerSend, API_EXCLUDE_TIMEOUT_MS);
 	} else {
 		timer_cancel(env.th, &env.timerSend);
 	}
@@ -1638,6 +1660,7 @@ static void * wait_action_init_data(stStateMachine_t *sm, stEvent_t *event) {
 		if (id_bit == 0) {
 			inv->devs[id].id = 0;
 			memset(&inv->devs[id], 0, sizeof(inv->devs[id]));
+			flash_remove_device(id);
 			continue;
 		}
 
@@ -1781,6 +1804,9 @@ static int    wait_transition_newdev_added(stStateMachine_t *sm, stEvent_t *even
 
 static void * wait_action_cancle_add(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
+
+	stAddNodeToNetworkIn_t antni = {0x05, 0x05, 0x00, 0x00};
+	api_call(CmdZWaveAddNodeToNetwork, (stParam_t*)&antni, sizeof(antni));
 	return NULL;
 }
 static int    wait_transition_cancle_add(stStateMachine_t *sm, stEvent_t *event, void *acret) {
@@ -1817,6 +1843,10 @@ static void * wait_action_added_node(stStateMachine_t *sm, stEvent_t *event) {
 	//inv->devs[id].online_checknum = 0;
 	memcpy(inv->devs[id].class, antn.commandclasses, inv->devs[id].clen);
 
+	flash_save_class(inv->devs[id].id, inv->devs[id].class, inv->devs[id].clen);
+	flash_save_basic_generic_specific(inv->devs[id].id, inv->devs[id].basic,
+																						inv->devs[id].generic, inv->devs[id].specific);
+
 	inv->devs[id].fnew = 1;
 
 	log_debug("device %d added", id);
@@ -1842,6 +1872,9 @@ static int    wait_transition_add_comp(stStateMachine_t *sm, stEvent_t *event, v
 
 static void * wait_action_cancle_confirm(stStateMachine_t *sm, stEvent_t *event) {
 	log_debug("----------[%s]-..----------", __func__);
+
+	stAddNodeToNetworkIn_t antni = {0x05, 0x00, 0x00, 0x00};
+	api_call(CmdZWaveAddNodeToNetwork, (stParam_t*)&antni, sizeof(antni));
 	return NULL;
 }
 static int    wait_transition_cancle_confirm(stStateMachine_t *sm, stEvent_t *event, void *acret) {
@@ -1898,6 +1931,9 @@ static void * wait_action_node_info(stStateMachine_t *sm, stEvent_t *event) {
 	//inv->devs[id].online_checknum = 0;
 	memcpy(inv->devs[id].class, ni.commandclasses, inv->devs[id].clen);
 
+	flash_save_class(inv->devs[id].id, inv->devs[id].class, inv->devs[id].clen);
+	flash_save_basic_generic_specific(inv->devs[id].id, inv->devs[id].basic,
+																						inv->devs[id].generic, inv->devs[id].specific);
 
 	return NULL;
 }

@@ -115,5 +115,6 @@ int				app_zfresh_nodemap();
 json_t *	app_zinfo();
 
 stInventory_t *app_get_inventory();
+int app_util_is_battery_device(int did);
 
 #endif

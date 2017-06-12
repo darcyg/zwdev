@@ -22,7 +22,11 @@ stGeneric_t generics[] = {
 	{0x04, "display"},
 	{0x05, "network extender"},
 	{0x06, "appliance"},
-	{0x07, "sensor notification"},
+	{0x07, "sensor notification", {
+			{0x00, "not used"},
+			{0x01, "notifaction", "1209"},
+		},
+	},
 	{0x08, "thermostat"},
 	{0x09, "window convering"},
 	{0x0F, "repeater slave"},
@@ -61,6 +65,7 @@ const char *class_cmd_basic2str(char b) {
 			return basics[i].name;
 		}
 	}
+	log_debug("unknown basic : %02x", b);
 	return "unknown";
 }
 const char *class_cmd_generic2str(char g) {
@@ -70,6 +75,7 @@ const char *class_cmd_generic2str(char g) {
 			return generics[i].name;
 		}
 	}
+	log_debug("unknown generic : %02x", g);
 	return "unknown";
 }
 const char *class_cmd_specific2str(char g, char s) {
@@ -88,6 +94,7 @@ const char *class_cmd_specific2str(char g, char s) {
 			}
 		}
 	}
+	log_debug("unknown specific(generic) : %02x(%02x)", s, g);
 	return "unknown";
 }
 
@@ -124,6 +131,17 @@ static void battery_report(int did, int cid, int aid, char *buf, char *value, in
 static void manufacturer_specific_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 static void manufacturer_specific_report(int did, int cid, int aid, char *buf, char *value, int value_len);
 
+static void notify_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
+static void notify_report(int did, int cid, int aid, char *buf, char *value, int value_len);
+
+
+static void internal_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
+static void internal_report(int did, int cid, int aid, char *buf, char *value, int value_len);
+
+
+
+
+
 /* if usenick = 1, nick must has value */
 stClass_t classes[] = {
 #if 1
@@ -148,7 +166,18 @@ stClass_t classes[] = {
 								NULL, battery_get, battery_report, NULL, NULL},
 		},
 	},
-
+	[COMMAND_CLASS_NOTIFACTION] = {
+		COMMAND_CLASS_NOTIFACTION, "notify", 1, "notify", 1,  {
+			[NOTIFICATION] = {NOTIFICATION, "notify", 1, "notify", 
+								NULL, notify_get, notify_report, NULL, NULL},
+		},
+	},
+	[COMMAND_CLASS_WAKE_UP] = {
+		COMMAND_CLASS_WAKE_UP, "wakeup", 1, "wakeup", 1, {
+			[WAKE_UP_INTERNAL] = {WAKE_UP_INTERNAL, "internal", 1, "internal",
+								NULL, internal_get, internal_report, NULL, NULL},
+		},
+	},
 	/*
 	[COMMAND_CLASS_VERSION_V2] = {
 		COMMAND_CLASS_VERSION_V2, "version_v2", 1, "version_v2", 2, {
@@ -564,6 +593,30 @@ static void manufacturer_specific_report(int did, int cid, int aid, char *buf, c
 	*/
 	sprintf(buf, "%02x%02X%02x%02x%02x%02x", value[0],value[1],value[2],value[3],value[4],value[5]);
 }
+
+static void notify_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
+	log_debug("-");
+	char buf[3] = {0x00};
+	device_get_attr(did, cid, aid, buf, 1, param, len);
+}
+
+static void notify_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
+	sprintf(buf, "%02x", value[0]);
+	log_debug("-");
+}
+
+
+static void internal_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
+	log_debug("-");
+	device_get_attr(did, cid, aid, NULL, 0, param, len);
+}
+static void internal_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
+	log_debug("-");
+	int  seconds= value[0] * 256 * 256 + value[1] *256  +  value[2];
+	char nodeid = value[3];
+	sprintf(buf, "%d(%02x)", seconds, nodeid);
+}
+
 
 
 

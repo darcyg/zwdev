@@ -91,7 +91,7 @@ int app_init(void *_th, void *_fet) {
 
 	state_machine_reset(&smApp);
 
-	timer_set(ae.th, &ae.online_timer, 1000 * 15);
+	timer_set(ae.th, &ae.online_timer, 1000 * 60);
 
 	memory_init(&ae.inventory.hmattrs);
 	flash_init("/etc/config/dusun/zwave");
@@ -109,37 +109,47 @@ void app_in(void *arg, int fd) {
 }
 
 void app_online_check(struct timer *timer) {
-#if 1
-	stInventory_t *inv = app_get_inventory();
-	
+#if 0
 	int i = 0;
-	int online_check_inteval = 5*60;
-
-	for (i = 0; i < sizeof(inv->devs)/sizeof(inv->devs[0]); i++) {
-		stDevice_t *dev = &inv->devs[i];
+	for (i = 0; i < sizeof(ae.devs)/sizeof(ae.devs[0]); i++) {
+		stDevice_t *dev = &ae.devs[i];
 		if (dev->id == 0) {
 			continue;
 		}
-		if (dev->id == 0x01) {
-			continue;
+
+		int j = 0;
+		int fBattery = 0;
+		for (j = 0; j < dev->clen; j++) {
+			if (dev->class[j] == 0x80) {
+				fBattery = 1;
+				break;
+			}
 		}
 
-		if (dev->online > 0) {
-			dev->online -= online_check_inteval;
-			if (dev->online <= 0) {
+		long curr = time(NULL);
+		if (curr - dev->lasttime > 15 * 60) {
+			if (dev->online != 0) {
 				dev->online = 0;
 				log_debug("dev %d online status change: offline", dev->id);
-			} else {
-				if (!app_util_is_battery_device(dev->id)) {
-					log_debug("send heart data to dev %02x", dev->id&0xff);
-					//app_util_push_cmd(E_ATTR, NULL, 0);
+			}
+		}
+
+		/*
+		if (dev->online != 0 && fBattery != 1) {
+			if (curr - dev->lasttime > (dev->online_checknum + 1) * 5) {
+				if (state_machine_get_state(&smApp) == S_IDLEING) {
+					app_util_push_cmd(E_ATTR, NULL, 0);
+					class_cmd_get_attr(dev->id, COMMAND_CLASS_BASIC_V1, BASIC, NULL, 0);
+					dev->online_checknum++;
+					break;
 				}
 			}
-		} 
+		}
+		*/
 	}
 #endif
 
-	timer_set(ae.th, &ae.online_timer, 1000 * 60 * 5);
+	timer_set(ae.th, &ae.online_timer, 1000 * 15);
 }
 void app_run(struct timer *timer) {
 	stEvent_t *e;
@@ -261,11 +271,11 @@ static void *wait_action_class(stStateMachine_t *sm, stEvent_t *event) {
 
 		int id_bit	= (inv->initdata.nodes_map[i/8] >> (i%8))&0x1;
 		if (id_bit == 0) {
-			flash_remove_device(id);
+			flash_remove_dev(id);
 			continue;
 		}
 		if (id == 0x01) {
-			flash_remove_device(id);
+			flash_remove_dev(id);
 			continue;
 		}
 		inv->devs[id].id = id;
@@ -279,8 +289,6 @@ static void *wait_action_class(stStateMachine_t *sm, stEvent_t *event) {
 			inv->devs[id].basic = b;	
 			inv->devs[id].generic = g;
 			inv->devs[id].specific = s;
-		
-			inv->devs[id].online = 15 * 60;
 		}
 
 		flash_load_class(inv->devs[id].id, cls, &cnt);
@@ -760,7 +768,7 @@ json_t *	app_zlist() {
 		json_object_set_new(jdev,	"mac",			json_integer(dev->id));
 		json_object_set_new(jdev,	"type",			json_string(class_cmd_specific2str(dev->generic, dev->specific)));
 		json_object_set_new(jdev,	"model",		json_string(class_cmd_generic2str(dev->generic)));
-		json_object_set_new(jdev,	"online",		json_integer(!!dev->online));
+		json_object_set_new(jdev,	"online",		json_integer(dev->online));
 		json_object_set_new(jdev,	"version",	json_string("unknow"));
 		json_object_set_new(jdev,	"battery",	json_integer(100));
 	
@@ -975,19 +983,6 @@ json_t *	app_zinfo() {
 
 stInventory_t *app_get_inventory() {
 	return &ae.inventory;
-}
-
-int app_util_is_battery_device(int did) {
-	stInventory_t *inv = app_get_inventory();
-	int i = 0;
-	//log_debug_hex("clses:", inv->devs[did].class, inv->devs[did].clen);
-	for (i = 0; i < inv->devs[did].clen; i++) {
-		if ((inv->devs[did].class[i]&0xff) == 0x80 || (inv->devs[did].class[i]&0xff) == 0x84) {
-			//log_debug("dev %d is battery device", did);
-			return 1;
-		}
-	}
-	return 0;
 }
 
 

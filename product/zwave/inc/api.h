@@ -323,7 +323,10 @@ typedef struct stApiState {
 }stApiState_t;
 
 
-#define API_EXEC_TIMEOUT_MS (1000*3)
+#define API_EXEC_TIMEOUT_MS (1000*1)
+#define API_INCLUDE_TIMEOUT_MS (1000 * 5) 
+#define API_EXCLUDE_TIMEOUT_MS (1000 * 5) 
+
 
 typedef void (*API_CALL_CALLBACK)(emApi_t api, stParam_t *param, emApiState_t state, emApiError_t error);
 typedef void (*API_RETURN_CALLBACK)(emApi_t api, stParam_t *param, emApiState_t state, emApiError_t error);
