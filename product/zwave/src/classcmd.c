@@ -58,6 +58,84 @@ stGeneric_t generics[] = {
 	{0xFF, "non interoperable"},
 };
 
+static stProductId_t pis_zwave_plus[] = {
+	{"0001", "door",				"1203"},
+	{"0002", "switch",			"1212"},
+	{"0003", "pir",					"1209"},
+	{"0006", "securepir",		"1209"},
+	{"0007", "secureswitch","1212"},
+};
+
+static stProductType_t pts_sigma_design[] = {
+	{"0001", "zip",		0, NULL},
+	{"0002", "zwave", 0, NULL},
+	{"0003", "zplus", sizeof(pis_zwave_plus)/sizeof(pis_zwave_plus[0]), pis_zwave_plus},
+};
+
+static stManufacturerSpecific_t ms[] = {
+	{"0000", "Sigma Designs", sizeof(pts_sigma_design)/sizeof(pts_sigma_design[0]), pts_sigma_design},
+};
+
+const char *class_cmd_class2type(char *cls, int cnt) {
+	int i = 0;
+	for (i = 0; i < cnt; i++) {
+		if ((cls[i]&0xff) == COMMAND_CLASS_SWITCH_BINARY_V1) {
+			return "1212"; //light
+		}
+		if ((cls[i]&0xff) == COMMAND_CLASS_NOTIFACTION) {
+			return "1209";
+		}
+	}
+	return "unknow";
+}
+
+
+const char *class_cmd_manufacturer_specific2model(const char *strms) {
+	char m[8];
+	char t[8];
+	char s[8];
+
+	strncpy(m, strms + 0, 4);
+	strncpy(t, strms + 4, 4);
+	strncpy(s, strms + 8, 4);
+
+	int i;
+	for (i = 0; i < sizeof(ms)/sizeof(ms[0]); i++) {
+		if (strcmp(m, ms[i].m) == 0) {
+			return ms[i].m;
+		}
+	}
+	return "unknwon";
+}
+const char *class_cmd_manufacturer_specific2type(const char *strms) {
+	char m[8];
+	char t[8];
+	char s[8];
+
+	strncpy(m, strms + 0, 4);
+	strncpy(t, strms + 4, 4);
+	strncpy(s, strms + 8, 4);
+
+	int i, j, h;
+	for (i = 0; i < sizeof(ms)/sizeof(ms[0]); i++) {
+		stManufacturerSpecific_t *pms = &ms[i];
+		if (strcmp(m, pms->m) == 0) {
+			for (j = 0; j < pms->ptn; j++) {
+				stProductType_t *ppt = &pms->pts[i];
+				if (strcmp(t, ppt->pt) == 0) {
+					for (h = 0; h < ppt->pin; h++) {
+						stProductId_t *ppi = &ppt->pis[h];
+						if (strcmp(ppi->pi,s) == 0) {
+							return ppi->dusunpi;
+						}
+					}
+				}
+			}
+		}
+	}
+	return "unknwon";
+}
+
 const char *class_cmd_basic2str(char b) {
 	int i;
 	for (i = 0; i < sizeof(basics)/sizeof(basics[0]); i++) {
@@ -136,11 +214,14 @@ static void notify_report(int did, int cid, int aid, char *buf, char *value, int
 
 
 static void internal_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
+static void internal_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 static void internal_report(int did, int cid, int aid, char *buf, char *value, int value_len);
 
 
+static void wakeup_notify_report(int did, int cid, int aid, char *buf, char *value, int value_len);
 
 
+static void wakeup_nomore_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 
 /* if usenick = 1, nick must has value */
 stClass_t classes[] = {
@@ -175,7 +256,11 @@ stClass_t classes[] = {
 	[COMMAND_CLASS_WAKE_UP] = {
 		COMMAND_CLASS_WAKE_UP, "wakeup", 1, "wakeup", 1, {
 			[WAKE_UP_INTERNAL] = {WAKE_UP_INTERNAL, "internal", 1, "internal",
-								NULL, internal_get, internal_report, NULL, NULL},
+								internal_set, internal_get, internal_report, NULL, NULL},
+			[WAKE_UP_NOTIFICATION] = {WAKE_UP_NOTIFICATION, "wakeup_notify", 1, "wakeup_notify",
+								NULL, NULL, wakeup_notify_report, NULL, NULL},
+			[WAKE_UP_NO_MORE_INFORMATION] = {WAKE_UP_NO_MORE_INFORMATION, "nomore", 1, "nomore", 
+								wakeup_nomore_set, NULL, NULL, NULL, NULL},
 		},
 	},
 	/*
@@ -605,6 +690,11 @@ static void notify_report(int did, int cid, int aid, char *buf, char *value, int
 	log_debug("-");
 }
 
+static void internal_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
+	log_debug("-");
+	char buf[4] = {0x00, 0x00, 0x10, 0x01};
+	device_set_attr(did, cid, aid, buf, sizeof(buf), param, len);
+}
 
 static void internal_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
@@ -618,6 +708,15 @@ static void internal_report(int did, int cid, int aid, char *buf, char *value, i
 }
 
 
+static void wakeup_notify_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
+	log_debug("-");
+	int curr = time(NULL);
+	sprintf(buf, "%d", curr);
+}
 
 
+static void wakeup_nomore_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
+	log_debug("-");
+	device_set_attr(did, cid, aid, NULL, 0, param, len);
+}
 

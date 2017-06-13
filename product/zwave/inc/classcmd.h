@@ -44,6 +44,8 @@ typedef enum emCmd {
 	MANUFACTURER_SPECIFIC = 0x05, 
 	NOTIFICATION = 0x05,
 	WAKE_UP_INTERNAL = 0x06,
+	WAKE_UP_NOTIFICATION = 0x07,
+	WAKE_UP_NO_MORE_INFORMATION = 0x0a,
 }emCmd_t;
 
 #define CLASS_MAX_ATTR_NUM 0x32
@@ -102,4 +104,27 @@ const char *class_cmd_generic2str(char g);
 const char *class_cmd_specific2str(char g, char s);
 
 
+typedef struct stProductId {
+	char			*pi;
+	char			*productid;
+	char			*dusunpi;
+}stProductId_t;
+
+typedef struct stProductType {
+	char				*pt;
+	char				*producttype;
+	int					 pin;
+	stProductId_t	*pis;
+}stProductType_t;
+
+typedef struct stManufacturer {
+	char						*m;
+	char						*manufacturer;
+	int							 ptn;
+	stProductType_t	*pts;
+}stManufacturerSpecific_t;
+
+
+const char *manufacturer_specific2model(const char *ms);
+const char *manufacturer_specific2type(const char *ms);
 #endif

@@ -51,11 +51,13 @@ static int		wait_transition_attr_new(stStateMachine_t *sm, stEvent_t *event, voi
 static void *wait_action_fresh_nodemap(stStateMachine_t *sm, stEvent_t *event);
 static int		wait_transition_fresh_nodemap(stStateMachine_t *sm, stEvent_t *event, void *acret);
 
+
+
 extern stClass_t classes[];
 
 static stStateMachine_t smApp = {
 	2,  aS_IDLEING, aS_IDLEING, {
-		{aS_IDLEING, 10, NULL, -1, {
+		{aS_IDLEING, 11, NULL, -1, {
 				{aE_INIT,					wait_action_init,						wait_transition_init},
 				{aE_CLASS,					wait_action_class,					wait_transition_class},
 				{aE_ATTR,					wait_action_attr,						wait_transition_attr},
@@ -132,10 +134,18 @@ void app_online_check(struct timer *timer) {
 			} else {
 				if (!app_util_is_battery_device(dev->id)) {
 					log_debug("send heart data to dev %02x", dev->id&0xff);
-					//app_util_push_cmd(E_ATTR, NULL, 0);
+					const char *type = class_cmd_specific2str(dev->generic, dev->specific);
+					if (strcmp(type, "1212") == 0) {
+						log_debug("send on_off get cmd to  dev %02x", dev->id&0xff);
+						app_zclass_cmd_get(dev->id, "on_off", "");
+					} else {
+						log_debug("send generic data send cmd to dev %02x", dev->id&0xff);
+						app_zclass_cmd_get(dev->id, "version", "");
+					}
 				}
 			}
 		} 
+
 	}
 #endif
 
@@ -457,6 +467,14 @@ static void *wait_action_attr_new(stStateMachine_t *sm, stEvent_t *event) {
 				}
 				if (attr->usenick == 0 || attr->nick[0] == 0) {
 					continue;
+				}
+
+				if ((cls->cid&0xff) == 0x84 && attr->aid == WAKE_UP_INTERNAL && attr->set != NULL) {
+					stSendDataIn_t sdi;
+					int len = 0;
+					attr->set(id, cls->cid, attr->aid, NULL, 0, &sdi, &len);
+					api_call(CmdZWaveSendData, (stParam_t*)&sdi, len);
+					flag++;
 				}
 
 				if (attr->get != NULL) {
@@ -925,8 +943,15 @@ int	app_zclass_cmd_get_by_mac(const char *mac, char *attr, char *value) {
 
 
 int	app_zclass_cmd_rpt(int did, int cid, int aid, char *value, int value_len) {
-	log_debug("[%s] ----->%02x, %02x", __func__, did&0xff, cid&0xff);
+	log_debug("[%s] ----->0x%02x, 0x%02x, 0x%02x", __func__, did&0xff, cid&0xff, aid&0xff);
 	log_debug_hex("value:", value, value_len);
+
+	if ((cid&0xff) == 0x84 && (aid&0xff) == 0x07) {
+		app_zclass_cmd_set(did, "nomore", "");
+	}
+
+	stInventory_t *inv = app_get_inventory();
+	inv->devs[did].online = 15*60;
 
 	stClass_t *class = &classes[cid&0xff];
 	if ((class->cid&0xff) != (cid&0xff)) {
