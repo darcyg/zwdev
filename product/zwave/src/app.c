@@ -15,6 +15,7 @@
 #include "flash.h"
 #include "jansson.h"
 #include "json_parser.h"
+#include "uproto.h"
 
 
 static void *wait_action_init(stStateMachine_t *sm, stEvent_t *event);
@@ -102,8 +103,10 @@ int app_init(void *_th, void *_fet) {
 }
 
 int app_step() {
+	log_debug("app step : -------------->");
 	timer_cancel(ae.th, &ae.step_timer);
 	timer_set(ae.th, &ae.step_timer, 10);
+	log_debug("app step : -------------->");
 	return 0;
 }
 
@@ -154,12 +157,21 @@ void app_online_check(struct timer *timer) {
 void app_run(struct timer *timer) {
 	stEvent_t *e;
 	if (state_machine_get_state(&smApp) == aS_IDLEING) {
+		if (lockqueue_pop(&ae.eqMsg, (void **)&e) && e != NULL) {
+			log_debug("app handler event (idle)-------------------------->e->eid:%d", e->eid);
+			state_machine_step(&smApp, e);
+			FREE(e);
+			app_step();
+		}
+
+
 		if (lockqueue_pop(&ae.eq, (void**)&e) && e != NULL) {
 			log_debug("app handler event (idle)-------------------------->e->eid:%d", e->eid);
 			state_machine_step(&smApp, e);
 			FREE(e);
 			app_step();
 		}
+		
 	} else if (state_machine_get_state(&smApp) == aS_WORKING) {
 		if (lockqueue_pop(&ae.eqMsg, (void **)&e) && e != NULL) {
 			log_debug("app handler event (working)-------------------------->e->eid:%d", e->eid);
@@ -974,8 +986,22 @@ int	app_zclass_cmd_rpt(int did, int cid, int aid, char *value, int value_len) {
 	class_cmd_rpt_attr(did, cid, aid, buf, value, value_len);
 	if (strcmp(buf, "") != 0) {
 		log_debug("memory save : did:%d, attr:%s, value:%s", did, attr->nick, buf);
+#if 1
 		memory_set_attr(did, attr->name, buf);
 		flash_save_attr(did, attr->name, buf);
+#else
+		char oldbuf[32];
+		memory_get_attr(did, attr->name, oldbuf);
+		if (strcmp(oldbuf, buf) != 0) {
+			memory_set_attr(did, attr->name, buf);
+			flash_save_attr(did, attr->name, buf);
+
+			char submac[32];
+			memory_get_attr(did, "manufacturer_specific", submac);
+			log_debug("uproto report %s, %s", attr->nick, buf);
+			//uproto_report_dev_attr(submac, attr->nick, buf);
+		}
+#endif
 	}
 	return 0;
 }

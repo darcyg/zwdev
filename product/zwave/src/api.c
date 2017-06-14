@@ -1205,6 +1205,7 @@ static bool handlerOneEvent() {
 			event = NULL;
 
 			if (lockqueue_size(&env.qSend) == 0 && state_machine_get_state(&smApi) == S_IDLE) {
+				log_debug("push aE_OVER msg");
 				app_push_msg(aE_OVER, NULL, 0);
 			}
 

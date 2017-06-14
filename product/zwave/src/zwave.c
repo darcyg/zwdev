@@ -42,3 +42,19 @@ int zwave_device_light_brightness(const char *mac, int val) {
 	return 0;
 }
 
+
+json_t * zwave_device_rpt(const char *submac, const char *attr, const char *value) {
+	if (strcmp(attr, "on_off") == 0) {
+		json_t *jval = json_object();
+		if (jval != NULL) {
+			int x = 0;
+			sscanf(value, "%d", &x);
+			json_object_set_new(jval, "name", json_string(attr));
+			json_object_set_new(jval, "value", json_integer(x));
+			return jval;
+		}
+	}
+	return NULL;
+}
+
+

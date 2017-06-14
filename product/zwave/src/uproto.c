@@ -23,7 +23,7 @@ static int _uproto_handler_cmd(const char *from,
 															 const char *attr,
 															 json_t *value);
 static int uproto_response_ucmd(const char *uuid, int retval);
-static int uproto_report_umsg(const char *attr, json_t *jret);
+static int uproto_report_umsg(const char *submac, const char *attr, json_t *jret);
 
 static int uproto_cmd_handler_attr_get(const char *uuid, const char *cmdmac, const char *attr, json_t *value);
 static int uproto_cmd_handler_attr_set(const char *uuid, const char *cmdmac, const char *attr, json_t *value);
@@ -324,7 +324,7 @@ static int uproto_response_ucmd(const char *uuid, int retval) {
 	return 0;
 }
 
-static int uproto_report_umsg(const char *attr, json_t *jret) {
+static int uproto_report_umsg(const char *submac, const char *attr, json_t *jret) {
 	json_t *jumsg = json_object();
 
 	const char *from				= "ZWAVE";
@@ -343,7 +343,7 @@ static int uproto_report_umsg(const char *attr, json_t *jret) {
 
 	json_t *jdata = json_object();
 	json_object_set_new(jdata, "attribute", json_string(attr));
-	char submac[32];				
+	//char submac[32];				
 	json_object_set_new(jdata, "mac", json_string(submac));
 	json_object_set_new(jdata, "value", jret);
 	json_object_set_new(jumsg, "data", jdata);
@@ -389,7 +389,9 @@ static int get_gw_wifi_settings(const char *uuid, const char *cmdmac,  const cha
 	json_object_set_new(jret, "mode",			json_string(mode));
 
 
-	uproto_report_umsg(attr, jret);
+	char submac[32];
+	system_mac_get(submac);
+	uproto_report_umsg(submac, attr, jret);
 
 	uproto_response_ucmd(uuid, 0);
 	
@@ -433,7 +435,9 @@ static int get_gw_cur_time(const char *uuid, const char *cmdmac,  const char *at
 
 	json_object_set_new(jret, "time",	json_integer(current_time));
 
-	uproto_report_umsg(attr, jret);
+	char submac[32];
+	system_mac_get(submac);
+	uproto_report_umsg(submac, attr, jret);
 
 	uproto_response_ucmd(uuid, 0);
 
@@ -493,7 +497,10 @@ static int get_gw_status(const char *uuid, const char *cmdmac,  const char *attr
 	json_object_set_new(jret, "ethernet_ip",		json_string(ethip));
 	json_object_set_new(jret, "wireless_ip",		json_string(wifiip));
 
-	uproto_report_umsg(attr, jret);
+
+	char submac[32];
+	system_mac_get(submac);
+	uproto_report_umsg(submac, attr, jret);
 
 	uproto_response_ucmd(uuid, 0);
 
@@ -567,7 +574,10 @@ static int get_mod_device_list(const char *uuid, const char *cmdmac,  const char
 
 	json_object_set_new(jret, "device_list", jdevices);
 
-	uproto_report_umsg(attr, jret);
+
+	char submac[32];
+	system_mac_get(submac);
+	uproto_report_umsg(submac, attr, jret);
 
 	uproto_response_ucmd(uuid, 0);
 	
@@ -684,5 +694,16 @@ static int set_device_light_brightness(const char *uuid, const char *cmdmac,  co
 	uproto_response_ucmd(uuid, ret);
 	return 0;
 }
+
+void uproto_report_dev_attr(const char *submac, const char *attr, const char *value) {
+	json_t * jval = zwave_device_rpt(submac, attr, value);
+
+	if (strcmp(attr, "on_off") == 0) {
+		uproto_report_umsg(submac, "device.light.onoff", jval);
+	}
+
+}
+
+
 
 

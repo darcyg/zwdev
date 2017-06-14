@@ -323,7 +323,7 @@ typedef struct stApiState {
 }stApiState_t;
 
 
-#define API_EXEC_TIMEOUT_MS (1000*1)
+#define API_EXEC_TIMEOUT_MS (3000*1)
 #define API_INCLUDE_TIMEOUT_MS (1000 * 5) 
 #define API_EXCLUDE_TIMEOUT_MS (1000 * 5) 
 
