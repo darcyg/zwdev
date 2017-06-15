@@ -1,6 +1,10 @@
 #ifndef _SERIAL_H_
 #define _SERIAL_H_
 
+
+/* open serial device
+ * return -1 if failed, else return > 0
+ */
 int serial_open(const char *dev, int baud);
 
 int serial_close(int fd);

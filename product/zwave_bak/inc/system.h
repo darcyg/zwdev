@@ -7,6 +7,7 @@ int system_wifi_set(int enable, const char *mode, const char *ssid, const char *
 int system_current_time_get() ;
 int system_current_time_set(int current_time) ;
 
+
 int system_version_get(char *version) ;
 int system_model_get(char *model) ;
 int system_factory_get(char *factory) ;

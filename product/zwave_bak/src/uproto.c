@@ -570,7 +570,7 @@ static int get_mod_device_list(const char *uuid, const char *cmdmac,  const char
 		return -1;
 	}
 
-	json_t *jdevices = zwave_list();
+	json_t *jdevices = zwave_device_list();
 
 	json_object_set_new(jret, "device_list", jdevices);
 

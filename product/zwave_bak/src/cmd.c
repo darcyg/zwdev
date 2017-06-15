@@ -139,9 +139,12 @@ void do_cmd_exit(char *argv[], int argc) {
 	exit(0);
 }
 void do_cmd_init(char *argv[], int argc) {
+	app_zinit();
+	app_zclass();
+	app_zattr();
 }
 void do_cmd_list(char *argv[], int argc) {
-	json_t *jdevs = zwave_list();
+	json_t *jdevs = app_zlist();
 	if (jdevs != NULL) {
 		char *jdevs_str = json_dumps(jdevs, 0);
 		if (jdevs_str != NULL) {
@@ -152,7 +155,7 @@ void do_cmd_list(char *argv[], int argc) {
 	}
 }
 void do_cmd_include(char *argv[], int argc) {
-	zwave_include();
+	app_zinclude();
 }
 void do_cmd_exclude(char *argv[], int argc) {
 	int did;
@@ -160,7 +163,7 @@ void do_cmd_exclude(char *argv[], int argc) {
 		log_debug("exclude must has one argment as <mac>");
 		return;
 	}
-	zwave_exclude_by_mac(argv[1]);
+	app_zexclude_by_mac(argv[1]);
 }
 
 void do_cmd_help(char *argv[], int argc) {
@@ -178,7 +181,7 @@ void do_cmd_get(char *argv[], int argc) {
 		
 	log_debug("get mac:%s,attr:%s, arg:%s", argv[1], argv[2], argv[3]);
 
-	zwave_get_by_mac(argv[1], argv[2], argv[3]);
+	app_zclass_cmd_get_by_mac(argv[1], argv[2], argv[3]);
 }
 
 void do_cmd_set(char *argv[], int argc) {
@@ -188,12 +191,12 @@ void do_cmd_set(char *argv[], int argc) {
 	}
 	log_debug("set mac:%s,attr:%s, arg:%s", argv[1], argv[2], argv[3]);
 
-	zwave_set_by_mac(argv[1], argv[2], argv[3]);
+	app_zclass_cmd_set_by_mac(argv[1], argv[2], argv[3]);
 }
 
 
 void do_cmd_info(char *argv[], int argc) {
-	json_t *jinfo = zwave_info();
+	json_t *jinfo = app_zinfo();
 	if (jinfo != NULL) {
 		char *jinfo_str = json_dumps(jinfo, 0);
 		if (jinfo_str != NULL) {
