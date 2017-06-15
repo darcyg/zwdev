@@ -1,11 +1,12 @@
 #ifndef __FLASH_H_
 #define __FLASH_H_
 
+#include <janssion.h>
 
 
-int flash_init(const char *base);
-int flash_load_device(int did, char **sdev);
-int flash_save_device(int did, const char *sdev);
-int flash_remove_device(int did);
+int			flash_init(const char *base);
+json_t *flash_load_dev(int did);
+int			flash_save_dev(int did, json_t *jdev);
+int			flash_remove_dev(int did);
 
 #endif

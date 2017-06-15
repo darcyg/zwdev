@@ -22,7 +22,7 @@ int flash_init(const char *base) {
 	return 0;
 }
 
-char *flash_load_device(int did) {
+json_t *flash_load_dev(int did) {
   char f[256];
   sprintf(f, "%s/%d", inventory_dir, did);
   FILE *fp = fopen(f, "r");
@@ -50,8 +50,10 @@ char *flash_load_device(int did) {
 
   buf[ret*size] = 0;
 
+
 	//log_debug("[%s] success : %d, %d : %s" , __func__, __LINE__, did, *sdev);
-	return buf;
+
+	return json_load(buf);
 err_3:
 	if (buf != NULL) {
 		FREE(buf);
@@ -67,7 +69,7 @@ err_1:
 }
 
 
-int flash_save_device(int did, const char *sdev) {
+int flash_save_device(int did, json_t *jdev) {
   char f[256];
 	int ret = 0;
 
@@ -78,20 +80,40 @@ int flash_save_device(int did, const char *sdev) {
 
   FILE *fp = fopen(f, "w");
   if (fp == NULL) {
+		log_debug("[%s] error line : %d, %d", __func__, __LINE__, did);
+		ret = -1;
+		goto err_1;
+	}
+
+	const char *sdev = json_dumps(jdev, 0);
+	if (sdev == NULL) {
 		log_debug("[%s] error line : %d, %d, %s", __func__, __LINE__, did, sdev);
-		return -1;
+		ret = -2;	
+		goto err_2;
 	}
 
 	int len = strlen(sdev);
   int ret = fwrite(buf, len, 1, fp);
   fclose(fp);
+	fp = NULL;
+	FREE(sdev);
+	sdev = NULL;
 	if (ret != 1) {
 		log_debug("[%s] error line : %d, %d, %s", __func__, __LINE__, did, sdev);
-		return -2;
+		ret = -3;
+		goto err_3;
 	}
 
 	//log_debug("[%s] success : %d, %d : %s" , __func__, __LINE__, did, sdev);
+
 	return 0;
+err_2:
+	if (fp != NULL) {
+		fclose(fp); 
+		fp = NULL;
+	}
+err_1:
+	return ret;
 }
 
 int flash_remove_device(int did) {

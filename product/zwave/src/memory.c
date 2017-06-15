@@ -65,11 +65,15 @@ int memory_set_dev(int did, json_t *jdev) {
 	return 0;
 }
 
-json_t* memory_del_device(int did) {
+int memory_del_device(int did) {
 	char sdid[32];
 	sprintf(sdid, "%d", did);
 
 	void *old = hashmap_remove((struct hashmap*)hmdevs, sdid);
-	
-	return (json_t*)old;
+
+	if (old != NULL) {
+		json_decref(old);
+		old = NULL;
+	}
+	return 0;
 }
