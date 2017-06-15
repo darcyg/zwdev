@@ -752,7 +752,7 @@ static int app_class_cmd_to_attrs(int did, emClass_t *class_array, int class_cnt
 				memory_set_attr(did, attr->name, value);
 				json_object_set_new(jattrs, attr->nick, json_string(value));
 			} else {
-				if (attr->get != NULL) {
+				if (attr->get != NULL && !app_util_is_battery_device(did)) {
 					app_zclass_cmd_get(did, attr->nick, "");
 				}
 				json_object_set_new(jattrs, attr->nick, json_string(""));
