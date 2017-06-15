@@ -1013,7 +1013,9 @@ int	app_zclass_cmd_rpt(int did, int cid, int aid, char *value, int value_len) {
 			memory_get_attr(did, "manufacturer_specific", submac);
 			log_debug("uproto report %s, %s", attr->nick, buf);
 			const char *type = class_cmd_specific2str(inv->devs[did].generic, inv->devs[did].specific);
-			uproto_report_dev_attr(submac, type, attr->nick, buf);
+			if (attr->nick[0] != '\0') {
+				uproto_report_dev_attr(submac, type, attr->nick, buf);
+			}
 #endif
 	}
 	return 0;
