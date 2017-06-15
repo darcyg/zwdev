@@ -183,7 +183,7 @@ void timerout_cb(struct timer *t) {
 	api_exec(CmdZWaveAddNodeToNetwork, &antni);
 	*/
 	//do_cmd_init();
-	app_zinit();
+	//app_zinit();
 	app_zclass();
 	app_zattr();
 }
