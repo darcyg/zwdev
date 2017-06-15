@@ -11,5 +11,5 @@ int zwave_device_light_toggle(const char *mac);
 int zwave_device_light_brightness(const char *mac, int val);
 
 
-json_t * zwave_device_rpt(const char *submac, const char *attr, const char *value);
+json_t * zwave_device_light_rpt(const char *attr, const char *value);
 #endif

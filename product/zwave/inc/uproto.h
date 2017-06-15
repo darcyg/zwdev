@@ -45,6 +45,6 @@ int uproto_push_msg(int eid, void *param, int len);
 void uproto_run(struct timer *timer);
 void uproto_in(void *arg, int fd);
 
-void uproto_report_dev_attr(const char *submac, const char *attr, const char *value);
+void uproto_report_dev_attr(const char *submac, const char *type, const char *attr, const char *value);
 
 #endif

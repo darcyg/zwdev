@@ -103,10 +103,8 @@ int app_init(void *_th, void *_fet) {
 }
 
 int app_step() {
-	log_debug("app step : -------------->");
 	timer_cancel(ae.th, &ae.step_timer);
 	timer_set(ae.th, &ae.step_timer, 10);
-	log_debug("app step : -------------->");
 	return 0;
 }
 
@@ -412,7 +410,7 @@ static void *wait_action_attr(stStateMachine_t *sm, stEvent_t *event) {
 				if (attr->name == NULL || attr->name[0] == 0) {
 					continue;
 				}
-				if (attr->usenick == 0 || attr->nick[0] == 0) {
+				if (attr->usenick == 0) {
 					continue;
 				}
 			
@@ -477,11 +475,25 @@ static void *wait_action_attr_new(stStateMachine_t *sm, stEvent_t *event) {
 				if (attr->name == NULL || attr->name[0] == 0) {
 					continue;
 				}
-				if (attr->usenick == 0 || attr->nick[0] == 0) {
+				if (attr->usenick == 0) {
 					continue;
 				}
 
 				if ((cls->cid&0xff) == 0x84 && attr->aid == WAKE_UP_INTERNAL && attr->set != NULL) {
+					stSendDataIn_t sdi;
+					int len = 0;
+					attr->set(id, cls->cid, attr->aid, NULL, 0, &sdi, &len);
+					api_call(CmdZWaveSendData, (stParam_t*)&sdi, len);
+					flag++;
+				}
+				if ((cls->cid&0xff) == 0x71 && attr->aid == NOTIFICATION && attr->set != NULL) {
+					stSendDataIn_t sdi;
+					int len = 0;
+					attr->set(id, cls->cid, attr->aid, NULL, 0, &sdi, &len);
+					api_call(CmdZWaveSendData, (stParam_t*)&sdi, len);
+					flag++;
+				}
+				if ((cls->cid&0xff) == 0x85 && attr->aid == ASSOCIATION && attr->set != NULL) {
 					stSendDataIn_t sdi;
 					int len = 0;
 					attr->set(id, cls->cid, attr->aid, NULL, 0, &sdi, &len);
@@ -581,7 +593,7 @@ static void *wait_action_set(stStateMachine_t *sm, stEvent_t *event) {
 			if (attr->name == NULL || attr->name[0] == 0) {
 				continue;
 			}
-			if (attr->usenick == 0 || attr->nick[0] == 0) {
+			if (attr->usenick == 0) {
 				continue;
 			}
 			if (strcmp(attr->nick, p->attr) != 0) {
@@ -640,7 +652,7 @@ static void *wait_action_get(stStateMachine_t *sm, stEvent_t *event) {
 			if (attr->name == NULL || attr->name[0] == 0) {
 				continue;
 			}
-			if (attr->usenick == 0 || attr->nick[0] == 0) {
+			if (attr->usenick == 0) {
 				continue;
 			}
 			if (strcmp(attr->nick, p->attr) != 0) {
@@ -729,7 +741,7 @@ static int app_class_cmd_to_attrs(int did, emClass_t *class_array, int class_cnt
 			if (attr->name == NULL || attr->name[0] == 0) {
 				continue;
 			}
-			if (attr->usenick == 0 || attr->nick[0] == 0) {
+			if (attr->usenick == 0 || attr->nick[0] == '\0') {
 				continue;
 			}
 
@@ -986,7 +998,7 @@ int	app_zclass_cmd_rpt(int did, int cid, int aid, char *value, int value_len) {
 	class_cmd_rpt_attr(did, cid, aid, buf, value, value_len);
 	if (strcmp(buf, "") != 0) {
 		log_debug("memory save : did:%d, attr:%s, value:%s", did, attr->nick, buf);
-#if 1
+#if 0
 		memory_set_attr(did, attr->name, buf);
 		flash_save_attr(did, attr->name, buf);
 #else
@@ -995,12 +1007,13 @@ int	app_zclass_cmd_rpt(int did, int cid, int aid, char *value, int value_len) {
 		if (strcmp(oldbuf, buf) != 0) {
 			memory_set_attr(did, attr->name, buf);
 			flash_save_attr(did, attr->name, buf);
+		}
 
 			char submac[32];
 			memory_get_attr(did, "manufacturer_specific", submac);
 			log_debug("uproto report %s, %s", attr->nick, buf);
-			//uproto_report_dev_attr(submac, attr->nick, buf);
-		}
+			const char *type = class_cmd_specific2str(inv->devs[did].generic, inv->devs[did].specific);
+			uproto_report_dev_attr(submac, type, attr->nick, buf);
 #endif
 	}
 	return 0;

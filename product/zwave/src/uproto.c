@@ -695,13 +695,15 @@ static int set_device_light_brightness(const char *uuid, const char *cmdmac,  co
 	return 0;
 }
 
-void uproto_report_dev_attr(const char *submac, const char *attr, const char *value) {
-	json_t * jval = zwave_device_rpt(submac, attr, value);
+void uproto_report_dev_attr(const char *submac, const char *type, const char *attr, const char *value) {
 
-	if (strcmp(attr, "on_off") == 0) {
+	if (strcmp(type, "1212") == 0) {
+		json_t * jval = zwave_device_light_rpt(attr,value);
 		uproto_report_umsg(submac, "device.light.onoff", jval);
+	} else if (strcmp(type, "1209") == 0) {
+		json_t * jval = zwave_device_pir_rpt(attr, value);
+		uproto_report_umsg(submac, "device.zone", jval);
 	}
-
 }
 
 

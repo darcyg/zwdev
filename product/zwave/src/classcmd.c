@@ -163,11 +163,7 @@ const char *class_cmd_specific2str(char g, char s) {
 			int j;
 			for (j = 0; j < sizeof(generics[i].specifics)/sizeof(generics[i].specifics[0]); j++) {
 				if (s == generics[i].specifics[j].val && generics[i].specifics[j].name[0] != 0) {
-					if (generics[i].specifics[j].nick[0] != 0) {
 						return generics[i].specifics[j].nick;
-					} else {
-						return generics[i].specifics[j].name;
-					}
 				}
 			}
 		}
@@ -209,8 +205,13 @@ static void battery_report(int did, int cid, int aid, char *buf, char *value, in
 static void manufacturer_specific_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 static void manufacturer_specific_report(int did, int cid, int aid, char *buf, char *value, int value_len);
 
+static void notify_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 static void notify_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
 static void notify_report(int did, int cid, int aid, char *buf, char *value, int value_len);
+
+
+static void notify_supported_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
+static void notify_supported_report(int did, int cid, int aid, char *buf, char *value, int value_len);
 
 
 static void internal_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
@@ -222,6 +223,12 @@ static void wakeup_notify_report(int did, int cid, int aid, char *buf, char *val
 
 
 static void wakeup_nomore_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
+
+static void association_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
+static void association_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
+static void association_report(int did, int cid, int aid, char *buf, char *value, int value_len);
+static void association_remove(int did, int cid, int aid, char *argv[], int argc, void *param, int *len);
+
 
 /* if usenick = 1, nick must has value */
 stClass_t classes[] = {
@@ -235,7 +242,7 @@ stClass_t classes[] = {
 #endif
 	[COMMAND_CLASS_VERSION_V1] = {
 		COMMAND_CLASS_VERSION_V1, "version_v1", 1, "version_1", 2, {
-				[VERSION_COMMAND_CLASS] = {VERSION_COMMAND_CLASS, "version_command_class", 0, "version_command_class", 
+				[VERSION_COMMAND_CLASS] = {VERSION_COMMAND_CLASS, "version_command_class", 0, "", 
 								NULL, version_command_class_get, version_command_class_report, NULL, NULL},
 				[VERSION] = {VERSION, "version", 1, "version", 
 								NULL, version_get, version_report, NULL, NULL},
@@ -248,18 +255,20 @@ stClass_t classes[] = {
 		},
 	},
 	[COMMAND_CLASS_NOTIFACTION] = {
-		COMMAND_CLASS_NOTIFACTION, "notify", 1, "notify", 1,  {
+		COMMAND_CLASS_NOTIFACTION, "notify", 1, "notify", 2,  {
 			[NOTIFICATION] = {NOTIFICATION, "notify", 1, "notify", 
-								NULL, notify_get, notify_report, NULL, NULL},
+								notify_set, notify_get, notify_report, NULL, NULL},
+			[NOTIFICATION_SUPPORTED] = {NOTIFICATION_SUPPORTED, "notify_supported", 1, "",
+								NULL, notify_supported_get, notify_supported_report, NULL, NULL},
 		},
 	},
 	[COMMAND_CLASS_WAKE_UP] = {
-		COMMAND_CLASS_WAKE_UP, "wakeup", 1, "wakeup", 1, {
-			[WAKE_UP_INTERNAL] = {WAKE_UP_INTERNAL, "internal", 1, "internal",
+		COMMAND_CLASS_WAKE_UP, "wakeup", 1, "wakeup", 3, {
+			[WAKE_UP_INTERNAL] = {WAKE_UP_INTERNAL, "internal", 1, "",
 								internal_set, internal_get, internal_report, NULL, NULL},
-			[WAKE_UP_NOTIFICATION] = {WAKE_UP_NOTIFICATION, "wakeup_notify", 1, "wakeup_notify",
+			[WAKE_UP_NOTIFICATION] = {WAKE_UP_NOTIFICATION, "wakeup_notify", 1, "",
 								NULL, NULL, wakeup_notify_report, NULL, NULL},
-			[WAKE_UP_NO_MORE_INFORMATION] = {WAKE_UP_NO_MORE_INFORMATION, "nomore", 1, "nomore", 
+			[WAKE_UP_NO_MORE_INFORMATION] = {WAKE_UP_NO_MORE_INFORMATION, "nomore", 1, "", 
 								wakeup_nomore_set, NULL, NULL, NULL, NULL},
 		},
 	},
@@ -296,14 +305,15 @@ stClass_t classes[] = {
 					 switch_binary_set, switch_binary_get, switch_binary_report, NULL, NULL},
 		},
 	},
-#if 0
+#if 1
 	[COMMAND_CLASS_ASSOCIATION_V1] = {
-		COMMAND_CLASS_ASSOCIATION_V1, "association_v1", 1, "association", 2, {
-				[ASSOCIATION] = {ASSOCIATION, "association", 1, "association", 
-					association_get, association_set, association_report, association_remove, NULL},
-
+		COMMAND_CLASS_ASSOCIATION_V1, "association_v1", 1, "association", 1, {
+				[ASSOCIATION] = {ASSOCIATION, "association", 1, "", 
+					association_set, NULL, association_report, association_remove, NULL},
+				/*
 				[ASSOCIATION_GROUPINGS] = {ASSOCIATION_GROUPINGS, "association_groupings", 1, "association_groupings", 
 					association_groupings_get,NULL, association_groupings_report, NULL, NULL},
+				*/
 		},
 	},
 #endif
@@ -529,7 +539,7 @@ static int device_set_attr(int did, int cid, int aid, char *buf, int size, char 
 		.nodeID = did&0xff,
 		.pData_len = (0x02 + size),
 		.pData_data = {
-			cid&0xff, (aid-2)&0xff,
+			cid&0xff, (aid)&0xff,
 		},	
 		.txOptions = 0x25,
 		.funcID = funcID,
@@ -556,7 +566,7 @@ static int device_get_attr(int did, int cid, int aid, char *buf, int size, char 
 		.nodeID = did&0xff,
 		.pData_len = (0x02 + size),
 		.pData_data = {
-			cid&0xff, (aid-1)&0xff,
+			cid&0xff, (aid)&0xff,
 		},	
 		.txOptions = 0x25,
 		.funcID = funcID,
@@ -577,7 +587,7 @@ static int device_get_attr(int did, int cid, int aid, char *buf, int size, char 
 
 static void basic_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
-	device_get_attr(did, cid, aid, NULL, 0, param, len);
+	device_get_attr(did, cid, aid-1, NULL, 0, param, len);
 }
 static void basic_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
@@ -595,7 +605,7 @@ static void version_command_class_report(int did, int cid, int aid, char *buf, c
 
 static void version_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
-	device_get_attr(did, cid, aid, NULL, 0, param, len);
+	device_get_attr(did, cid, aid-1, NULL, 0, param, len);
 }
 static void version_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
@@ -611,7 +621,7 @@ static void zwaveplus_info_report(int did, int cid, int aid, char *buf, char *va
 
 static void switch_binary_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
-	device_get_attr(did, cid, aid, NULL, 0, param, len);
+	device_get_attr(did, cid, aid-1, NULL, 0, param, len);
 }
 static void switch_binary_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
@@ -623,7 +633,7 @@ static void switch_binary_set(int did, int cid, int aid, char *argv[], int argc,
 	}
 	char buf[1] = {onoff ? 0xff : 0x00};
 
-	device_set_attr(did, cid, aid, buf, sizeof(buf), param, len);
+	device_set_attr(did, cid, aid-2, buf, sizeof(buf), param, len);
 }
 static void switch_binary_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
@@ -635,6 +645,9 @@ static void association_get(int did, int cid, int aid, char *argv[], int argc, v
 }
 static void association_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
+
+	char buf[2] = {0x01, 0x01};
+	device_set_attr(did, cid, aid-2, buf, sizeof(buf), param, len);
 }
 static void association_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
@@ -652,7 +665,7 @@ static void association_groupings_report(int did, int cid, int aid, char *buf, c
 
 static void battery_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
-	device_get_attr(did, cid, aid, NULL, 0, param, len);
+	device_get_attr(did, cid, aid-1, NULL, 0, param, len);
 }
 static void battery_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
@@ -667,7 +680,7 @@ static void battery_report(int did, int cid, int aid, char *buf, char *value, in
 
 static void manufacturer_specific_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
-	device_get_attr(did, cid, aid, NULL, 0, param, len);
+	device_get_attr(did, cid, aid-1, NULL, 0, param, len);
 }
 static void manufacturer_specific_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
@@ -679,26 +692,51 @@ static void manufacturer_specific_report(int did, int cid, int aid, char *buf, c
 	sprintf(buf, "%02x%02X%02x%02x%02x%02x", value[0],value[1],value[2],value[3],value[4],value[5]);
 }
 
+static void notify_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
+	log_debug("-");
+	char buf[3] = {0x07, 0x02};
+	device_set_attr(did, cid, aid+1, buf, 2, param, len);
+}
+
 static void notify_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
-	char buf[3] = {0x00};
-	device_get_attr(did, cid, aid, buf, 1, param, len);
+	char buf[3] = {0x00, 0x07, 0x00};
+	device_get_attr(did, cid, aid-1, buf, 1, param, len);
 }
 
 static void notify_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
-	sprintf(buf, "%02x", value[0]);
+	if (value[3] == 0x00) {
+		//sprintf(buf, "%02x", 0);
+		sprintf(buf, "%s", "");
+	} else {
+		if (value[4] == 0x07 && value[5] == 0x08) {
+			sprintf(buf, "pir:%d", !!value[3]);
+		} else {
+			sprintf(buf, "xxx:%d", !!value[3]);
+		}
+	}
 	log_debug("-");
+}
+
+static void notify_supported_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
+	log_debug("-");
+	device_get_attr(did, cid, aid-1, NULL, 0, param, len);
+}
+
+static void notify_supported_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
+	log_debug("-");
+	log_debug_hex("notify_supportted:", value, value_len);
 }
 
 static void internal_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
 	char buf[4] = {0x00, 0x00, 0x10, 0x01};
-	device_set_attr(did, cid, aid, buf, sizeof(buf), param, len);
+	device_set_attr(did, cid, aid-2, buf, sizeof(buf), param, len);
 }
 
 static void internal_get(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
-	device_get_attr(did, cid, aid, NULL, 0, param, len);
+	device_get_attr(did, cid, aid-1, NULL, 0, param, len);
 }
 static void internal_report(int did, int cid, int aid, char *buf, char *value, int value_len) {
 	log_debug("-");
@@ -717,6 +755,10 @@ static void wakeup_notify_report(int did, int cid, int aid, char *buf, char *val
 
 static void wakeup_nomore_set(int did, int cid, int aid, char *argv[], int argc, void *param, int *len) {
 	log_debug("-");
-	device_set_attr(did, cid, aid, NULL, 0, param, len);
+	device_set_attr(did, cid, aid-2, NULL, 0, param, len);
 }
+
+
+
+
 
