@@ -32,16 +32,18 @@ srcs							+= $(ROOTDIR)/src/ayla/hashmap.c
 srcs							+= $(ROOTDIR)/src/ayla/parse_argv.c
 srcs							+= $(ROOTDIR)/src/ayla/json_parser.c
 
-#srcs							+= $(ROOTDIR)/product/zwave/src/serial.c
-#srcs							+= $(ROOTDIR)/product/zwave/src/zwave.c
+srcs							+= $(ROOTDIR)/product/zwave/src/serial.c
+srcs							+= $(ROOTDIR)/product/zwave/src/frame.c
+srcs							+= $(ROOTDIR)/product/zwave/src/zwave.c
 
 srcs							+= $(ROOTDIR)/product/zwave/src/flash.c
 srcs							+= $(ROOTDIR)/product/zwave/src/memory.c
 
-#srcs							+= $(ROOTDIR)/product/zwave/src/cmd.c
-#srcs							+= $(ROOTDIR)/product/zwave/src/uproto.c
-#srcs							+= $(ROOTDIR)/product/zwave/src/system.c
+srcs							+= $(ROOTDIR)/product/zwave/src/cmd.c
+srcs							+= $(ROOTDIR)/product/zwave/src/zwave_iface.c
 
+srcs							+= $(ROOTDIR)/product/zwave/src/system.c
+srcs							+= $(ROOTDIR)/product/zwave/src/uproto.c
 
 srcs							+= $(ROOTDIR)/src/lockqueue.c
 srcs							+= $(ROOTDIR)/src/mutex.c

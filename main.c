@@ -13,13 +13,16 @@
 
 #include "common.h"
 #include "log.h"
-#include "frame.h"
 #include "timer.h"
 #include "file_event.h"
+#include "jansson.h"
+#include "json_parser.h"
 
-//#include "api.h"
-//#include "cmd.h"
-//#include "uproto.h"
+#include "uproto.h"
+#include "cmd.h"
+#include "flash.h"
+#include "memory.h"
+#include "zwave.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 void				run_main();
@@ -57,15 +60,24 @@ void timerout_cb(struct timer *t) {
 void run_main() {
 	log_info("[%s] %d", __func__, __LINE__);
 
+
 	struct timer tr;
 	timer_init(&tr, timerout_cb);
 
 	struct file_event_table fet;
 	file_event_init(&fet);
 
-	//zwave_init(&th, &fet);
-	//cmd_init(&th, &fet);
-	//uproto_init(&th, &fet);
+#if 0 
+	flash_test();
+	memory_test();
+#else
+	flash_init(NULL);
+	memory_init(NULL);
+#endif
+	cmd_init(&th, &fet);
+	uproto_init(&th, &fet);
+
+	zwave_init(&th, &fet);
 
 	timer_set(&th, &tr, 10);
 	log_info("[%s] %d : goto main loop", __func__, __LINE__);
@@ -113,4 +125,6 @@ static void sig_set() {
 
 	atexit(ds_exit_handler);
 }
+
+
 

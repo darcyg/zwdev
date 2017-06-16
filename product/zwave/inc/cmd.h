@@ -4,7 +4,6 @@
 #include "timer.h"
 #include "file_event.h"
 #include "lockqueue.h"
-#include "statemachine.h"
 
 typedef struct stCmd {
 	const char *name;

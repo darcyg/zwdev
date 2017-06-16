@@ -3,15 +3,14 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "app.h"
 #include "log.h"
 #include "parse.h"
 #include "file_event.h"
-#include "cmd.h"
-#include "api.h"
-#include "classcmd.h"
 #include "jansson.h"
 #include "json_parser.h"
+
+#include "cmd.h"
+#include "zwave_iface.h"
 
 
 void do_cmd_exit(char *argv[], int argc);
@@ -70,15 +69,10 @@ void cmd_run(struct timer *timer) {
 	}
 
 	if (e == NULL) {
-		return;
+		FREE(e);
 	}
 
-	//state_machine_step(&smApp, e);
-
-	FREE(e);
-	
 	cmd_step();
-
 }
 void cmd_in(void *arg, int fd) {
 	char buf[1024];	
@@ -108,11 +102,6 @@ void cmd_in(void *arg, int fd) {
 		int argc;
 		argc = parse_argv(argv, sizeof(argv), buf);
 
-		//int i = 0;
-		//for (i = 0; i < argc; i++) {
-			//log_debug("argv[%d] is %s", i, argv[i]);
-		//}
-
 		stCmd_t *cmd = cmd_search(argv[0]);
 		if (cmd == NULL) {
 			log_debug("invalid cmd!");
@@ -141,7 +130,7 @@ void do_cmd_exit(char *argv[], int argc) {
 void do_cmd_init(char *argv[], int argc) {
 }
 void do_cmd_list(char *argv[], int argc) {
-	json_t *jdevs = zwave_list();
+	json_t *jdevs = zwave_iface_list();
 	if (jdevs != NULL) {
 		char *jdevs_str = json_dumps(jdevs, 0);
 		if (jdevs_str != NULL) {
@@ -152,15 +141,14 @@ void do_cmd_list(char *argv[], int argc) {
 	}
 }
 void do_cmd_include(char *argv[], int argc) {
-	zwave_include();
+	zwave_iface_include();
 }
 void do_cmd_exclude(char *argv[], int argc) {
-	int did;
 	if (argc != 2) {
 		log_debug("exclude must has one argment as <mac>");
 		return;
 	}
-	zwave_exclude_by_mac(argv[1]);
+	zwave_iface_exclude(argv[1]);
 }
 
 void do_cmd_help(char *argv[], int argc) {
@@ -178,7 +166,7 @@ void do_cmd_get(char *argv[], int argc) {
 		
 	log_debug("get mac:%s,attr:%s, arg:%s", argv[1], argv[2], argv[3]);
 
-	zwave_get_by_mac(argv[1], argv[2], argv[3]);
+	zwave_iface_get(argv[1], argv[2], argv[3]);
 }
 
 void do_cmd_set(char *argv[], int argc) {
@@ -188,12 +176,12 @@ void do_cmd_set(char *argv[], int argc) {
 	}
 	log_debug("set mac:%s,attr:%s, arg:%s", argv[1], argv[2], argv[3]);
 
-	zwave_set_by_mac(argv[1], argv[2], argv[3]);
+	zwave_iface_set(argv[1], argv[2], argv[3]);
 }
 
 
 void do_cmd_info(char *argv[], int argc) {
-	json_t *jinfo = zwave_info();
+	json_t *jinfo = zwave_iface_info();
 	if (jinfo != NULL) {
 		char *jinfo_str = json_dumps(jinfo, 0);
 		if (jinfo_str != NULL) {

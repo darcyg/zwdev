@@ -1033,8 +1033,6 @@ static bool api_is_async_data(stDataFrame_t *df) {
 }
 
 
-
-
 static stDataFrame_t * make_frame(emApi_t api, stParam_t *param, int paramSize) {
 	//static int seq = 0;
 

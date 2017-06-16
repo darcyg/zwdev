@@ -1,11 +1,11 @@
 LIST='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"getAttribute\", \"arguments\": {\"mac\": \"0000000000000000\", \"attribute\": \"mod.device_list\"}}}"}'
 
 
-ADD='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"getAttribute\", \"arguments\": {\"mac\": \"0000000000000000\", \"attribute\": \"mod.add_device\", \"value\": \"\"}}}"}'
+ADD='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"setAttribute\", \"arguments\": {\"mac\": \"0000000000000000\", \"attribute\": \"mod.add_device\", \"value\": \"\"}}}"}'
 
-DEL='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"getAttribute\", \"arguments\": {\"mac\": \"0000000000000000\", \"attribute\": \"mod.del_device\", \"value\": \"\"}}}"}'
+DEL='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"setAttribute\", \"arguments\": {\"mac\": \"0000000000000000\", \"attribute\": \"mod.del_device\", \"value\": {\"mac\":\"'$2'\", \"type\":\"'$3'\"}}}}"}'
 
-FIND='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"getAttribute\", \"arguments\": {\"mac\": \"0000000000000000\", \"attribute\": \"mod.find_device\", \"value\":\"\"}}}"}'
+FIND='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"setAttribute\", \"arguments\": {\"mac\": \"0000000000000000\", \"attribute\": \"mod.find_device\", \"value\":\"\"}}}"}'
 
 
 ONOFF='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data\": {\"id\": \"uuid\", \"command\": \"setAttribute\", \"arguments\": {\"mac\": \"000000030002\", \"attribute\": \"device.light.onoff\", \"value\":{\"value\":\"'$2'\"}}}}"}'
@@ -20,7 +20,8 @@ case $1 in
 		sudo ubus send "DS.ZWAVE" "$LIST"
 		;;
 	"add")
-		sudo ubus send "DS.ZWAVE" "$ADD"
+		#sudo ubus send "DS.ZWAVE" "$ADD"
+		echo not not support
 		;;
 	"del")
 		sudo ubus send "DS.ZWAVE" "$DEL"

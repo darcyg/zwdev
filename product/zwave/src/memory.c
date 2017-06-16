@@ -3,10 +3,13 @@
 #include "log.h"
 #include "hashmap.h"
 #include <string.h>
-#include "app.h"
+
+#include "jansson.h"
+#include "json_parser.h"
 
 static struct hashmap *hmdevs = NULL;
 static struct hashmap  hmdevs_bak;
+static int init_flag = 0;
 
 static void *hashmap_alloc_key(const void *_key) {
 	const char *key = (const char *)_key;
@@ -27,6 +30,12 @@ static void hashmap_free_key(void * _key) {
 
 
 int memory_init(struct hashmap *_hm) {
+	if (init_flag != 0) {
+		log_warn("[%s] warning line : %d", __func__, __LINE__);
+		return 0;
+	}
+	init_flag = 1;
+
 	if (_hm != NULL) {
 		hmdevs = _hm;
 	} else {
@@ -57,7 +66,7 @@ int memory_set_dev(int did, json_t *jdev) {
 
 	void *vhm = hashmap_get(hmdevs, sdid);
 	if (vhm == NULL) {
-		if (hashmap_put(hmdevs, sdid, vhm) == NULL) {
+		if (hashmap_put(hmdevs, sdid, (void*)jdev) == NULL) {
 			log_debug("[%s] error line : %d, %d", __func__, __LINE__, did);
 			return -1;
 		}
@@ -65,7 +74,7 @@ int memory_set_dev(int did, json_t *jdev) {
 	return 0;
 }
 
-int memory_del_device(int did) {
+int memory_del_dev(int did) {
 	char sdid[32];
 	sprintf(sdid, "%d", did);
 
@@ -74,6 +83,36 @@ int memory_del_device(int did) {
 	if (old != NULL) {
 		json_decref(old);
 		old = NULL;
+	}
+	return 0;
+}
+
+
+int memory_test() {
+	static int cnt = 0;
+	
+	memory_init(NULL);
+	json_t * jdev = memory_get_dev(1);
+	if (jdev == NULL) {
+		json_t *jdev = json_object();
+		json_object_set_new(jdev, "id", json_integer(1));
+		memory_set_dev(1, jdev);
+	} else {
+		int id; json_get_int(jdev, "id", &id);
+		log_debug("dev id is %d", id++);
+
+		json_object_del(jdev, "id");
+		json_object_set_new(jdev, "id", json_integer(id));
+		memory_set_dev(1, jdev);
+	}
+	
+	if (cnt == 3) {
+		memory_del_dev(1);
+	}
+
+	if (cnt++ <= 5) {
+		log_debug("cnt is %d", cnt);
+		memory_test();
 	}
 	return 0;
 }

@@ -1,9 +1,15 @@
-#include "uproto.h"
-#include "statemachine.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include "common.h"
 #include "log.h"
+#include "jansson.h"
 #include "json_parser.h"
+
+#include "uproto.h"
 #include "system.h"
-#include "zwave.h"
+#include "zwave_iface.h"
 
 static stUprotoEnv_t ue;
 
@@ -276,6 +282,8 @@ static int _uproto_handler_cmd(const char *from,
 		return -1;
 	}
 
+
+	log_debug("handler name : %s", ucmd->name);
 	return ucmd->handler(uuid, cmdmac, attr, value);
 }
 
@@ -285,6 +293,11 @@ static int uproto_cmd_handler_attr_get(const char *uuid, const char *cmdmac, con
 		log_debug("not support attribute:%s", attr);
 		return -1;
 	}
+	log_debug("handler name : %s", uattrcmd->name);
+	if (uattrcmd->get == NULL) {
+		log_warn("get function is null!!!");
+		return -2;
+	}
 	return uattrcmd->get(uuid, cmdmac, attr, value);
 }
 static int uproto_cmd_handler_attr_set(const char *uuid, const char *cmdmac, const char *attr, json_t *value) {
@@ -292,6 +305,10 @@ static int uproto_cmd_handler_attr_set(const char *uuid, const char *cmdmac, con
 	if (uattrcmd == NULL) {
 		log_debug("not support attribute:%s", attr);
 		return -1;
+	}
+	if (uattrcmd->set == NULL) {
+		log_warn("get function is null!!!");
+		return -2;
 	}
 	return uattrcmd->set(uuid, cmdmac, attr, value);
 }
@@ -570,7 +587,7 @@ static int get_mod_device_list(const char *uuid, const char *cmdmac,  const char
 		return -1;
 	}
 
-	json_t *jdevices = zwave_list();
+	json_t *jdevices = zwave_iface_list();
 
 	json_object_set_new(jret, "device_list", jdevices);
 
@@ -617,14 +634,13 @@ static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char 
 	const char *mac		= json_get_string(value, "mac");
 	const char *type  = json_get_string(value, "type");
 	if (mac == NULL || type == NULL) {
-		log_debug("error arguments (server/port null?)!");
+		log_debug("error arguments (mac/type null?)!");
 		return -2;
 	}
 
+	zwave_iface_exclude(mac);
 
-	zwave_del_device(mac);
-
-	uproto_response_ucmd(uuid, -1);
+	uproto_response_ucmd(uuid, 0);
 
 
 	return 0;
@@ -632,7 +648,7 @@ static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char 
 static int set_mod_find_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
 	log_debug("[%s]", __func__);
 
-	int ret = zwave_find_device();
+	int ret = zwave_iface_include();
 	
 	uproto_response_ucmd(uuid, ret);
 
@@ -653,7 +669,7 @@ static int set_device_light_onoff(const char *uuid, const char *cmdmac,  const c
 		return -2;
 	}
 
-	int ret = zwave_device_light_onoff(cmdmac, !!(val[0] - '0'));
+	int ret = zwave_iface_device_light_onoff(cmdmac, !!(val[0] - '0'));
 
 	uproto_response_ucmd(uuid, ret);
 
@@ -662,7 +678,7 @@ static int set_device_light_onoff(const char *uuid, const char *cmdmac,  const c
 static int set_device_light_toggle(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
 	log_debug("[%s]", __func__);
 
-	int ret = zwave_device_light_toggle(cmdmac);
+	int ret = zwave_iface_device_light_toggle(cmdmac);
 
 	uproto_response_ucmd(uuid, ret);
 	
@@ -685,7 +701,7 @@ static int set_device_light_brightness(const char *uuid, const char *cmdmac,  co
 	int ival = 0;
 	int ret;
 	if (sscanf(val, "%d", &ival) == 1) {
-		ret = zwave_device_light_brightness(cmdmac, val[0] - '0');
+		ret = zwave_iface_device_light_brightness(cmdmac, val[0] - '0');
 	} else {
 		log_debug("error brightness value");
 		return -3;
@@ -695,16 +711,6 @@ static int set_device_light_brightness(const char *uuid, const char *cmdmac,  co
 	return 0;
 }
 
-void uproto_report_dev_attr(const char *submac, const char *type, const char *attr, const char *value) {
-
-	if (strcmp(type, "1212") == 0) {
-		json_t * jval = zwave_device_light_rpt(attr,value);
-		uproto_report_umsg(submac, "device.light.onoff", jval);
-	} else if (strcmp(type, "1209") == 0) {
-		json_t * jval = zwave_device_pir_rpt(attr, value);
-		uproto_report_umsg(submac, "device.zone", jval);
-	}
-}
 
 
 

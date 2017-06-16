@@ -324,7 +324,9 @@ _read_select_tag:
 	FD_SET(fd, &fds);
 	tv.tv_sec = _s;
 	tv.tv_usec = _u;
+	//log_debug("s:%d, u:%d", tv.tv_sec, tv.tv_usec);
 	ret = select(fd + 1, &fds, NULL, NULL, &tv);
+	//log_debug("s:%d, u:%d", tv.tv_sec, tv.tv_usec);
 	if (ret < 0) {
 		en = errno;
 		if (en == EAGAIN || en == EINTR) {
@@ -373,7 +375,8 @@ int serial_open(const char *dev, int baud) {
 
 	log_debug("dev : %s", dev);
 
-	ret = open(dev, O_RDWR | O_NOCTTY);
+	//ret = open(dev, O_RDWR | O_NOCTTY);
+	ret = open(dev, O_RDWR);
 	if (ret < 0) {
 		log_debug("open file %s failed", dev);
 		return -1;
@@ -480,6 +483,11 @@ int serial_read(int fd, char *_buf, int _size, int timeout_ms) {
 int serial_flush(int fd) {
 	tcflush(fd, TCIFLUSH);
 	tcflush(fd, TCOFLUSH);
+
+	char ch;
+	while (serial_read(fd, &ch, 1, 400) == 1) {
+		//log_debug("%02x", ch);
+	}
 	return 0;
 }
 
