@@ -17,9 +17,9 @@
 #include "timer.h"
 #include "file_event.h"
 
-#include "api.h"
-#include "cmd.h"
-#include "uproto.h"
+//#include "api.h"
+//#include "cmd.h"
+//#include "uproto.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 void				run_main();
@@ -63,9 +63,9 @@ void run_main() {
 	struct file_event_table fet;
 	file_event_init(&fet);
 
-	zwave_init(&th, &fet);
-	cmd_init(&th, &fet);
-	uproto_init(&th, &fet);
+	//zwave_init(&th, &fet);
+	//cmd_init(&th, &fet);
+	//uproto_init(&th, &fet);
 
 	timer_set(&th, &tr, 10);
 	log_info("[%s] %d : goto main loop", __func__, __LINE__);

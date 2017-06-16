@@ -8,7 +8,7 @@ targets	 += zwdevd
 #targets := hashmap
 #targets := filemonitorio
 #targets := jsontest
-targets  += testserial
+#targets  += testserial
 #targets := frame
 #targets := testsession
 #targets := statemachine
@@ -32,23 +32,15 @@ srcs							+= $(ROOTDIR)/src/ayla/hashmap.c
 srcs							+= $(ROOTDIR)/src/ayla/parse_argv.c
 srcs							+= $(ROOTDIR)/src/ayla/json_parser.c
 
-srcs							+= $(ROOTDIR)/product/zwave/src/serial.c
-srcs							+= $(ROOTDIR)/product/zwave/src/transport.c
-srcs							+= $(ROOTDIR)/product/zwave/src/frame.c
-srcs							+= $(ROOTDIR)/product/zwave/src/session.c
-srcs							+= $(ROOTDIR)/product/zwave/src/statemachine.c
-srcs							+= $(ROOTDIR)/product/zwave/src/api.c
+#srcs							+= $(ROOTDIR)/product/zwave/src/serial.c
+#srcs							+= $(ROOTDIR)/product/zwave/src/zwave.c
 
 srcs							+= $(ROOTDIR)/product/zwave/src/flash.c
 srcs							+= $(ROOTDIR)/product/zwave/src/memory.c
-srcs							+= $(ROOTDIR)/product/zwave/src/classcmd.c
-srcs							+= $(ROOTDIR)/product/zwave/src/app.c
 
-srcs							+= $(ROOTDIR)/product/zwave/src/cmd.c
-
-srcs							+= $(ROOTDIR)/product/zwave/src/uproto.c
-srcs							+= $(ROOTDIR)/product/zwave/src/system.c
-srcs							+= $(ROOTDIR)/product/zwave/src/zwave.c
+#srcs							+= $(ROOTDIR)/product/zwave/src/cmd.c
+#srcs							+= $(ROOTDIR)/product/zwave/src/uproto.c
+#srcs							+= $(ROOTDIR)/product/zwave/src/system.c
 
 
 srcs							+= $(ROOTDIR)/src/lockqueue.c
