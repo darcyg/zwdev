@@ -9,6 +9,8 @@
 #include "frame.h"
 
 #include "zwave.h"
+#include "flash.h"
+#include "memory.h"
 static stInventory_t inventory;
 
 static int zwave_frame_send_with_ack(stDataFrame_t *dfs, int timeout) {
@@ -162,22 +164,31 @@ int zwave_SerialApiGetInitData() {
 	dfr = NULL;
 
 
-	/*
 	int i = 0;
 	for (i = 0; i < inv->initdata.nodes_map_size * 8; i++) {
 		int id			= i+1;
 
-		int id_bit	= (inv->initdata.nodes_map[i/8] >> (i%8))&0x1;
-		if (id_bit == 0) {
-			inv->devs[id].id = 0;
-			memset(&inv->devs[id], 0, sizeof(inv->devs[id]));
-			flash_remove_device(id);
+		if (id == 1) {
 			continue;
 		}
 
-		inv->devs[id].id = id;
+		int id_bit	= (inv->initdata.nodes_map[i/8] >> (i%8))&0x1;
+		if (id_bit == 0) {
+			memory_del_dev(id);
+			flash_remove_dev(id);
+			continue;
+		} else {
+			json_t * jdev = flash_load_dev(id);
+			if (jdev == NULL) {
+				jdev = json_object();
+				json_object_set_new(jdev, "id", json_integer(id));
+				memory_set_dev(id, jdev);
+				flash_save_dev(id, jdev);
+			} else {
+				memory_set_dev(id, jdev);
+			}
+		}
 	}
-	*/
 	
 	return 0;
 }

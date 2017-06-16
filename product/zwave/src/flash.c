@@ -147,7 +147,7 @@ int flash_remove_dev(int did) {
 		ret = ret;
 		//unlink(f);
   }
-	log_debug("[%s] success : %d, %d" , __func__, __LINE__, did);
+	//log_debug("[%s] success : %d, %d" , __func__, __LINE__, did);
 	return 0;
 }
 
