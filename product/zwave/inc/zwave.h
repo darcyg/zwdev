@@ -2,6 +2,11 @@
 #define __ZWAVE_H_
 
 
+typedef struct stNodeProtoInfoIn {
+	char bNodeID;
+}stNodeProtoInfoIn_t;
+
+
 typedef struct stInitData {
 	char ver;
 	char capabilities;
@@ -10,6 +15,18 @@ typedef struct stInitData {
 	char chip_type;
 	char chip_version;	
 }stInitData_t;
+
+
+typedef struct stAddNodeToNetwork {
+	char funcID;
+	char bStatus;
+	char bSource;
+	char len;
+	char basic;
+	char generic;
+	char specific;
+	char commandclasses[32];
+}stAddNodeToNetwork_t;
 
 
 
@@ -60,6 +77,15 @@ typedef struct stSendDataIn {
 	char txOptions;
 	char funcID;
 }stSendDataIn_t;
+
+typedef struct stAddNodeToNetworkIn {
+	char mode;
+	char funcID;
+	char yummy1;	
+	char yummy2;
+}stAddNodeToNetworkIn_t;
+
+
 
 typedef struct stInventory {
 	stInitData_t initdata;
@@ -121,6 +147,8 @@ typedef enum emApi {
 	
 	CmdIoPortStatus = 0xE5,
 	CmdIoPort = 0xE6,
+
+	CmdApplicationCommandHandler = 0x04,
 }emApi_t;
 
 
@@ -130,10 +158,11 @@ int zwave_SerialApiGetInitData();
 int zwave_SerialApiGetCapabilities();
 int zwave_MemoryGetId();
 int zwave_ZWaveGetSucNodeId();
-int zwave_ZWaveGetNodeProtoInfo();
+int zwave_ZWaveGetNodeProtoInfo(char nodeid, stNodeProtoInfo_t *npi);
 
-int zwave_class_command(int id, int class, int command, json_t *param);
-int zwave_class_version_get(int id, int class);
+int zwave_class_command(int id, char class, int command, char *inparam, int inlen, int wait,  char  *outparam, int *outlen);
+int zwave_class_version_get(int id, char class);
+int zwave_class_init(int id, char class);
 
 int zwave_init(void *_th, void *_fet);
 int zwave_include();

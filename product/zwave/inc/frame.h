@@ -83,5 +83,6 @@ int							frame_send(stDataFrame_t *df, int timeout);
 /* return ack ,  nak , can , frame*/
 int							frame_recv(stDataFrame_t **frame, int timeout);
 int							frame_ack();
+int							frame_reset();
 
 #endif

@@ -11,6 +11,8 @@
 
 static int fd = -1;
 static int state = FRS_SOF_HUNT;
+static char *zwave_dev = "/dev/ttyACM0";
+static int zwave_buad = 115200;
 
 int frame_len(stDataFrame_t *df) {
   return df->len;
@@ -68,6 +70,9 @@ int frame_calculate_checksum(stDataFrame_t *df) {
 }
 
 int	frame_init(const char *dev, int buad) {
+	zwave_dev = (char*)dev;
+	zwave_buad = buad;
+
 	int ret = serial_open(dev, buad);
 	if (ret <= 0) {
 		log_err("serial open %s(%d) failed!", dev, buad);
@@ -297,6 +302,16 @@ int	frame_recv(stDataFrame_t **frame, int timeout) {
 
 int	frame_ack() {
 	char x = ACK_CHAR;
+	log_info("[%d] WRITE ACK", __LINE__);
 	serial_write(fd, &x, 1, 80);
+	return 0;
+}
+
+int frame_reset() {
+	serial_close(fd);
+	fd = -1;
+	
+	fd = serial_open(zwave_dev, zwave_buad);
+	serial_flush(fd);
 	return 0;
 }
