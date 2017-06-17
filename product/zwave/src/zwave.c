@@ -753,7 +753,15 @@ int zwave_set(int id, int class, int command, json_t *param) {
 stInventory_t *zwave_get_inventory() {
 	return &inventory;
 }
+
 //=================================================================================
+typedef struct stClassCommandFuncs {
+	char							class;
+	CLASS_INIT				init;
+	CLASS_GET					get;
+	CLASS_SET					set;
+	CLASS_RPT					rpt;
+}stClassCommandFuncs_t;
 int power_init(int id, char class, int version) {
 	return 0;
 }
