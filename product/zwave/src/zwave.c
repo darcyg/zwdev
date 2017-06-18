@@ -482,32 +482,20 @@ int zwave_ZWaveAddNodeToNetwork() {
 	sprintf(buf, "%02x", antn.basic); json_object_set_new(jdev, "basic", json_string(buf));
 	sprintf(buf, "%02x", antn.generic); json_object_set_new(jdev, "generic", json_string(buf));
 	sprintf(buf, "%02x", antn.specific); json_object_set_new(jdev, "specific", json_string(buf));
+
+	json_t *jclasses = json_object();
 	int i = 0;
-	json_t *jclasses = json_array();
 	for (i = 0; i < antn.len - 3; i++) {
-		json_t *jclass = json_object();
-
 		sprintf(buf, "%02x", antn.commandclasses[i]&0xff);
-		json_object_set_new(jclass, "key", json_string(buf));
-
-		json_t *jcommands = json_array(); /*{
-			json_t *jcommand = json_object();
-			json_object_set_new(jcommand, "key", json_string("00"));
-			json_object_set_new(jcommand, "val", json_string("01"));
-			json_array_append(jcommands, jcommand);
-		}
-		*/
-		json_object_set_new(jclass, "commands", jcommands);
-
-		json_array_append(jclasses, jclass);
+		json_object_set_new(jclasses, buf, json_object());
 	}
-	json_object_set_new(jdev, "classes", jclasses);
+	json_object_set_new(jdev,"classes", jclasses);
+
+	memory_del_dev(id);
 	memory_set_dev(id, jdev);
 	flash_save_dev(id, jdev);
-	
 
 	FREE(dfr); dfr = NULL;
-
 
 	/* add comp */
 	ret = zwave_frame_wait_frame(&dfr, 1000);
@@ -537,16 +525,14 @@ int zwave_ZWaveAddNodeToNetwork() {
 	json_object_set_new(jdev, "security", json_string(buf));
 	memory_set_dev(id, jdev);
 	flash_save_dev(id, jdev);
-
 	
+
 	for (i = 0; i < antn.len - 3; i++) {
 		char class = antn.commandclasses[i]&0xff;
 		zwave_class_init(id&0xff, class);
 	}
-	flash_save_dev(id, jdev);
 
-	
-	
+	flash_save_dev(id, jdev);
 
 	return 0;
 }
@@ -598,7 +584,7 @@ int zwave_ZWaveGetNodeProtoInfo(char nodeid, stNodeProtoInfo_t *npi) {
 int zwave_ZWaveRequestNodeInfo(int id) {
 	log_err("[%d]", __LINE__);
 
-	stNodeProtoInfoIn_t npii = {nodeid};
+	stNodeInfoIn_t npii = {id&0xff};
 	stDataFrame_t *dfs = frame_make(CmdZWaveRequestNodeInfo, (void*)&npii, sizeof(npii));
 	int ret = 0;
 
@@ -623,22 +609,60 @@ int zwave_ZWaveRequestNodeInfo(int id) {
 		return -3;
 	}
 
-	if (dfr->cmd != CmdZWaveGetNodeProtoInfo) {
+	if (dfr->cmd != CmdZWaveRequestNodeInfo) {
 		log_debug_hex("async data:", dfr->payload, dfr->size);
 		FREE(dfr);
 		dfr = NULL;
 		return -4;
 	}
 
-	npi->Capability = dfr->payload[0];
-	npi->Security = dfr->payload[1];
-	npi->Basic = dfr->payload[2];
-	npi->Generic = dfr->payload[3];
-	npi->Specific = dfr->payload[4];
+	stNodeInfo_t ni;
+	ni.bStatus = dfr->payload[0];
+	ni.bNodeID = dfr->payload[1];
+	ni.len = dfr->payload[2];
+	if (ni.len > 0) {
+		ni.basic = dfr->payload[3];
+		ni.generic = dfr->payload[4];
+		ni.specific = dfr->payload[5];
+		memcpy(ni.commandclasses, dfr->payload+6, ni.len - 3);
+	}
+
+	//stInventory_t *inv = zwave_get_inventory();
+	//int id = ni.bNodeID&0xff;
+	json_t *jdev = memory_get_dev(id);
+	if (jdev != NULL) {
+		memory_del_dev(id);
+		flash_remove_dev(id);
+	}
+	jdev = json_object();
+
+	char buf[32];
+	sprintf(buf, "%02x", id&0xff);
+	json_object_set_new(jdev, "id", json_string(buf));
+	sprintf(buf, "%02x", ni.basic); json_object_set_new(jdev, "basic", json_string(buf));
+	sprintf(buf, "%02x", ni.generic); json_object_set_new(jdev, "generic", json_string(buf));
+	sprintf(buf, "%02x", ni.specific); json_object_set_new(jdev, "specific", json_string(buf));
+
+	json_t *jclasses = json_object();
+	int i = 0;
+	for (i = 0; i < ni.len - 3; i++) {
+		sprintf(buf, "%02x", ni.commandclasses[i]&0xff);
+		json_object_set_new(jclasses, buf, json_object());
+	}
+	json_object_set_new(jdev,"classes", jclasses);
+
+	memory_del_dev(id);
+	memory_set_dev(id, jdev);
+	flash_save_dev(id, jdev);
+
+	FREE(dfr); dfr = NULL;
+
+	for (i = 0; i < ni.len - 3; i++) {
+		char class = ni.commandclasses[i]&0xff;
+		zwave_class_init(id&0xff, class);
+	}
 
 	return 0;
-
-	
 }
 
 int zwave_ZWaveSendData(void *data, int len) {
@@ -846,15 +870,9 @@ int zwave_class_init(int id, char class) {
 	json_t *jclasses = json_object_get(jdev, "classes");
 	char sclass[32];
 	sprintf(sclass, "%02x", class);
-	size_t index;
-	json_t *jclass;
-	json_array_foreach(jclasses, index, jclass) {
-		const char *key = json_get_string(jclass, "key");
-		if (strcmp(key, sclass) == 0) {
-			json_object_del(jclass, "version");
-			json_object_set_new(jclass, "version", json_integer(version));
-		}
-	}
+	json_t *jclass = json_object_get(jclasses, sclass);
+	json_object_set_new(jclass, "version", json_integer(version));
+	
 	_zwave_class_init_funcs[class&0xff].init(id, class, version);
 	return 0;
 }
@@ -1302,8 +1320,11 @@ int zwave_test() {
 			FREE(sdev);
 			sdev = NULL;
 		}
+
+		log_info("[%d] request info : %d", __LINE__, id);
+		zwave_ZWaveRequestNodeInfo(id);
+		log_info("[%d] request info : %d over", __LINE__, id);
 	
-		json_t *jclasses = 	
 	}
 	return 0;
 }

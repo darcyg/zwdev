@@ -2,6 +2,11 @@
 #define __ZWAVE_H_
 
 
+typedef struct stNodeInfoIn {
+	char NodeID;	
+}stNodeInfoIn_t;
+
+
 typedef struct stNodeProtoInfoIn {
 	char bNodeID;
 }stNodeProtoInfoIn_t;
