@@ -159,6 +159,9 @@ int zwave_SerialApiGetCapabilities();
 int zwave_MemoryGetId();
 int zwave_ZWaveGetSucNodeId();
 int zwave_ZWaveGetNodeProtoInfo(char nodeid, stNodeProtoInfo_t *npi);
+int zwave_ZWaveSendData(void *data, int len);
+int zwave_ZWaveRequestNodeInfo(int id);
+
 
 int zwave_class_command(int id, char class, int command, char *inparam, int inlen, int wait,  char  *outparam, int *outlen);
 int zwave_class_version_get(int id, char class);

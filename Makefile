@@ -31,6 +31,7 @@ srcs							+= $(ROOTDIR)/src/ayla/file_io.c
 srcs							+= $(ROOTDIR)/src/ayla/hashmap.c
 srcs							+= $(ROOTDIR)/src/ayla/parse_argv.c
 srcs							+= $(ROOTDIR)/src/ayla/json_parser.c
+srcs							+= $(ROOTDIR)/src/ayla/hex.c
 
 srcs							+= $(ROOTDIR)/product/zwave/src/serial.c
 srcs							+= $(ROOTDIR)/product/zwave/src/frame.c
