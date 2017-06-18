@@ -479,9 +479,9 @@ int zwave_ZWaveAddNodeToNetwork() {
 	char buf[32];
 	sprintf(buf, "%02x", id&0xff);
 	json_object_set_new(jdev, "id", json_string(buf));
-	sprintf(buf, "%02x", antn.basic); json_object_set_new(jdev, "basic", json_string(buf));
-	sprintf(buf, "%02x", antn.generic); json_object_set_new(jdev, "generic", json_string(buf));
-	sprintf(buf, "%02x", antn.specific); json_object_set_new(jdev, "specific", json_string(buf));
+	sprintf(buf, "%02x", antn.basic&0xff); json_object_set_new(jdev, "basic", json_string(buf));
+	sprintf(buf, "%02x", antn.generic&0xff); json_object_set_new(jdev, "generic", json_string(buf));
+	sprintf(buf, "%02x", antn.specific&0xff); json_object_set_new(jdev, "specific", json_string(buf));
 
 	json_t *jclasses = json_object();
 	int i = 0;
@@ -582,7 +582,7 @@ int zwave_ZWaveGetNodeProtoInfo(char nodeid, stNodeProtoInfo_t *npi) {
 }
 
 int zwave_ZWaveRequestNodeInfo(int id) {
-	log_err("[%d]", __LINE__);
+	log_info("[%d]", __LINE__);
 
 	stNodeInfoIn_t npii = {id&0xff};
 	stDataFrame_t *dfs = frame_make(CmdZWaveRequestNodeInfo, (void*)&npii, sizeof(npii));
@@ -596,10 +596,11 @@ int zwave_ZWaveRequestNodeInfo(int id) {
 	}
 
 	
+	/* ack */
 	stDataFrame_t *dfr = NULL;
 	ret = zwave_frame_wait_frame(&dfr, 1000);
 	if (ret < 0) {
-		log_err("[%d] no node proto info : %d", __LINE__, ret);
+		log_err("[%d] no node proto info ack: %d", __LINE__, ret);
 		return -2;
 	}
 
@@ -615,6 +616,29 @@ int zwave_ZWaveRequestNodeInfo(int id) {
 		dfr = NULL;
 		return -4;
 	}
+	FREE(dfr); dfr = NULL;
+
+	/* node info */
+	ret = zwave_frame_wait_frame(&dfr, 1000);
+	if (ret < 0) {
+		log_err("[%d] no node proto info : %d", __LINE__, ret);
+		return -2;
+	}
+
+	if (dfr->error != FE_NONE) {
+		log_err("[%d] frame error : %d", __LINE__, ret);
+		FREE(dfr);
+		return -3;
+	}
+
+	if (dfr->cmd != CmdApplicationControllerUpdate) {
+		log_debug("[%d] async :cmd(%02X),wait(%02x)", __LINE__, dfr->cmd, CmdZWaveRequestNodeInfo);
+		log_debug_hex("async data:%02x", dfr->payload, dfr->size);
+		FREE(dfr);
+		dfr = NULL;
+		return -4;
+	}
+
 
 	stNodeInfo_t ni;
 	ni.bStatus = dfr->payload[0];
@@ -639,9 +663,9 @@ int zwave_ZWaveRequestNodeInfo(int id) {
 	char buf[32];
 	sprintf(buf, "%02x", id&0xff);
 	json_object_set_new(jdev, "id", json_string(buf));
-	sprintf(buf, "%02x", ni.basic); json_object_set_new(jdev, "basic", json_string(buf));
-	sprintf(buf, "%02x", ni.generic); json_object_set_new(jdev, "generic", json_string(buf));
-	sprintf(buf, "%02x", ni.specific); json_object_set_new(jdev, "specific", json_string(buf));
+	sprintf(buf, "%02x", ni.basic&0xff); json_object_set_new(jdev, "basic", json_string(buf));
+	sprintf(buf, "%02x", ni.generic&0xff); json_object_set_new(jdev, "generic", json_string(buf));
+	sprintf(buf, "%02x", ni.specific&0xff); json_object_set_new(jdev, "specific", json_string(buf));
 
 	json_t *jclasses = json_object();
 	int i = 0;
@@ -661,12 +685,13 @@ int zwave_ZWaveRequestNodeInfo(int id) {
 		char class = ni.commandclasses[i]&0xff;
 		zwave_class_init(id&0xff, class);
 	}
+	flash_save_dev(id, jdev);
 
 	return 0;
 }
 
 int zwave_ZWaveSendData(void *data, int len) {
-	log_err("[%d]", __LINE__);
+	log_info("[%d]", __LINE__);
 	stDataFrame_t *dfs = frame_make(CmdZWaveSendData, data, len);
 	int ret = 0;
 
@@ -775,7 +800,7 @@ int zwave_class_command(int id, char class, int command, char *inparam, int inle
 }
 
 int zwave_class_version_get(int id, char class) {
-	log_info("[%d]", __LINE__);
+	log_info("[%d] dev(%02x), class(%02x)", __LINE__, id&0xff, class&0xff);
 	
 	char outparam[128];
 	char inparam[1] = {class&0xff};
@@ -857,7 +882,7 @@ static stClassCommandFuncs_t _zwave_class_init_funcs[] = {
 };
 int _zwave_class_init(int id, char class, int version);
 int zwave_class_init(int id, char class) {
-	log_info("[%d]", __LINE__);
+	log_info("[%d] : dev(%02x), class(%02x)", __LINE__, id&0xff, class);
 	int ret = zwave_class_version_get(id, class);
 	if (ret < 0) {
 		log_err("[%d] get version failed: %d", __LINE__, ret);
@@ -869,9 +894,11 @@ int zwave_class_init(int id, char class) {
 	json_t *jdev = memory_get_dev(id);
 	json_t *jclasses = json_object_get(jdev, "classes");
 	char sclass[32];
-	sprintf(sclass, "%02x", class);
+	sprintf(sclass, "%02x", class&0xff);
 	json_t *jclass = json_object_get(jclasses, sclass);
-	json_object_set_new(jclass, "version", json_integer(version));
+	{
+		json_object_set_new(jclass, "version", json_integer(version));
+	}
 	
 	_zwave_class_init_funcs[class&0xff].init(id, class, version);
 	return 0;
@@ -904,11 +931,11 @@ int powerlevel_init(int id, char class, int version) {
 	json_t *jclasses = json_object_get(jdev, "classes");
 
 	char sclass[32];
-	sprintf(sclass, "%02x", class);
+	sprintf(sclass, "%02x", class&0xff);
 	json_t *jclass = json_object_get(jclasses, sclass);
 
 	char scommand[32];
-	sprintf(scommand, "%02x", outparam[4]);
+	sprintf(scommand, "%02x", outparam[4]&0xff);
 	json_t *jcommand = json_object_get(jclass, scommand);
 	if (jcommand != NULL) {
 		json_object_del(jclass, scommand);
@@ -946,11 +973,11 @@ int switch_binary_init(int id, char class, int version) {
 	json_t *jclasses = json_object_get(jdev, "classes");
 
 	char sclass[32];
-	sprintf(sclass, "%02x", class);
+	sprintf(sclass, "%02x", class&0xff);
 	json_t *jclass = json_object_get(jclasses, sclass);
 
 	char scommand[32];
-	sprintf(scommand, "%02x", outparam[4]);
+	sprintf(scommand, "%02x", outparam[4]&0xff);
 	json_t *jcommand = json_object_get(jclass, scommand);
 	if (jcommand != NULL) {
 		json_object_del(jclass, scommand);
@@ -963,6 +990,7 @@ int switch_binary_init(int id, char class, int version) {
 }
 int zwaveplus_info_init(int id, char class, int version) {
 	log_info("[%d]", __LINE__);
+	
 	if (version < 1) {
 		log_err("[%d] %02x class version error: %d", __LINE__, class, version);
 		return -1;
@@ -987,11 +1015,11 @@ int zwaveplus_info_init(int id, char class, int version) {
 	json_t *jclasses = json_object_get(jdev, "classes");
 
 	char sclass[32];
-	sprintf(sclass, "%02x", class);
+	sprintf(sclass, "%02x", class&0xff);
 	json_t *jclass = json_object_get(jclasses, sclass);
 
 	char scommand[32];
-	sprintf(scommand, "%02x", outparam[4]);
+	sprintf(scommand, "%02x", outparam[4]&0xff);
 	json_t *jcommand = json_object_get(jclass, scommand);
 	if (jcommand != NULL) {
 		json_object_del(jclass, scommand);
@@ -1030,11 +1058,11 @@ int association_init(int id, char class, int version) {
 	json_t *jclasses = json_object_get(jdev, "classes");
 
 	char sclass[32];
-	sprintf(sclass, "%02x", class);
+	sprintf(sclass, "%02x", class&0xff);
 	json_t *jclass = json_object_get(jclasses, sclass);
 
 	char scommand[32];
-	sprintf(scommand, "%02x", outparam[4]);
+	sprintf(scommand, "%02x", outparam[4]&0xff);
 	json_t *jcommand = json_object_get(jclass, scommand);
 	if (jcommand != NULL) {
 		json_object_del(jclass, scommand);
@@ -1075,10 +1103,10 @@ int association_init(int id, char class, int version) {
 
 		json_t *jclasses = json_object_get(jdev, "classes");
 
-		sprintf(sclass, "%02x", class);
+		sprintf(sclass, "%02x", class&0xff);
 		json_t *jclass = json_object_get(jclasses, sclass);
 
-		sprintf(scommand, "%02x", outparam[4]);
+		sprintf(scommand, "%02x", outparam[4]&0xff);
 		json_t *jcommand = json_object_get(jclass, scommand);
 		if (jcommand != NULL) {
 			json_object_del(jclass, scommand);
@@ -1106,10 +1134,10 @@ int association_init(int id, char class, int version) {
 
 		json_t *jclasses = json_object_get(jdev, "classes");
 
-		sprintf(sclass, "%02x", class);
+		sprintf(sclass, "%02x", class&0xff);
 		json_t *jclass = json_object_get(jclasses, sclass);
 
-		sprintf(scommand, "%02x", outparam[4]);
+		sprintf(scommand, "%02x", outparam[4]&0xff);
 		json_t *jcommand = json_object_get(jclass, scommand);
 		if (jcommand != NULL) {
 			json_object_del(jclass, scommand);
@@ -1150,10 +1178,10 @@ int association_init(int id, char class, int version) {
 
 			json_t *jclasses = json_object_get(jdev, "classes");
 
-			sprintf(sclass, "%02x", class);
+			sprintf(sclass, "%02x", class&0xff);
 			json_t *jclass = json_object_get(jclasses, sclass);
 
-			sprintf(scommand, "%02x", outparam[4]);
+			sprintf(scommand, "%02x", outparam[4]&0xff);
 			json_t *jcommand = json_object_get(jclass, scommand);
 			if (jcommand != NULL) {
 				json_object_del(jclass, scommand);
@@ -1173,6 +1201,7 @@ int association_grp_info_init(int id, char class, int version) {
 }
 int version_init(int id, char class, int version) {
 	log_info("[%d]", __LINE__);
+
 	if (version < 1) {
 		log_err("[%d] %02x class version error: %d", __LINE__, class, version);
 		return -1;
@@ -1197,11 +1226,11 @@ int version_init(int id, char class, int version) {
 	json_t *jclasses = json_object_get(jdev, "classes");
 
 	char sclass[32];
-	sprintf(sclass, "%02x", class);
+	sprintf(sclass, "%02x", class&0xff);
 	json_t *jclass = json_object_get(jclasses, sclass);
 
 	char scommand[32];
-	sprintf(scommand, "%02x", outparam[4]);
+	sprintf(scommand, "%02x", outparam[4]&0xff);
 	json_t *jcommand = json_object_get(jclass, scommand);
 	if (jcommand != NULL) {
 		json_object_del(jclass, scommand);
@@ -1232,18 +1261,18 @@ int manufacturer_specific_init(int id, char class, int version) {
 
 	/* rxStatus | sourceNode | len */
 	/* class | command | value */
-	/* 86        12      5(v1) |  7(v2）+*/
+	/* 72        05      5(v1) |  7(v2）+*/
 	
 	json_t *jdev = memory_get_dev(id);
 
 	json_t *jclasses = json_object_get(jdev, "classes");
 
 	char sclass[32];
-	sprintf(sclass, "%02x", class);
+	sprintf(sclass, "%02x", class&0xff);
 	json_t *jclass = json_object_get(jclasses, sclass);
 
 	char scommand[32];
-	sprintf(scommand, "%02x", outparam[4]);
+	sprintf(scommand, "%02x", outparam[4]&0xff);
 	json_t *jcommand = json_object_get(jclass, scommand);
 	if (jcommand != NULL) {
 		json_object_del(jclass, scommand);
@@ -1257,7 +1286,9 @@ int manufacturer_specific_init(int id, char class, int version) {
 		char outparam[128];
 		int outlen;
 		char command = 0x06;
-		int ret = zwave_class_command(id, class, command, NULL, 0, 1, outparam, &outlen);
+		//char inparam[] = {0x01};
+		char inparam[] = {0x02};
+		int ret = zwave_class_command(id, class, command, inparam, 1, 1, outparam, &outlen);
 
 		if (ret != 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
@@ -1266,18 +1297,18 @@ int manufacturer_specific_init(int id, char class, int version) {
 
 		/* rxStatus | sourceNode | len */
 		/* class | command | value */
-		/* 86        12      5(v1) |  7(v2）+*/
+		/* 72       07      5(v1) |  7(v2）+*/
 
 		json_t *jdev = memory_get_dev(id);
 
 		json_t *jclasses = json_object_get(jdev, "classes");
 
 		char sclass[32];
-		sprintf(sclass, "%02x", class);
+		sprintf(sclass, "%02x", class&0xff);
 		json_t *jclass = json_object_get(jclasses, sclass);
 
 		char scommand[32];
-		sprintf(scommand, "%02x", outparam[4]);
+		sprintf(scommand, "%02x", outparam[4]&0xff);
 		json_t *jcommand = json_object_get(jclass, scommand);
 		if (jcommand != NULL) {
 			json_object_del(jclass, scommand);
