@@ -45,4 +45,6 @@ int uproto_push_msg(int eid, void *param, int len);
 void uproto_run(struct timer *timer);
 void uproto_in(void *arg, int fd);
 
+
+int uproto_report_umsg(const char *submac, const char *attr, json_t *jret);
 #endif

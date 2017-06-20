@@ -66,6 +66,7 @@ const char *hex_parse_byte(const char *str, u8 *byte)
 ssize_t hex_parse_n(u8 *buf, size_t size, const char *str, size_t len,
 	char *delim)
 {
+
 	size_t nbytes = 0;
 	char found_delim = 0;
 
@@ -123,7 +124,7 @@ ssize_t hex_parse_n(u8 *buf, size_t size, const char *str, size_t len,
  * Return -1 on failure, or the number of bytes parsed on success.
  */
 ssize_t hex_parse(u8 *buf, size_t size, const char *str, char *delim)
-{
+{		
 	return hex_parse_n(buf, size, str, strlen(str), delim);
 }
 

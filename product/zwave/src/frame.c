@@ -175,6 +175,8 @@ int	frame_send(stDataFrame_t *df, int timeout) {
 	log_debug_hex("SerialData:", debug_buf,  debug_len);
 #endif
 
+	usleep(10000);
+
 	return 0;
 }
 
@@ -308,10 +310,16 @@ int	frame_ack() {
 }
 
 int frame_reset() {
+	/*
 	serial_close(fd);
 	fd = -1;
 	
 	fd = serial_open(zwave_dev, zwave_buad);
 	serial_flush(fd);
+	*/
 	return 0;
+}
+
+int frame_getfd() {
+	return fd;
 }

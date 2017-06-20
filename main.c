@@ -23,6 +23,7 @@
 #include "flash.h"
 #include "memory.h"
 #include "zwave.h"
+#include "zwave_iface.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 void				run_main();
@@ -76,7 +77,7 @@ void run_main() {
 #endif
 	cmd_init(&th, &fet);
 	uproto_init(&th, &fet);
-
+	zwave_iface_init(&th, &fet);
 	zwave_init(&th, &fet);
 
 	timer_set(&th, &tr, 10);

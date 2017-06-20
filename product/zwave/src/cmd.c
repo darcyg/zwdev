@@ -24,6 +24,7 @@ void do_cmd_get(char *argv[], int argc);
 void do_cmd_set(char *argv[], int argc);
 void do_cmd_include(char *argv[], int argc);
 void do_cmd_exclude(char *argv[], int argc);
+void do_cmd_onoff(char *argv[], int argc);
 
 static stCmd_t cmds[] = {
 	{"exit", do_cmd_exit, "exit the programe!"},
@@ -33,6 +34,7 @@ static stCmd_t cmds[] = {
 	{"exclude", do_cmd_exclude, "exclude a zwave device : exclude <mac>"},
 	{"get", do_cmd_get, "get device class/attr : get <mac> <attr name> [value]"},
 	{"set", do_cmd_set, "set device class/attr : set <mac> <attr name> [value]"},
+	{"onoff", do_cmd_onoff, "onoff binary switch: onoff <mac> <onoff>"},
 	{"info", do_cmd_info, "get zwave network info"},
 	{"help", do_cmd_help, "help info"},
 };
@@ -141,7 +143,12 @@ void do_cmd_list(char *argv[], int argc) {
 	}
 }
 void do_cmd_include(char *argv[], int argc) {
-	zwave_iface_include();
+	int ret = zwave_iface_include();
+	if (ret == 0) {
+		log_info("include ok");
+	} else {
+		log_warn("include timeout!");
+	}
 }
 void do_cmd_exclude(char *argv[], int argc) {
 	if (argc != 2) {
@@ -192,5 +199,15 @@ void do_cmd_info(char *argv[], int argc) {
 	}
 }
 
+
+void do_cmd_onoff(char *argv[], int argc) {
+	if (argc != 3) {
+		log_debug("error argments!");
+		return;
+	}
+	log_debug("onoff:%s, value:%s", argv[1], argv[2]);
+
+	zwave_iface_device_light_onoff(argv[1], atoi(argv[2]));
+}
 
 

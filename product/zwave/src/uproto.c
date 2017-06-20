@@ -29,7 +29,7 @@ static int _uproto_handler_cmd(const char *from,
 															 const char *attr,
 															 json_t *value);
 static int uproto_response_ucmd(const char *uuid, int retval);
-static int uproto_report_umsg(const char *submac, const char *attr, json_t *jret);
+int uproto_report_umsg(const char *submac, const char *attr, json_t *jret);
 
 static int uproto_cmd_handler_attr_get(const char *uuid, const char *cmdmac, const char *attr, json_t *value);
 static int uproto_cmd_handler_attr_set(const char *uuid, const char *cmdmac, const char *attr, json_t *value);
@@ -341,7 +341,7 @@ static int uproto_response_ucmd(const char *uuid, int retval) {
 	return 0;
 }
 
-static int uproto_report_umsg(const char *submac, const char *attr, json_t *jret) {
+int uproto_report_umsg(const char *submac, const char *attr, json_t *jret) {
 	json_t *jumsg = json_object();
 
 	const char *from				= "ZWAVE";
@@ -638,9 +638,9 @@ static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char 
 		return -2;
 	}
 
-	zwave_iface_exclude(mac);
+	int ret = zwave_iface_exclude(mac);
 
-	uproto_response_ucmd(uuid, 0);
+	uproto_response_ucmd(uuid, ret);
 
 
 	return 0;

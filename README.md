@@ -21,6 +21,17 @@
 			* data storage model
 			* ubus translation module
 
+	v1.0.0_zwave_beta1(2017/6/20)
+		- Functions:
+			* include/exclude zwave device
+			* now only support zwave demo binary switch and zwave demo sensor pir
+		- Changes:
+			* class command deal logic
+		- Problem:
+			* sensor pir only report motion detection message(pir valus is 1)
+			* zwave device will not be ack very quicklly
+		- Todo:
+
 # Use:  
 	1. cp zwave_deconfig to rootdir
 	2. make -j10 V=16

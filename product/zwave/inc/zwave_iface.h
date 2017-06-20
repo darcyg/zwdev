@@ -15,4 +15,12 @@ int zwave_iface_device_light_toggle(const char *mac);
 int zwave_iface_device_light_brightness(const char *mac, int brightness);
 
 
+
+int zwave_iface_init();
+int zwave_iface_wait();
+int zwave_iface_push(json_t *elem);
+
+
+int zwave_iface_report(json_t *rpt);
+
 #endif

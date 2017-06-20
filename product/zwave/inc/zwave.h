@@ -1,6 +1,11 @@
 #ifndef __ZWAVE_H_
 #define __ZWAVE_H_
 
+typedef struct stRemoveNodeFromNetworkIn {
+	char mode;
+	char funcID;
+}stRemoveNodeFromNetworkIn_t;
+
 
 typedef struct stNodeInfoIn {
 	char NodeID;	
@@ -166,19 +171,31 @@ int zwave_ZWaveGetSucNodeId();
 int zwave_ZWaveGetNodeProtoInfo(char nodeid, stNodeProtoInfo_t *npi);
 int zwave_ZWaveSendData(void *data, int len);
 int zwave_ZWaveRequestNodeInfo(int id);
+int zwave_ZWaveAddNodeToNetwork();
+int zwave_ZWaveRemoveNodeFromNetwork(const char *mac);
 
 
-int zwave_class_command(int id, char class, int command, char *inparam, int inlen, int wait,  char  *outparam, int *outlen);
+int zwave_class_command(int id, char class, int command, 
+												char *inparam, int inlen, int wait,
+											  char  *outparam, int *outlen);
 int zwave_class_version_get(int id, char class);
 int zwave_class_init(int id, char class);
 
 int zwave_init(void *_th, void *_fet);
-int zwave_include();
-int zwave_exclude(int id);
-int zwave_set(int id, int class, int command, json_t *param);
+int zwave_push(int eid, void *param, int len);
+int zwave_test();
 
-
-stInventory_t *zwave_get_inventory();
+enum {
+	E_ZWAVE_LIST = 0,
+	E_ZWAVE_INCLUDE = 1,
+	E_ZWAVE_EXCLUDE = 2,
+	E_ZWAVE_GET = 3,
+	E_ZWAVE_SET = 4,
+	E_ZWAVE_INFO = 5,
+	E_ZWAVE_LIGHT_ONOFF = 6,
+	E_ZWAVE_LIGHT_TOGGLE = 7,
+	E_ZWAVE_LIGHT_BRIGHTNESS = 8,
+};
 
 
 #endif
