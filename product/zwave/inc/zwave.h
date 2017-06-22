@@ -181,7 +181,7 @@ int zwave_class_command(int id, char class, int command,
 int zwave_class_version_get(int id, char class);
 int zwave_class_init(int id, char class);
 
-int zwave_init(void *_th, void *_fet);
+int zwave_init(void *_th, void *_fet, const char *dev, int buad);
 int zwave_push(int eid, void *param, int len);
 int zwave_test();
 

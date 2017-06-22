@@ -11,6 +11,7 @@
 
 #include "frame.h"
 
+#include "system.h"
 #include "zwave.h"
 #include "zwave_iface.h"
 #include "flash.h"
@@ -2232,15 +2233,15 @@ void zwave_query_run(struct timer *timer) {
 	timer_set(&zwave_th, &zwave_tr_query, 5*60 * 1000);
 }
 
-int zwave_init(void *_th, void *_fet) {
+int zwave_init(void *_th, void *_fet, const char *dev, int buad) {
 	log_info("[%d]", __LINE__);
 	timer_init(&zwave_tr, zwave_run);
 	timer_init(&zwave_tr_online, zwave_online_run);
 	timer_init(&zwave_tr_query, zwave_query_run);
 	file_event_init(&zwave_fet);
 
-	if (frame_init("/dev/ttyACM0", 115200) != 0) {
-		log_err("[%d] error init frame : %s,%d", __LINE__, "/dev/ttyACM0", 115200);
+	if (frame_init(dev, buad) != 0) {
+		log_err("[%d] error init frame : %s,%d", __LINE__, dev, buad);
 		return -1;
 	}
 
