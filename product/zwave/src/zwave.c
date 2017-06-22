@@ -1035,6 +1035,10 @@ int device_reset_locally_init(int id, char class, int version);
 int battery_init(int id, char class, int version);
 int wakeup_init(int id, char class, int version);
 int notify_alarm_init(int id, char class, int version);
+int switch_multi_init(int id, char class, int version);
+int switch_all_init(int id, char class, int version);
+int protection_init(int id, char class, int version);
+int configure_init(int id, char class, int version);
 
 static stClassCommandFuncs_t _zwave_class_init_funcs[] = {
 	[0x73] = {0x73, powerlevel_init},
@@ -1048,6 +1052,10 @@ static stClassCommandFuncs_t _zwave_class_init_funcs[] = {
 	[0x80] = {0x80, battery_init},
 	[0x84] = {0x84, wakeup_init},
 	[0x71] = {0x71, notify_alarm_init},
+	[0x26] = {0x26, switch_multi_init},
+	[0x27] = {0x27, switch_all_init},
+	[0x75] = {0x75, protection_init},
+	[0x70] = {0x70, configure_init},
 };
 int _zwave_class_init(int id, char class, int version);
 int zwave_class_init(int id, char class) {
@@ -1690,6 +1698,347 @@ int notify_alarm_init(int id, char class, int version) {
 	return 0;
 }
 
+int switch_multi_init(int id, char class, int version) {
+	log_info("[%d]", __LINE__);
+	if (version < 1) {
+		log_err("[%d] %02x class version error: %d", __LINE__, class, version);
+		return -1;
+	}
+
+	{
+		char outparam[128];
+		int outlen;
+		char command = 0x01;
+		char inparam[2] = {0x02, 0x02};
+		int ret;
+		if (version  == 1) {
+			ret = zwave_class_command(id, class, command, inparam, 1, 0, outparam, &outlen);
+		} else if (version >= 2) {
+			ret = zwave_class_command(id, class, command, inparam, 2, 0, outparam, &outlen);
+		}
+		if (ret != 0) {
+			log_err("[%d] exec class command error: %d", __LINE__, ret);
+			return -2;
+		}
+	
+		command = 0x02;
+		ret = zwave_class_command(id, class, command, NULL,  0, 1, outparam, &outlen);
+		if (ret != 0) {
+			log_err("[%d] exec class command error: %d", __LINE__, ret);
+			return -2;
+		}
+
+		json_t *jdev = memory_get_dev(id);
+
+		json_t *jclasses = json_object_get(jdev, "classes");
+
+		char sclass[32];
+		sprintf(sclass, "%02x", class&0xff);
+		json_t *jclass = json_object_get(jclasses, sclass);
+
+		char scommand[32];
+		sprintf(scommand, "%02x", outparam[4]&0xff);
+		json_t *jcommand = json_object_get(jclass, scommand);
+		if (jcommand != NULL) {
+			json_object_del(jclass, scommand);
+		}
+
+		char svalue[(outparam[2] - 2) * 3+1];
+		hex_string(svalue, sizeof(svalue), (const u8*)&outparam[5], outparam[2] - 2, 1, ' ');
+		json_object_set_new(jclass, scommand, json_string(svalue));
+	}
+	if (version >= 3) {
+		char outparam[128];
+		int outlen;
+		char command = 0x06;
+		int ret = zwave_class_command(id, class, command, NULL, 0, 1, outparam, &outlen);
+		if (ret != 0) {
+			log_err("[%d] exec class command error: %d", __LINE__, ret);
+			return -2;
+		}
+
+		json_t *jdev = memory_get_dev(id);
+
+		json_t *jclasses = json_object_get(jdev, "classes");
+
+		char sclass[32];
+		sprintf(sclass, "%02x", class&0xff);
+		json_t *jclass = json_object_get(jclasses, sclass);
+
+		char scommand[32];
+		sprintf(scommand, "%02x", outparam[4]&0xff);
+		json_t *jcommand = json_object_get(jclass, scommand);
+		if (jcommand != NULL) {
+			json_object_del(jclass, scommand);
+		}
+
+		char svalue[(outparam[2] - 2) * 3+1];
+		hex_string(svalue, sizeof(svalue), (const u8*)&outparam[5], outparam[2] - 2, 1, ' ');
+		json_object_set_new(jclass, scommand, json_string(svalue));
+
+	}
+	
+	return 0;
+}
+int switch_all_init(int id, char class, int version) {
+	log_info("[%d]", __LINE__);
+	if (version < 1) {
+		log_err("[%d] %02x class version error: %d", __LINE__, class, version);
+		return -1;
+	}
+
+	char outparam[128];
+	int outlen;
+	char command = 0x01;
+	char inparam[1] = {0x03};
+	int ret;
+	ret = zwave_class_command(id, class, command, inparam, 1, 0, outparam, &outlen);
+	if (ret != 0) {
+		log_err("[%d] exec class command error: %d", __LINE__, ret);
+		return -2;
+	}
+	
+	command = 0x02;
+	ret = zwave_class_command(id, class, command, NULL,  0, 1, outparam, &outlen);
+	if (ret != 0) {
+		log_err("[%d] exec class command error: %d", __LINE__, ret);
+		return -2;
+	}
+
+	json_t *jdev = memory_get_dev(id);
+
+	json_t *jclasses = json_object_get(jdev, "classes");
+
+	char sclass[32];
+	sprintf(sclass, "%02x", class&0xff);
+	json_t *jclass = json_object_get(jclasses, sclass);
+
+	char scommand[32];
+	sprintf(scommand, "%02x", outparam[4]&0xff);
+	json_t *jcommand = json_object_get(jclass, scommand);
+	if (jcommand != NULL) {
+		json_object_del(jclass, scommand);
+	}
+
+	char svalue[(outparam[2] - 2) * 3+1];
+	hex_string(svalue, sizeof(svalue), (const u8*)&outparam[5], outparam[2] - 2, 1, ' ');
+	json_object_set_new(jclass, scommand, json_string(svalue));
+
+	return 0;
+}
+int protection_init(int id, char class, int version) {
+	log_info("[%d]", __LINE__);
+	if (version < 1) {
+		log_err("[%d] %02x class version error: %d", __LINE__, class, version);
+		return -1;
+	}
+
+	if (version == 1) {
+		char outparam[128];
+		int outlen;
+		char command = 0x01;
+		char inparam[1] = {0x00};
+		int ret;
+		ret = zwave_class_command(id, class, command, inparam, 1, 0, outparam, &outlen);
+		if (ret != 0) {
+			log_err("[%d] exec class command error: %d", __LINE__, ret);
+			return -2;
+		}
+
+		command = 0x02;
+		ret = zwave_class_command(id, class, command, NULL,  0, 1, outparam, &outlen);
+		if (ret != 0) {
+			log_err("[%d] exec class command error: %d", __LINE__, ret);
+			return -2;
+		}
+
+		json_t *jdev = memory_get_dev(id);
+
+		json_t *jclasses = json_object_get(jdev, "classes");
+
+		char sclass[32];
+		sprintf(sclass, "%02x", class&0xff);
+		json_t *jclass = json_object_get(jclasses, sclass);
+
+		char scommand[32];
+		sprintf(scommand, "%02x", outparam[4]&0xff);
+		json_t *jcommand = json_object_get(jclass, scommand);
+		if (jcommand != NULL) {
+			json_object_del(jclass, scommand);
+		}
+
+		char svalue[(outparam[2] - 2) * 3+1];
+		hex_string(svalue, sizeof(svalue), (const u8*)&outparam[5], outparam[2] - 2, 1, ' ');
+		json_object_set_new(jclass, scommand, json_string(svalue));
+	} else if (version == 2) {	
+		int timeout_support = 0;
+		int exclusive_support = 0;
+		int local_state = 0;
+		int rf_state = 0;
+		{
+			char outparam[128];
+			int outlen;
+			char command = 0x04;
+			int ret;
+			ret = zwave_class_command(id, class, command, NULL,  0, 1, outparam, &outlen);
+			if (ret != 0) {
+				log_err("[%d] exec class command error: %d", __LINE__, ret);
+				return -2;
+			}
+
+			json_t *jdev = memory_get_dev(id);
+
+			json_t *jclasses = json_object_get(jdev, "classes");
+
+			char sclass[32];
+			sprintf(sclass, "%02x", class&0xff);
+			json_t *jclass = json_object_get(jclasses, sclass);
+
+			char scommand[32];
+			sprintf(scommand, "%02x", outparam[4]&0xff);
+			json_t *jcommand = json_object_get(jclass, scommand);
+			if (jcommand != NULL) {
+				json_object_del(jclass, scommand);
+			}
+
+			char svalue[(outparam[2] - 2) * 3+1];
+			hex_string(svalue, sizeof(svalue), (const u8*)&outparam[5], outparam[2] - 2, 1, ' ');
+			json_object_set_new(jclass, scommand, json_string(svalue));
+
+			timeout_support = !!(outparam[5]&0x1);
+			exclusive_support = !!(outparam[5]&0x2);
+			local_state = outparam[5+1];
+			rf_state = outparam[5+1];
+			local_state = local_state;
+			rf_state = rf_state;
+		}
+
+		if (timeout_support) {
+			char outparam[128];
+			int outlen;
+			char command = 0x09;
+			char inparam[1] = {0x00};
+			int ret;
+			ret = zwave_class_command(id, class, command, inparam, 1, 0, outparam, &outlen);
+			if (ret != 0) {
+				log_err("[%d] exec class command error: %d", __LINE__, ret);
+				return -2;
+			}
+
+			command = 0x0a;
+			ret = zwave_class_command(id, class, command, NULL,  0, 1, outparam, &outlen);
+			if (ret != 0) {
+				log_err("[%d] exec class command error: %d", __LINE__, ret);
+				return -2;
+			}
+
+			json_t *jdev = memory_get_dev(id);
+
+			json_t *jclasses = json_object_get(jdev, "classes");
+
+			char sclass[32];
+			sprintf(sclass, "%02x", class&0xff);
+			json_t *jclass = json_object_get(jclasses, sclass);
+
+			char scommand[32];
+			sprintf(scommand, "%02x", outparam[4]&0xff);
+			json_t *jcommand = json_object_get(jclass, scommand);
+			if (jcommand != NULL) {
+				json_object_del(jclass, scommand);
+			}
+
+			char svalue[(outparam[2] - 2) * 3+1];
+			hex_string(svalue, sizeof(svalue), (const u8*)&outparam[5], outparam[2] - 2, 1, ' ');
+			json_object_set_new(jclass, scommand, json_string(svalue));
+		}
+
+		if (exclusive_support) {
+			char outparam[128];
+			int outlen;
+			char command = 0x06;
+			char inparam[1] = {0x01};
+			int ret;
+			ret = zwave_class_command(id, class, command, inparam, 1, 0, outparam, &outlen);
+			if (ret != 0) {
+				log_err("[%d] exec class command error: %d", __LINE__, ret);
+				return -2;
+			}
+
+			command = 0x07;
+			ret = zwave_class_command(id, class, command, NULL,  0, 1, outparam, &outlen);
+			if (ret != 0) {
+				log_err("[%d] exec class command error: %d", __LINE__, ret);
+				return -2;
+			}
+
+			json_t *jdev = memory_get_dev(id);
+
+			json_t *jclasses = json_object_get(jdev, "classes");
+
+			char sclass[32];
+			sprintf(sclass, "%02x", class&0xff);
+			json_t *jclass = json_object_get(jclasses, sclass);
+
+			char scommand[32];
+			sprintf(scommand, "%02x", outparam[4]&0xff);
+			json_t *jcommand = json_object_get(jclass, scommand);
+			if (jcommand != NULL) {
+				json_object_del(jclass, scommand);
+			}
+
+			char svalue[(outparam[2] - 2) * 3+1];
+			hex_string(svalue, sizeof(svalue), (const u8*)&outparam[5], outparam[2] - 2, 1, ' ');
+			json_object_set_new(jclass, scommand, json_string(svalue));
+		}
+
+		if (1) {
+			char outparam[128];
+			int outlen;
+			char command = 0x01;
+			char inparam[2] = {0x00, 0x00};
+			int ret;
+			ret = zwave_class_command(id, class, command, inparam, 2, 0, outparam, &outlen);
+			if (ret != 0) {
+				log_err("[%d] exec class command error: %d", __LINE__, ret);
+				return -2;
+			}
+
+			command = 0x02;
+			ret = zwave_class_command(id, class, command, NULL,  0, 1, outparam, &outlen);
+			if (ret != 0) {
+				log_err("[%d] exec class command error: %d", __LINE__, ret);
+				return -2;
+			}
+
+			json_t *jdev = memory_get_dev(id);
+
+			json_t *jclasses = json_object_get(jdev, "classes");
+
+			char sclass[32];
+			sprintf(sclass, "%02x", class&0xff);
+			json_t *jclass = json_object_get(jclasses, sclass);
+
+			char scommand[32];
+			sprintf(scommand, "%02x", outparam[4]&0xff);
+			json_t *jcommand = json_object_get(jclass, scommand);
+			if (jcommand != NULL) {
+				json_object_del(jclass, scommand);
+			}
+
+			char svalue[(outparam[2] - 2) * 3+1];
+			hex_string(svalue, sizeof(svalue), (const u8*)&outparam[5], outparam[2] - 2, 1, ' ');
+			json_object_set_new(jclass, scommand, json_string(svalue));
+		}
+	}
+
+	return 0;
+}
+int configure_init(int id, char class, int version) {
+	return 0;
+}
+
+
+
 ///////////////////////////test//////////////////////////////////////////////
 int zwave_test() {
 	stInventory_t *inv = zwave_get_inventory();
@@ -2086,7 +2435,18 @@ static int zwave_light_onoff(stEvent_t *e) {
 			break;
 		}	
 
-
+#if 1
+		command = 0x02;
+		log_info("id:%d, class:%02x, command:%02x", id, class, command);
+		ret = zwave_class_command(id, class, command, NULL, 0, 0, outparam, &outlen);
+		if (ret < 0) {
+			log_err("[%d] binray switch onoff get failed: %d", __LINE__, ret);
+			break;
+		}	
+		
+		json_object_del(jret, "ret");
+		json_object_set_new(jret, "ret", json_integer(0));
+#else 
 		command = 0x02;
 		log_info("id:%d, class:%02x, command:%02x", id, class, command);
 		ret = zwave_class_command(id, class, command, NULL, 0, 1, outparam, &outlen);
@@ -2122,6 +2482,7 @@ static int zwave_light_onoff(stEvent_t *e) {
 		//json_object_set_new(jrpt, "name", json_string("onoff"));
 		json_object_set_new(jrpt, "value", json_integer(onoff));
 		zwave_iface_report(jrpt);
+#endif
 	}
 
 	zwave_iface_push(jret);
@@ -2342,6 +2703,7 @@ static int zwave_async_data(stDataFrame_t *dfr) {
 		}
 	}
 
+	system_led_shot("zigbee");
 	return 0;
 }
 

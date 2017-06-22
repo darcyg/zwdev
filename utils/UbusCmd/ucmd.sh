@@ -17,26 +17,26 @@ TIME='{"PKT":"{\"to\": \"ZWAVE\", \"from\": \"CLOUD\", \"type\": \"cmd\", \"data
 
 case $1 in
 	"list")
-		sudo ubus send "DS.ZWAVE" "$LIST"
+		sudo ubus send "DS.GATEWAY" "$LIST"
 		;;
 	"add")
-		#sudo ubus send "DS.ZWAVE" "$ADD"
+		#sudo ubus send "DS.GATEWAY" "$ADD"
 		echo not not support
 		;;
 	"del")
-		sudo ubus send "DS.ZWAVE" "$DEL"
+		sudo ubus send "DS.GATEWAY" "$DEL"
 		;;
 	"find")
-		sudo ubus send "DS.ZWAVE" "$FIND"
+		sudo ubus send "DS.GATEWAY" "$FIND"
 		;;
 	"onoff")
-		sudo ubus send "DS.ZWAVE" "$ONOFF"
+		sudo ubus send "DS.GATEWAY" "$ONOFF"
 		;;
 	"gstatus")
-		sudo ubus send "DS.ZWAVE" "$STATUS"
+		sudo ubus send "DS.GATEWAY" "$STATUS"
 		;;
 	"time")
-		sudo ubus send "DS.ZWAVE" "$TIME"
+		sudo ubus send "DS.GATEWAY" "$TIME"
 		;;
 	*)
 		echo "not support cmd"

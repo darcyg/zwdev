@@ -147,3 +147,55 @@ int system_mac_get(char *mac) {
   return 0;
 }
 
+
+/* 
+ * led stuff 
+ */
+static int  write_led_attribute(char * led, char * att, char * value) {
+    char path[100];
+    char str[20];
+    sprintf(path, "/sys/class/leds/%s/%s", led, att);
+    sprintf(str, "%s\n", value);
+    FILE * fp = fopen(path, "w");
+    if (!fp)
+        return -1;
+
+    fputs(str, fp);
+    fclose(fp);
+    return 0;
+}
+
+int system_led_on(char * led)
+{
+  write_led_attribute(led, "trigger", "none");
+  write_led_attribute(led, "brightness", "1");
+	return 0;
+}
+
+int system_led_off(char * led)
+{
+  write_led_attribute(led, "trigger", "none");
+  write_led_attribute(led, "brightness", "0");
+	return 0;
+}
+
+int system_led_blink(char * led, int delay_on, int delay_off)
+{
+  char delay_on_str[16];
+  char delay_off_str[16];
+
+  sprintf(delay_on_str, "%d", delay_on);
+  sprintf(delay_off_str, "%d", delay_off);
+
+  write_led_attribute(led, "trigger", "timer");
+  write_led_attribute(led, "delay_on", delay_on_str);
+  write_led_attribute(led, "delay_off", delay_off_str);
+	return 0;
+}
+
+int system_led_shot(char * led)
+{
+  write_led_attribute(led, "trigger", "oneshot");
+  write_led_attribute(led, "shot", "1");
+	return 0;
+}

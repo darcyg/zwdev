@@ -96,7 +96,7 @@ int uproto_init(void *_th, void *_fet) {
 	ue.ubus_ctx = ubus_connect(NULL);
   memset(&ue.listener, 0, sizeof(ue.listener));
   ue.listener.cb = ubus_receive_event;
-  ubus_register_event_handler(ue.ubus_ctx, &ue.listener, "DS.ZWAVE");
+  ubus_register_event_handler(ue.ubus_ctx, &ue.listener, "DS.GATEWAY");
   file_event_reg(ue.fet, ue.ubus_ctx->sock.fd, uproto_in, NULL, NULL);
 	return 0;
 }
@@ -140,7 +140,7 @@ static int uproto_handler_event(stEvent_t *e) {
     if (smsg != NULL) {
 			blob_buf_init(&b, 0);
 		  blobmsg_add_string(&b, "PKT", smsg);
-      ubus_send_event(ue.ubus_ctx, "DS.ZWAVE", b.head);
+      ubus_send_event(ue.ubus_ctx, "DS.GATEWAY", b.head);
       free(smsg);
 		}
 
@@ -638,7 +638,9 @@ static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char 
 		return -2;
 	}
 
+	system_led_blink("zigbee", 500, 500);
 	int ret = zwave_iface_exclude(mac);
+	system_led_off("zigbee");
 
 	uproto_response_ucmd(uuid, ret);
 
@@ -648,7 +650,9 @@ static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char 
 static int set_mod_find_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
 	log_debug("[%s]", __func__);
 
+	system_led_blink("zigbee", 500, 500);
 	int ret = zwave_iface_include();
+	system_led_off("zigbee");
 	
 	uproto_response_ucmd(uuid, ret);
 
