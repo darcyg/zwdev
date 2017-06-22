@@ -147,7 +147,7 @@ int parse_args(int argc, char *argv[]) {
 	while((ch = getopt(argc,argv,"Cd:b:"))!= -1){
 		switch(ch){
 			case 'C': 
-				use_cmd = !!atoi(optarg);
+				use_cmd = 1;
 				break;
 			case 'd':
 				uart_dev = optarg;
