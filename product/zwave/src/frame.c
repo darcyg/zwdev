@@ -175,7 +175,8 @@ int	frame_send(stDataFrame_t *df, int timeout) {
 	log_debug_hex("SerialData:", debug_buf,  debug_len);
 #endif
 
-	usleep(10000);
+	struct timeval tv = {0, 10000};
+	select(0, NULL, NULL, NULL, &tv);
 
 	return 0;
 }

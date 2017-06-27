@@ -36,6 +36,10 @@ srcs							+= $(ROOTDIR)/src/ayla/hex.c
 srcs							+= $(ROOTDIR)/product/zwave/src/serial.c
 srcs							+= $(ROOTDIR)/product/zwave/src/frame.c
 srcs							+= $(ROOTDIR)/product/zwave/src/zwave.c
+srcs							+= $(ROOTDIR)/product/zwave/src/zwave_api.c
+srcs							+= $(ROOTDIR)/product/zwave/src/zwave_class.c
+srcs							+= $(ROOTDIR)/product/zwave/src/zwave_class_init.c
+
 
 srcs							+= $(ROOTDIR)/product/zwave/src/flash.c
 srcs							+= $(ROOTDIR)/product/zwave/src/memory.c
