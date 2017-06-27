@@ -10,6 +10,9 @@
 #include <limits.h>
 #include <errno.h>
 #include <time.h>
+#include <fcntl.h>
+
+
 
 #include "common.h"
 #include "log.h"
@@ -46,6 +49,7 @@ static int uart_buad = 115200;
 
 int parse_args(int argc, char *argv[]);
 int usage();
+int write_pid();
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char *argv[]) {
@@ -56,6 +60,11 @@ int main(int argc, char *argv[]) {
 	if (parse_args(argc, argv) != 0) {
 		usage();
 		return -1;
+	}
+
+	if (write_pid() != 0) {
+		log_err("zwdevd has startted!");
+		return -2;
 	}
 
 	run_main();
@@ -173,3 +182,28 @@ int usage() {
 	return 0;
 }
 
+int write_pid() {
+	int fd = -1;
+	if (access("/var/run/zwdevd.pid", F_OK) != 0) {
+		fd = open("/var/run/zwdevd.pid", O_WRONLY | O_CREAT, 0644);
+	} else {
+		fd = open("/var/run/zwdevd.pid", O_WRONLY);
+	}
+	
+	if (fd < 0) {
+		return -1;
+	}
+	
+	if (flock(fd, LOCK_EX | LOCK_NB) < 0) {
+		return -2;
+	}
+	
+	char buf[64];
+	
+	sprintf(buf, "%d\n", (int)getpid());
+	if (write(fd, buf, strlen(buf)) != strlen(buf)) {
+		return -3;
+	}
+	
+	return 0;
+}

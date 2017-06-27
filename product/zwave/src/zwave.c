@@ -233,7 +233,7 @@ int zwave_init(void *_th, void *_fet, const char *dev, int buad) {
 
 	lockqueue_init(&ze.eq);
 	file_event_reg(&ze.fet, frame_getfd(), zwave_in, NULL, NULL);
-	int ret = pipe(ze.pipe);
+	ret = pipe(ze.pipe);
 	ret = ret;
 	file_event_reg(&ze.fet, ze.pipe[0], pipe_in, NULL, NULL);
 
