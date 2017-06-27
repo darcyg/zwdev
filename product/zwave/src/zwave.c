@@ -217,12 +217,18 @@ int zwave_init(void *_th, void *_fet, const char *dev, int buad) {
 		return -1;
 	}
 
-	zwave_api_ZWaveGetVersion(&ze.inventory.ver);
-	zwave_api_SerialApiGetInitData(&ze.inventory.initdata);
-	zwave_api_SerialApiGetCapabilities(&ze.inventory.caps);
-	zwave_api_MemoryGetId(&ze.inventory.id);
-	zwave_api_ZWaveGetSucNodeId(&ze.inventory.sucid);
-	zwave_util_sync_dev();
+	int ret = zwave_api_ZWaveGetVersion(&ze.inventory.ver);
+	if (ret != 0) return -2;
+	ret = zwave_api_SerialApiGetInitData(&ze.inventory.initdata);
+	if (ret != 0) return -2;
+	ret = zwave_api_SerialApiGetCapabilities(&ze.inventory.caps);
+	if (ret != 0) return -2;
+	ret = zwave_api_MemoryGetId(&ze.inventory.id);
+	if (ret != 0) return -2;
+	ret = zwave_api_ZWaveGetSucNodeId(&ze.inventory.sucid);
+	if (ret != 0) return -2;
+	ret = zwave_util_sync_dev();
+	if (ret != 0) return -2;
 	
 
 	lockqueue_init(&ze.eq);
