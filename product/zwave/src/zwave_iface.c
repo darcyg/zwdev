@@ -11,6 +11,7 @@
 #include "zwave_iface.h"
 #include "zwave.h"
 #include "lockqueue.h"
+#include "system.h"
 
 static int zwave_iface_pipe[2];
 static stLockQueue_t zilq;
@@ -98,6 +99,9 @@ int				zwave_iface_include() {
 
 	json_decref(jret);
 
+	zwave_iface_report_devcie_list();
+	
+
 	return 0;
 }
 int				zwave_iface_exclude(const char *mac) {
@@ -122,6 +126,10 @@ int				zwave_iface_exclude(const char *mac) {
 	}
 
 	json_decref(jret);
+
+
+	zwave_iface_report_devcie_list();
+
 
 	return 0;
 }
@@ -228,3 +236,14 @@ int zwave_iface_report(json_t *rpt) {
 	return ret;
 }
 
+
+int zwave_iface_report_devcie_list() {
+	json_t *jmsg = json_object();
+	json_t *jdevs = zwave_iface_list();
+	json_object_set_new(jmsg, "device_list", jdevs);
+
+	char gmac[32]; system_mac_get(gmac);
+	uproto_report_umsg(gmac, "mod.device_list",jmsg);
+	
+	return 0;
+}

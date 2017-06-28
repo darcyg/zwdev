@@ -10,6 +10,10 @@
 #include <libubus.h>
 #include <jansson.h>
 
+#define UPROTO_EVENT_ID_LISTEN "DS.GREENPOWER"
+#define UPROTO_EVENT_ID_REPORT "DS.GATEWAY"
+#define UPROTO_ME				"GREENPOWER"
+
 enum {
 	UE_SEND_MSG = 0x00,
 };

@@ -31,6 +31,10 @@ typedef struct stZWaveEnv {
 	struct timer tr_online;
 	struct timer tr_query;
 
+	char				 sim_mac[32];
+	int					 sim_pir;
+	struct timer sim_tr_pir;
+
 	struct file_event_table fet;
 
 	stLockQueue_t eq;

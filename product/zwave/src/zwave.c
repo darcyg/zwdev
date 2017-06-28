@@ -189,7 +189,7 @@ static void zwave_query_run(struct timer *timer) {
 
 
 		const char *type = zwave_parse_dev_type(jdev);
-		if (strcmp(type, "1212") == 0) {
+		if (strcmp(type, "1213") == 0) {
 			char outparam[128];
 			int outlen;
 			char class = 0x25;
@@ -204,12 +204,30 @@ static void zwave_query_run(struct timer *timer) {
 	timer_set(&ze.th, &ze.tr_query, 5*60 * 1000);
 }
 
+
+static void zwave_sim_pir_run(struct timer *timer) {
+	log_info("pir reset to zero~~~");
+	ze.sim_pir = 0;
+
+	json_t *jrpt = json_object();
+	json_object_set_new(jrpt, "mac", json_string(ze.sim_mac));
+	json_object_set_new(jrpt, "attr", json_string("device.zone_status"));
+	json_object_set_new(jrpt, "zone", json_string("pir"));
+
+	char rptbuf_val[32];
+	sprintf(rptbuf_val, "%d", ze.sim_pir);
+	json_object_set_new(jrpt, "value", json_string(rptbuf_val));
+
+	zwave_iface_report(jrpt);
+}
+
 int zwave_init(void *_th, void *_fet, const char *dev, int buad) {
 	log_info("[%d]", __LINE__);
 
 	timer_init(&ze.tr, zwave_run);
 	timer_init(&ze.tr_online, zwave_online_run);
 	timer_init(&ze.tr_query, zwave_query_run);
+	timer_init(&ze.sim_tr_pir, zwave_sim_pir_run);
 	file_event_init(&ze.fet);
 
 	if (frame_init(dev, buad) != 0) {
@@ -335,6 +353,7 @@ static int zwave_include(stEvent_t *e) {
 		}
 
 		zwave_util_class_init(id&0xff, &antn);
+
 	}
 	return 0;
 }
@@ -499,7 +518,7 @@ static const char *zwave_parse_dev_type(json_t *jdev) {
 	sprintf(sclass, "%02x", 0x25&0xff);
 	json_t *jclass = json_object_get(jclasses, sclass);
 	if (jclass != NULL) {
-		return "1212";
+		return "1213";
 	}
 
 	
@@ -684,7 +703,10 @@ int zwave_async_data(stDataFrame_t *dfr) {
 			json_object_set_new(jrpt, "mac", json_string(mac));
 
 			json_object_set_new(jrpt, "attr", json_string("device.light.onoff"));
-			json_object_set_new(jrpt, "value", json_integer(!!dfr->payload[5]));
+
+			char rptbuf_val[32];
+			sprintf(rptbuf_val, "%d", !!dfr->payload[5]);
+			json_object_set_new(jrpt, "value", json_string(rptbuf_val));
 
 			zwave_iface_report(jrpt);
 		} else if ((class&0xff) == 0x71 && command == 0x05) {
@@ -693,11 +715,19 @@ int zwave_async_data(stDataFrame_t *dfr) {
 				json_t *jrpt = json_object();
 				json_object_set_new(jrpt, "mac", json_string(mac));
 
-				json_object_set_new(jrpt, "attr", json_string("zone.status"));
-				json_object_set_new(jrpt, "name", json_string("pir"));
-				json_object_set_new(jrpt, "value", json_integer(!!dfr->payload[3]));
+				json_object_set_new(jrpt, "attr", json_string("device.zone_status"));
+				json_object_set_new(jrpt, "zone", json_string("pir"));
+				char rptbuf_val[32];
+				
+				strcpy(ze.sim_mac, mac);
+				ze.sim_pir = 1;
+
+				sprintf(rptbuf_val, "%d", ze.sim_pir);
+				json_object_set_new(jrpt, "value", json_string(rptbuf_val));
 
 				zwave_iface_report(jrpt);
+
+				timer_set(&ze.th, &ze.sim_tr_pir, 30*1000);
 			}
 		}
 	}

@@ -96,7 +96,7 @@ int uproto_init(void *_th, void *_fet) {
 	ue.ubus_ctx = ubus_connect(NULL);
   memset(&ue.listener, 0, sizeof(ue.listener));
   ue.listener.cb = ubus_receive_event;
-  ubus_register_event_handler(ue.ubus_ctx, &ue.listener, "DS.GATEWAY");
+  ubus_register_event_handler(ue.ubus_ctx, &ue.listener, UPROTO_EVENT_ID_LISTEN);
   file_event_reg(ue.fet, ue.ubus_ctx->sock.fd, uproto_in, NULL, NULL);
 	return 0;
 }
@@ -140,7 +140,7 @@ static int uproto_handler_event(stEvent_t *e) {
     if (smsg != NULL) {
 			blob_buf_init(&b, 0);
 		  blobmsg_add_string(&b, "PKT", smsg);
-      ubus_send_event(ue.ubus_ctx, "DS.GATEWAY", b.head);
+      ubus_send_event(ue.ubus_ctx, UPROTO_EVENT_ID_REPORT, b.head);
       free(smsg);
 		}
 
@@ -201,7 +201,7 @@ static int uproto_handler_cmd(const char *cmd) {
     log_debug("now not support ubus source : %s", from);
     goto parse_jpkt_error;
   }
-  if (strcmp(to, "ZWAVE") != 0) {
+  if (strcmp(to, UPROTO_ME) != 0) {
     log_debug("now not support ubus dest : %s", to);
     goto parse_jpkt_error;
   }
@@ -316,7 +316,7 @@ static int uproto_cmd_handler_attr_set(const char *uuid, const char *cmdmac, con
 static int uproto_response_ucmd(const char *uuid, int retval) {
 	json_t *jumsg = json_object();
 
-	const char *from				= "ZWAVE";
+	const char *from				= UPROTO_ME;
 	const char *to					= "CLOUD";
 	const char *deviceCode	= "00000";
 	const char *type				= "cmdResult";
@@ -344,7 +344,7 @@ static int uproto_response_ucmd(const char *uuid, int retval) {
 int uproto_report_umsg(const char *submac, const char *attr, json_t *jret) {
 	json_t *jumsg = json_object();
 
-	const char *from				= "ZWAVE";
+	const char *from				= UPROTO_ME;
 	const char *to					= "CLOUD";
 	const char *deviceCode	= "00000";
 	const char *type				= "reportAttribute";
@@ -604,6 +604,8 @@ static int get_mod_device_list(const char *uuid, const char *cmdmac,  const char
 static int set_mod_add_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
 	log_debug("[%s]", __func__);
 
+
+
 	if (value == NULL) {
 		log_debug("error arguments!");
 		return -1;
@@ -617,9 +619,13 @@ static int set_mod_add_device(const char *uuid, const char *cmdmac,  const char 
 		return -2;
 	}
 
-	/* now not support */
+	/* run as found_device */
+	system_led_blink("zigbee", 500, 500);
+	int ret = zwave_iface_include();
+	system_led_off("zigbee");
+	
+	uproto_response_ucmd(uuid, ret);
 
-	uproto_response_ucmd(uuid, -1);
 
 	return 0;
 }
