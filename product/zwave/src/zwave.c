@@ -44,6 +44,8 @@ static stInventory_t *zwave_util_get_inventory();
 static int						zwave_util_set_node_info(stAddNodeToNetwork_t *antn);
 static int						zwave_util_set_node_protoinfo(int id, stNodeProtoInfo_t *npi);
 static int						zwave_util_class_init(int id, stAddNodeToNetwork_t *antn);
+static json_t*				zwave_util_list();
+static int						zwave_util_listchange_auto_report();
 
 static const char *	zwave_parse_dev_mac(json_t *jdev);
 static const char *	zwave_parse_dev_type(json_t *jdev);
@@ -135,6 +137,8 @@ static void zwave_run(struct timer *timer) {
 static void zwave_online_run(struct timer *timer) {
 
 	int i = 0;
+	int offline_flag = 0;
+
 	stInventory_t *inv = zwave_util_get_inventory();
 	for (i = 0; i < inv->initdata.nodes_map_size * 8; i++) {
 		int id			= i+1;
@@ -150,15 +154,27 @@ static void zwave_online_run(struct timer *timer) {
 
 		json_t * jdev = memory_get_dev(id);
 		int online; json_get_int(jdev, "online", &online);
-		online -= 5*60;
-		if (online <= 0) {
+	
+		if (online > 0) { //online 
+			online -= 5*60;
+			if (online <= 0) {
+				online = 0;
+				offline_flag++;
+			}
+		} else if (online <= 0) { //offline , do nothing
 			online = 0;
 		}
+
 		json_object_del(jdev, "online");
 		json_object_set_new(jdev, "online", json_integer(online));
+
 	}
 
 	timer_set(&ze.th, &ze.tr_online, 5*60*1000);
+
+	if (offline_flag) {
+		zwave_util_listchange_auto_report();
+	}
 }
 
 static void zwave_query_run(struct timer *timer) {
@@ -289,40 +305,7 @@ int zwave_push(int eid, void *param, int len) {
 static int zwave_list(stEvent_t *e) {
 	log_debug("[%d]", __LINE__);
 
-	json_t *jdevs = json_array();
-	stInventory_t *inv = zwave_util_get_inventory();
-	int i = 0;
-	for (i = 0; i < inv->initdata.nodes_map_size * 8; i++) {
-		int id			= i+1;
-
-		if (id == 1) {
-			continue;
-		}
-
-		int id_bit	= (inv->initdata.nodes_map[i/8] >> (i%8))&0x1;
-		if (id_bit == 0) {
-			continue;
-		} 
-
-		json_t * jdev = memory_get_dev(id);
-		
-		const char *mac = zwave_parse_dev_mac(jdev);
-		const char *type = zwave_parse_dev_type(jdev);
-		const char *model = zwave_parse_dev_model(jdev);
-		int online = zwave_parse_dev_online(jdev);
-		const char *version = zwave_parse_dev_version(jdev);
-		int battery = zwave_parse_dev_battery(jdev);
-
-		json_t *jitem = json_object();
-		json_object_set_new(jitem,	"mac",			json_string(mac));
-		json_object_set_new(jitem,	"type",			json_string(type));
-		json_object_set_new(jitem,	"model",		json_string(model));
-		json_object_set_new(jitem,	"online",		json_integer(online));
-		json_object_set_new(jitem,	"version",	json_string(version));
-		json_object_set_new(jitem,	"battery",	json_integer(battery));
-
-		json_array_append_new(jdevs, jitem);
-	}
+	json_t *jdevs = zwave_util_list();
 
 	zwave_iface_push(jdevs);
 
@@ -693,8 +676,14 @@ int zwave_async_data(stDataFrame_t *dfr) {
 	memory_set_dev(id, jdev);
 	flash_save_dev(id, jdev);
 
+	int online_old; json_get_int(jdev, "online", &online_old);
 	json_object_del(jdev, "online");
 	json_object_set_new(jdev, "online", json_integer(15*60));
+
+	if (online_old <= 0) {
+		zwave_util_listchange_auto_report();
+	}
+	
 
 	{
 		if ((class&0xff) == 0x25 && command == 0x03) {
@@ -840,5 +829,60 @@ static int	zwave_util_set_node_protoinfo(int id, stNodeProtoInfo_t *npi) {
 
 	memory_set_dev(id, jdev);
 	flash_save_dev(id, jdev);
+	return 0;
+}
+
+static json_t* zwave_util_list() {
+	json_t *jdevs = json_array();
+	stInventory_t *inv = zwave_util_get_inventory();
+	int i = 0;
+	for (i = 0; i < inv->initdata.nodes_map_size * 8; i++) {
+		int id			= i+1;
+
+		if (id == 1) {
+			continue;
+		}
+
+		int id_bit	= (inv->initdata.nodes_map[i/8] >> (i%8))&0x1;
+		if (id_bit == 0) {
+			continue;
+		} 
+
+		json_t * jdev = memory_get_dev(id);
+		
+		const char *mac = zwave_parse_dev_mac(jdev);
+		const char *type = zwave_parse_dev_type(jdev);
+		const char *model = zwave_parse_dev_model(jdev);
+		int online = zwave_parse_dev_online(jdev);
+		const char *version = zwave_parse_dev_version(jdev);
+		int battery = zwave_parse_dev_battery(jdev);
+
+		json_t *jitem = json_object();
+		json_object_set_new(jitem,	"mac",			json_string(mac));
+		json_object_set_new(jitem,	"type",			json_string(type));
+		json_object_set_new(jitem,	"model",		json_string(model));
+		json_object_set_new(jitem,	"online",		json_integer(online));
+		json_object_set_new(jitem,	"version",	json_string(version));
+		json_object_set_new(jitem,	"battery",	json_integer(battery));
+
+		json_array_append_new(jdevs, jitem);
+	}
+	
+	return jdevs;
+}
+
+static int	zwave_util_listchange_auto_report() {
+	json_t *jmsg = json_object();
+
+	json_t *jdevs = zwave_util_list();
+	json_object_set_new(jmsg, "device_list", jdevs);
+
+	char gmac[32]; system_mac_get(gmac);
+	json_object_set_new(jmsg, "mac", json_string(gmac));
+
+	json_object_set_new(jmsg, "attr", json_string("mod.device_list"));
+	
+	zwave_iface_report(jmsg);
+
 	return 0;
 }

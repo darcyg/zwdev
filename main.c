@@ -6,6 +6,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <signal.h>
 #include <limits.h>
 #include <errno.h>
