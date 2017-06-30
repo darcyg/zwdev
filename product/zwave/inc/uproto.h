@@ -14,6 +14,29 @@
 #define UPROTO_EVENT_ID_REPORT "DS.GATEWAY"
 #define UPROTO_ME				"GREENPOWER"
 
+enum emUprotoError{
+	CODE_SUCCESS									= 0,			// 成功
+	CODE_NXP_SECURITY_HANDINGSHAKE= 96,			// NXP加锁和设备时，设备已经通讯上，正在进行加密握手操作
+	CODE_UPGRADE_STARTED					= 97,			// 升级开始
+	CODE_UPGRADE_SUCCESS					= 98,			// 升级成功
+	CODE_WAIT_TO_EXECUTE					= 99,			// 命令已经收到，等待执行
+	CODE_UNKNOW_ERROR							= 199,		// 未知错误
+	CODE_WRONG_FORMAT							= 101,		// 报文格式错误
+	CODE_UNKNOW_DEVICE						= 102,		// 未知的设备，指定的设备不存在
+	CODE_UNKNOW_ATTRIBUTE					= 103,		// 未知的属性值
+	CODE_TIMEOUT									= 104,		// 操作超时
+	CODE_BUSY											= 105,		// 设备忙，已经有待执行的命令，且这个命令不能同时进行
+	CODE_UNKNDOW_CMD							=	106,		// 未知的命令
+	CODE_NOT_SUPPORTED						= 107,		// 不支持的操作
+	CODE_UPGRADE_MD5SUM_FAILED		= 108,		// 升级时MD5SUM校验失败
+	CODE_UPGRADE_DOWNLOAD_FAILED	= 109,		// 升级时固件下载失败
+	CODE_UPGRADE_FAILED						= 110,		// 升级失败
+	CODE_PASSWORD_ALREADY_EXISTS	= 111,		// 密码已经存在
+	CODE_PASSWORD_FULL						= 112,		// 密码表已经满了
+	CODE_PASSWORD_NOT_EXISTS			= 113,		// 要删除的密码不成功
+	CODE_MINUS_1									= -1,			// 未执行且不再执行的命令，由服务端更新
+}emUprotoError_t;
+
 enum {
 	UE_SEND_MSG = 0x00,
 };

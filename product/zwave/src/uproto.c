@@ -538,6 +538,7 @@ static int set_gw_firmware(const char *uuid, const char *cmdmac,  const char *at
 
 	if (value == NULL) {
 		log_debug("error arguments!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -1;
 	}
 
@@ -546,6 +547,7 @@ static int set_gw_firmware(const char *uuid, const char *cmdmac,  const char *at
 
 	if (md5sum == NULL || url == NULL) {
 		log_debug("error arguments (md5sum/url null?)!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -2;
 	}
 
@@ -560,6 +562,7 @@ static int set_gw_remove_shell(const char *uuid, const char *cmdmac,  const char
 
 	if (value == NULL) {
 		log_debug("error arguments!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -1;
 	}
 
@@ -568,6 +571,7 @@ static int set_gw_remove_shell(const char *uuid, const char *cmdmac,  const char
 
 	if (server == NULL || port == 0) {
 		log_debug("error arguments (server/port null?)!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -2;
 	}
 
@@ -584,6 +588,7 @@ static int get_mod_device_list(const char *uuid, const char *cmdmac,  const char
 	json_t *jret = json_object();
 	if (jret == NULL) {
 		log_debug("out of memory!");
+		uproto_response_ucmd(uuid, 0);
 		return -1;
 	}
 
@@ -608,6 +613,7 @@ static int set_mod_add_device(const char *uuid, const char *cmdmac,  const char 
 
 	if (value == NULL) {
 		log_debug("error arguments!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -1;
 	}
 	
@@ -616,6 +622,7 @@ static int set_mod_add_device(const char *uuid, const char *cmdmac,  const char 
 
 	if (mac == NULL || type == NULL) {
 		log_debug("error arguments (server/port null?)!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -2;
 	}
 
@@ -624,6 +631,7 @@ static int set_mod_add_device(const char *uuid, const char *cmdmac,  const char 
 	int ret = zwave_iface_include();
 	system_led_off("zigbee");
 	
+	if (ret != 0) ret = CODE_TIMEOUT;
 	uproto_response_ucmd(uuid, ret);
 
 
@@ -634,6 +642,7 @@ static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char 
 
 	if (value == NULL) {
 		log_debug("error arguments!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -1;
 	}
 	
@@ -641,6 +650,7 @@ static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char 
 	const char *type  = json_get_string(value, "type");
 	if (mac == NULL || type == NULL) {
 		log_debug("error arguments (mac/type null?)!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -2;
 	}
 
@@ -648,6 +658,7 @@ static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char 
 	int ret = zwave_iface_exclude(mac);
 	system_led_off("zigbee");
 
+	if (ret != 0) ret = CODE_TIMEOUT;
 	uproto_response_ucmd(uuid, ret);
 
 
@@ -660,6 +671,7 @@ static int set_mod_find_device(const char *uuid, const char *cmdmac,  const char
 	int ret = zwave_iface_include();
 	system_led_off("zigbee");
 	
+	if (ret != 0) ret = CODE_TIMEOUT;
 	uproto_response_ucmd(uuid, ret);
 
 	return 0;
@@ -670,17 +682,20 @@ static int set_device_light_onoff(const char *uuid, const char *cmdmac,  const c
 
 	if (value == NULL) {
 		log_debug("error arguments!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -1;
 	}
 	
 	const char *val		= json_get_string(value, "value");
 	if (val == NULL) {
 		log_debug("error arguments (value null?)!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -2;
 	}
 
 	int ret = zwave_iface_device_light_onoff(cmdmac, !!(val[0] - '0'));
 
+	if (ret != 0) ret = CODE_TIMEOUT;
 	uproto_response_ucmd(uuid, ret);
 
 	return 0;
@@ -690,6 +705,7 @@ static int set_device_light_toggle(const char *uuid, const char *cmdmac,  const 
 
 	int ret = zwave_iface_device_light_toggle(cmdmac);
 
+	if (ret != 0) ret = CODE_TIMEOUT;
 	uproto_response_ucmd(uuid, ret);
 	
 	return 0;
@@ -699,12 +715,14 @@ static int set_device_light_brightness(const char *uuid, const char *cmdmac,  co
 
 	if (value == NULL) {
 		log_debug("error arguments!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -1;
 	}
 	
 	const char *val		= json_get_string(value, "value");
 	if (val == NULL) {
 		log_debug("error arguments (value null?)!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -2;
 	}
 
@@ -714,9 +732,11 @@ static int set_device_light_brightness(const char *uuid, const char *cmdmac,  co
 		ret = zwave_iface_device_light_brightness(cmdmac, val[0] - '0');
 	} else {
 		log_debug("error brightness value");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -3;
 	}
 
+	if (ret != 0) ret = CODE_TIMEOUT;
 	uproto_response_ucmd(uuid, ret);
 	return 0;
 }
