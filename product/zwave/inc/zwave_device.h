@@ -81,4 +81,7 @@ int device_update_cmds_data(stZWaveCommand_t *zc, char *data, int len);
 char *device_get_extaddr(stZWaveDevice_t *zd);
 
 
+stZWaveClass_t *device_get_class(stZWaveDevice_t *zd, char ep, char classid);
+
+
 #endif

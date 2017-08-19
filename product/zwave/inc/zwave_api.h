@@ -185,7 +185,7 @@ int zwave_api_ZWaveAddNodeToNetwork(stAddNodeToNetwork_t *antn);
 int zwave_api_ZWaveRemoveNodeFromNetwork();
 int zwave_api_ZWaveSendData(void *data, int len);
 
-int zwave_api_util_cc(int id, char class, int command, char *inparam, int inlen, int wait,  char  *outparam, int *outlen);
+int zwave_api_util_cc(int id, char ep, char class, int command, char *inparam, int inlen, int wait,  char  *outparam, int *outlen);
 int zwave_api_util_wait_frame(stDataFrame_t **dfr, int timeout, char expect);
 
 #endif

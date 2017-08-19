@@ -237,3 +237,27 @@ int device_update_cmds_data(stZWaveCommand_t *zc, char *data, int len) {
 
 
 
+stZWaveClass_t *device_get_class(stZWaveDevice_t *zd, char epid, char classid) {
+	stZWaveEndPoint_t *ep = NULL;
+	
+	if (epid == 0) {
+		ep = &zd->root;
+	} else {
+		ep = device_get_subep(zd, ep);
+	}
+
+	if (ep == NULL) {
+		return NULL;
+	}
+
+
+	int i = 0;
+	for (i = 0; i < ep->classcnt; i++) {
+		stZWaveClass_t *class = &ep->classes[i];
+		if (class->classid == classid) {
+			return class;
+		}
+	}
+
+	return NULL;
+}

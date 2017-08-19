@@ -14,7 +14,7 @@ int zwave_class_version_get(int id, char class) {
 	char outparam[128];
 	char inparam[1] = {class&0xff};
 	int outlen;
-	int ret = zwave_api_util_cc(id, 0x86, 0x13, inparam, sizeof(inparam), 1, outparam, &outlen);
+	int ret = zwave_api_util_cc(id, 0, 0x86, 0x13, inparam, sizeof(inparam), 1, outparam, &outlen);
 
 	if (ret != 0) {
 		log_err("[%d] exec class command error: %d", __LINE__, ret);
@@ -32,5 +32,4 @@ int zwave_class_version_get(int id, char class) {
 	int version = outparam[6] & 0xff;
 
 	return version;
-
 }

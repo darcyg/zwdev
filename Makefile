@@ -38,8 +38,8 @@ srcs							+= $(ROOTDIR)/product/zwave/src/frame.c
 srcs							+= $(ROOTDIR)/product/zwave/src/zwave_api.c
 srcs							+= $(ROOTDIR)/product/zwave/src/zwave_device.c
 srcs							+= $(ROOTDIR)/product/zwave/src/zwave_device_storage.c
-#srcs							+= $(ROOTDIR)/product/zwave/src/zwave.c
-#srcs							+= $(ROOTDIR)/product/zwave/src/zwave_class.c
+srcs							+= $(ROOTDIR)/product/zwave/src/zwave.c
+srcs							+= $(ROOTDIR)/product/zwave/src/zwave_class.c
 #srcs							+= $(ROOTDIR)/product/zwave/src/zwave_class_init.c
 
 srcs							+= $(ROOTDIR)/product/zwave/src/zwave_util.c

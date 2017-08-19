@@ -17,7 +17,7 @@ int zwave_test();
 
 typedef struct stZWaveEnv {
 	struct timer_head *th;
-	struct file_event *fet;
+	struct file_event_table *fet;
 
 	struct timer tr;
 	struct timer tr_online;
@@ -25,13 +25,15 @@ typedef struct stZWaveEnv {
 
 	stLockQueue_t eq;
 
+	stInventory_t inventory;
+
 }stZWaveEnv_t;
 
 //int zwave_list(); move to zwave_iface
 int zwave_include();
 int zwave_exclude(char mac[8]);
 //int zwave_info(); move to zwave_iface
-int zwave_light_onoff(char mac[8], int onoff);
+int zwave_light_onoff(char mac[8], char ep, int onoff);
 
 
 #endif
