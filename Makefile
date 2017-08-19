@@ -35,19 +35,17 @@ srcs							+= $(ROOTDIR)/src/ayla/hex.c
 
 srcs							+= $(ROOTDIR)/product/zwave/src/serial.c
 srcs							+= $(ROOTDIR)/product/zwave/src/frame.c
-srcs							+= $(ROOTDIR)/product/zwave/src/zwave.c
 srcs							+= $(ROOTDIR)/product/zwave/src/zwave_api.c
-srcs							+= $(ROOTDIR)/product/zwave/src/zwave_class.c
-srcs							+= $(ROOTDIR)/product/zwave/src/zwave_class_init.c
+srcs							+= $(ROOTDIR)/product/zwave/src/zwave_device.c
+srcs							+= $(ROOTDIR)/product/zwave/src/zwave_device_storage.c
+#srcs							+= $(ROOTDIR)/product/zwave/src/zwave.c
+#srcs							+= $(ROOTDIR)/product/zwave/src/zwave_class.c
+#srcs							+= $(ROOTDIR)/product/zwave/src/zwave_class_init.c
 
+srcs							+= $(ROOTDIR)/product/zwave/src/zwave_util.c
 
-srcs							+= $(ROOTDIR)/product/zwave/src/flash.c
-srcs							+= $(ROOTDIR)/product/zwave/src/memory.c
-
-srcs							+= $(ROOTDIR)/product/zwave/src/cmd.c
 srcs							+= $(ROOTDIR)/product/zwave/src/zwave_iface.c
-
-srcs							+= $(ROOTDIR)/product/zwave/src/system.c
+srcs							+= $(ROOTDIR)/product/zwave/src/cmd.c
 srcs							+= $(ROOTDIR)/product/zwave/src/uproto.c
 
 srcs							+= $(ROOTDIR)/src/lockqueue.c

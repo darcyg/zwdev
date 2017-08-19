@@ -9,36 +9,29 @@ int zwave_init(void *_th, void *_fet, const char *dev, int buad);
 typedef int (*ZWAVE_IFACE_FUNC)(stEvent_t *e);
 
 enum {
-	E_ZWAVE_LIST = 0,
-	E_ZWAVE_INCLUDE = 1,
-	E_ZWAVE_EXCLUDE = 2,
-	E_ZWAVE_GET = 3,
-	E_ZWAVE_SET = 4,
-	E_ZWAVE_INFO = 5,
-	E_ZWAVE_LIGHT_ONOFF = 6,
-	E_ZWAVE_LIGHT_TOGGLE = 7,
-	E_ZWAVE_LIGHT_BRIGHTNESS = 8,
+	E_UNUSED = 0,
 };
 int zwave_push(int eid, void *param, int len);
 
 int zwave_test();
 
 typedef struct stZWaveEnv {
-	stInventory_t inventory;
+	struct timer_head *th;
+	struct file_event *fet;
 
-	struct timer_head th;
 	struct timer tr;
 	struct timer tr_online;
 	struct timer tr_query;
 
-	char				 sim_mac[32];
-	int					 sim_pir;
-	struct timer sim_tr_pir;
-
-	struct file_event_table fet;
-
 	stLockQueue_t eq;
-	bool run_flag;
-	int pipe[2];
+
 }stZWaveEnv_t;
+
+//int zwave_list(); move to zwave_iface
+int zwave_include();
+int zwave_exclude(char mac[8]);
+//int zwave_info(); move to zwave_iface
+int zwave_light_onoff(char mac[8], int onoff);
+
+
 #endif

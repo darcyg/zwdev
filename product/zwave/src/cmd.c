@@ -11,7 +11,7 @@
 
 #include "cmd.h"
 #include "zwave_iface.h"
-#include "system.h"
+#include "zwave_util.h"
 
 
 void do_cmd_exit(char *argv[], int argc);

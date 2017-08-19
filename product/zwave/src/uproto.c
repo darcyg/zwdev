@@ -8,8 +8,8 @@
 #include "json_parser.h"
 
 #include "uproto.h"
-#include "system.h"
 #include "zwave_iface.h"
+#include "zwave_util.h"
 
 static stUprotoEnv_t ue;
 

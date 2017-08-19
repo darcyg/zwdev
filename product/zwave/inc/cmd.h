@@ -2,8 +2,8 @@
 #define __CMD_H_
 
 #include "timer.h"
-#include "file_event.h"
 #include "lockqueue.h"
+#include "file_event.h"
 
 typedef struct stCmd {
 	const char *name;

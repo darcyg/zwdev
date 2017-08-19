@@ -1,5 +1,9 @@
-#include "device_storage.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
+#include "zwave_device_storage.h"
 
 static stDsHeader_t *g_dh = NULL;
 static char *g_path = "/etc/config/dusun/alink/devices.db";
@@ -11,7 +15,8 @@ static int ds_create_dir(const char *path) {
 #else
 	char cmd[256];
 	sprintf(cmd, "mkdir -p %s", path);
-	system(cmd);
+	int ret = system(cmd);
+	ret = ret;
 #endif
 	return 0;
 }
@@ -86,18 +91,20 @@ static stDsHeader_t *ds_read_header(const char *path) {
 
 	fseek(fp, 0, SEEK_SET);
 
-	fread(&dh->ecnt, 4, 1, fp);
+	int ret = fread(&dh->ecnt, 4, 1, fp);
+	ret = ret;
 	int i = 0;
 	if (dh->ecnt > 0) {
 		dh->elems = (stDsElem_t*)malloc(sizeof(stDsElem_t)*dh->ecnt);
 	}
 	for (i = 0; i < dh->ecnt; i++) {
-		fread(&dh->elems[i].tag, 4, 1, fp);
-		fread(&dh->elems[i].maxnum, 4, 1, fp);
-		fread(&dh->elems[i].num, 4, 1, fp);
-		fread(&dh->elems[i].size, 4, 1, fp);
+		ret = fread(&dh->elems[i].tag, 4, 1, fp);
+		ret = fread(&dh->elems[i].maxnum, 4, 1, fp);
+		ret = fread(&dh->elems[i].num, 4, 1, fp);
+		ret = fread(&dh->elems[i].size, 4, 1, fp);
 		dh->elems[i].map = malloc(BIT_BYPE_NUM(dh->elems[i].maxnum));
-		fread(dh->elems[i].map, BIT_BYPE_NUM(dh->elems[i].maxnum), 1, fp);
+		ret = fread(dh->elems[i].map, BIT_BYPE_NUM(dh->elems[i].maxnum), 1, fp);
+		ret = ret;
 	}
 
 	fclose(fp); 
@@ -182,7 +189,8 @@ static int ds_file_exsit(const char *path) {
 
 static stDsElem_t *ds_match_elem(int tag) {
 	stDsHeader_t *dh = g_dh;
-	for (int i = 0; i < dh->ecnt; i++) {
+	int i = 0;
+	for (i = 0; i < dh->ecnt; i++) {
 		if (dh->elems[i].tag == tag) {
 			return &dh->elems[i];
 		}
@@ -290,7 +298,7 @@ static int ds_free_command(stZWaveCommand_t *command) {
 }
 
 static int ds_free_class(stZWaveClass_t *class) {
-	ds_free('C', cls->nbit);
+	ds_free('C', class->nbit);
 	class->nbit = -1;
 	class->nbit_next = -1;
 	class->nbit_cmds_head = -1;
@@ -341,12 +349,12 @@ static int ds_malloc_command(stZWaveCommand_t *command) {
 }
 
 static int ds_malloc_class(stZWaveClass_t *class) {
-	cls->nbit = ds_malloc('C');
+	class->nbit = ds_malloc('C');
 
-	if (cls->cmdcnt > 0) {
+	if (class->cmdcnt > 0) {
 		int i = 0;
 		for (i = 0; i < class->cmdcnt; i++) {
-			ds_malloc_attr(&cls->cmds[i]);
+			ds_malloc_command(&class->cmds[i]);
 
 			if (i == 0) {
 				class->nbit_cmds_head = class->cmds[i].nbit;
@@ -371,7 +379,7 @@ static int ds_malloc_ep(stZWaveEndPoint_t *ep) {
 	if (ep->classcnt > 0) {
 		int i = 0;
 		for (i = 0; i < ep->classcnt; i++) {
-			ds_malloc_cls(&ep->classes[i]);
+			ds_malloc_class(&ep->classes[i]);
 			if (i == 0) {
 				ep->nbit_classes_head = ep->classes[i].nbit;
 			} else {
@@ -415,19 +423,21 @@ static int ds_malloc_device(stZWaveDevice_t *dev) {
 }
 
 static int ds_save_command(FILE *fp, stZWaveCommand_t *command) {
-	fseek(fp, ds_offset('M', ep->nbit), SEEK_SET);
-	fwrite(ep, ds_tag_size('M'), 1, fp);
+	fseek(fp, ds_offset('M', command->nbit), SEEK_SET);
+	fwrite(command, ds_tag_size('M'), 1, fp);
+	return 0;
 }
 
 static int ds_save_command_data(FILE *fp, stZWaveCommand_t *command) {
-	fseek(fp, ds_offset('M', ep->nbit) , SEEK_SET);
-	fwrite(ep, ds_tag_size('M'), 1, fp);
+	fseek(fp, ds_offset('M', command->nbit) , SEEK_SET);
+	fwrite(command, ds_tag_size('M'), 1, fp);
+	return 0;
 }
 
 
 static int ds_save_class(FILE *fp, stZWaveClass_t *class) {
-	fseek(fp, ds_offset('C', ep->nbit), SEEK_SET);
-	fwrite(ep, ds_tag_size('C'), 1, fp);
+	fseek(fp, ds_offset('C', class->nbit), SEEK_SET);
+	fwrite(class, ds_tag_size('C'), 1, fp);
 
 	if (class->cmdcnt > 0) {
 		int i = 0;
@@ -435,6 +445,7 @@ static int ds_save_class(FILE *fp, stZWaveClass_t *class) {
 			ds_save_command(fp, &class->cmds[i]);
 		}
 	}
+	return 0;
 }
 
 static int ds_save_ep(FILE *fp, stZWaveEndPoint_t *ep) {
@@ -466,18 +477,20 @@ static int ds_save_device(FILE *fp, stZWaveDevice_t *dev) {
 }
 
 static int ds_load_command(FILE *fp, int nbit, stZWaveCommand_t *cmd) {
-	fseek(fp, ds_offset('M', ep->nbit), SEEK_SET);
-	fread(ep, ds_tag_size('M'), 1, fp);
+	fseek(fp, ds_offset('M', cmd->nbit), SEEK_SET);
+	int ret = fread(cmd, ds_tag_size('M'), 1, fp);
+	ret = ret;
 	return 0;
 }
 
 static int ds_load_class(FILE *fp, int nbit, stZWaveClass_t *class) {
-	fseek(fp, ds_offset('C', ep->nbit), SEEK_SET);
-	fread(ep, ds_tag_size('C'), 1, fp);
+	fseek(fp, ds_offset('C', class->nbit), SEEK_SET);
+	int ret = fread(class, ds_tag_size('C'), 1, fp);
+	ret = ret;
 
 	if (class->cmdcnt > 0) {
 		int i = 0;
-		ep->cmds = (stZWaveCommand_t*)malloc(ep->cmdcnt * sizeof(stZWaveCommand_t));
+		class->cmds = (stZWaveCommand_t*)malloc(class->cmdcnt * sizeof(stZWaveCommand_t));
 		for (i = 0; i < class->cmdcnt; i++) {
 			if (i == 0) {
 				class->cmds[i].nbit = class->nbit_cmds_head;
@@ -493,7 +506,8 @@ static int ds_load_class(FILE *fp, int nbit, stZWaveClass_t *class) {
 
 static int ds_load_ep(FILE *fp, int nbit, stZWaveEndPoint_t *ep) {
 	fseek(fp, ds_offset('E', ep->nbit), SEEK_SET);
-	fread(ep, ds_tag_size('E'), 1, fp);
+	int ret = fread(ep, ds_tag_size('E'), 1, fp);
+	ret = ret;
 
 	if (ep->classcnt > 0) {
 		int i = 0;
@@ -510,11 +524,12 @@ static int ds_load_ep(FILE *fp, int nbit, stZWaveEndPoint_t *ep) {
 
 	return 0;
 }
-static int ds_load_device(FILE *fp, int nbit, stZigbeeDevice_t *dev) {
+static int ds_load_device(FILE *fp, int nbit, stZWaveDevice_t *dev) {
 	fseek(fp, ds_offset('D', nbit), SEEK_SET);
-	fread(dev, ds_tag_size('D'), 1, fp);
+	int ret = fread(dev, ds_tag_size('D'), 1, fp);
+	ret = ret;
 
-	if (dev->epcnt > 0) {
+	if (dev->subepcnt > 0) {
 		int i = 0;
 		dev->used			= 1;
 
@@ -526,7 +541,7 @@ static int ds_load_device(FILE *fp, int nbit, stZigbeeDevice_t *dev) {
 				} else {
 					dev->subeps[i].nbit = dev->subeps[i-1].nbit_next;
 				}
-				ds_load_ep(fp, dev->subpes[i].nbit, &dev->subeps[i]);
+				ds_load_ep(fp, dev->subeps[i].nbit, &dev->subeps[i]);
 			}
 		} else {
 			dev->subeps = NULL;
@@ -592,7 +607,7 @@ int ds_init(const char *path) {
 
 	return 0;
 }
-int ds_load_alldevs(stZWaveDevice_t *dev) {
+int ds_load_alldevs(stZWaveDevice_t *devs) {
 	char *map			= ds_dev_map();
 	int  maxnum		= ds_dev_maxnum();
 
@@ -649,7 +664,7 @@ int ds_del_device(stZWaveDevice_t *dev) {
 	return 0;
 }
 int ds_update_cmd_data(stZWaveCommand_t *cmd) {
-	printf("[%s] update attr: [%04X] ...\n", __func__, za->attrid);
+	printf("[%s] update attr: [%04X] ...\n", __func__, cmd->cmdid);
 
 	FILE *fp = fopen(g_path, "r+");
 	ds_save_command_data(fp, cmd);

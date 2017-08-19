@@ -24,8 +24,6 @@
 
 #include "uproto.h"
 #include "cmd.h"
-#include "flash.h"
-#include "memory.h"
 #include "zwave.h"
 #include "zwave_iface.h"
 
@@ -88,21 +86,17 @@ void run_main() {
 	struct file_event_table fet;
 	file_event_init(&fet);
 
-#if 0 
-	flash_test();
-	memory_test();
-#else
-	flash_init(NULL);
-	memory_init(NULL);
-#endif
 	
+	/*
 	if (use_cmd) {
 		cmd_init(&th, &fet);
 	}
+	*/
 
-	uproto_init(&th, &fet);
-	zwave_iface_init(&th, &fet);
-	zwave_init(&th, &fet, uart_dev, uart_buad);
+	//uproto_init(&th, &fet);
+
+	//zwave_iface_init(&th, &fet);
+	//zwave_init(&th, &fet, uart_dev, uart_buad);
 
 	timer_set(&th, &tr, 10);
 	log_info("[%s] %d : goto main loop", __func__, __LINE__);

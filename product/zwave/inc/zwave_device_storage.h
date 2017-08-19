@@ -1,7 +1,7 @@
 #ifndef __ZWAVE_DEVICE_STORAGE_H_
 #define __ZWAVE_DEVICE_STORAGE_H_
 
-#include "device.h"
+#include "zwave_device.h"
 
 
 #define BIT_BYPE_NUM(x)	((x + 7)/8)
