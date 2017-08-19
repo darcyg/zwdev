@@ -11,18 +11,32 @@
 #include "zwave_iface.h"
 #include "zwave.h"
 #include "zwave_util.h"
+#include "zwave_device.h"
 
-static int zwave_iface_pipe[2];
-static stLockQueue_t zilq;
-static stLockQueue_t zilq_rpt;
-static struct file_event_table *zwave_iface_fet = NULL;
-static struct timer_head *zwave_iface_th = NULL;
-
+extern stZWaveCache_t zc;
 
 json_t *	zwave_iface_list() {
 	log_info("[%s] %d", __func__, __LINE__);
 
-	return NULL;
+	json_t *jdevs = json_array();
+	int i = 0;
+	int cnt = sizeof(zc.devs)/sizeof(zc.devs[0]);
+	for (i = 0; i < cnt; i++) {
+		stZWaveDevice_t *zd = &zc.devs[i];
+		if (zd->used == 0) {
+			continue;
+		}
+
+		json_t *jdev = json_object();
+		json_array_append_new(jdevs, jdev);
+
+		json_object_set_new(jdev, "mac", json_string(device_make_macstr(zd)));
+		json_object_set_new(jdev, "battery", json_integer(device_get_battery(zd)));
+		json_object_set_new(jdev, "online", json_integer(device_get_online(zd)));
+		json_object_set_new(jdev, "model", json_string(device_make_modelstr(zd)));
+	}
+
+	return jdevs;
 }
 int				zwave_iface_include() {
 	log_info("[%s] %d", __func__, __LINE__);
@@ -34,16 +48,7 @@ int				zwave_iface_exclude(const char *mac) {
 	
 	return 0;
 }
-int				zwave_iface_get(const char *mac, const char *attr, const char *arg) {
-	log_info("[%s] %d, mac:%s, attr:%s, arg:%s", __func__, __LINE__, mac, attr, arg);
 
-	return 0;
-}
-int				zwave_iface_set(const char *mac, const char *attr, const char *arg) {
-	log_info("[%s] %d, mac:%s, attr:%s, arg:%s", __func__, __LINE__, mac, attr, arg);
-
-	return 0;
-}
 json_t *	zwave_iface_info() {
 	log_info("[%s] %d", __func__, __LINE__);
 
@@ -57,24 +62,20 @@ int zwave_iface_device_light_onoff(const char *mac, int onoff) {
 	return 0;
 }
 
-int zwave_iface_device_light_toggle(const char *mac) {
-	log_info("[%s] %d", __func__, __LINE__);
-
-	return 0;
-}
-
-int zwave_iface_device_light_brightness(const char *mac, int brightness) {
-	log_info("[%s] %d", __func__, __LINE__);
-
-	return 0;
-}
-
 int zwave_iface_report(json_t *rpt) {
 	log_info("[%s] %d", __func__, __LINE__);
+
+	return 0;
 }
 
 
 int zwave_iface_report_devcie_list() {
 	log_info("[%s] %d", __func__, __LINE__);
+	return 0;
+}
+
+int zwave_iface_test() {
+	log_info("[%s] %d", __func__, __LINE__);
+	zwave_test();
 	return 0;
 }

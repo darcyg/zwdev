@@ -2,7 +2,7 @@
 #define __ZWAVE_DEVICE_H_
 
 #define MAX_CMD_DATA_LEN		32
-#define MAX_DEV_NUM					255
+#define MAX_DEV_NUM					10
 
 /* when a command has been received, wo query a command table and decied if it can be store in the command data part, 
  * if yes, we only store the data to the data pointer
@@ -84,4 +84,12 @@ char *device_get_extaddr(stZWaveDevice_t *zd);
 stZWaveClass_t *device_get_class(stZWaveDevice_t *zd, char ep, char classid);
 
 
+const char *device_make_macstr(stZWaveDevice_t *zd);
+int device_get_battery(stZWaveDevice_t *zd);
+int device_get_online(stZWaveDevice_t *zd);
+const char *device_make_modelstr(stZWaveDevice_t *zd);
+int device_is_lowpower(stZWaveDevice_t *zd);
+const char *device_make_typestr(stZWaveDevice_t *zd);
+const char *device_make_versionstr(stZWaveDevice_t *zd);
+char device_get_nodeid_by_mac(const char *mac);
 #endif

@@ -2,8 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common.h"
+#include "log.h"
+#include "hex.h"
 
 #include "zwave_device_storage.h"
+
 
 
 stZWaveCache_t zc;
@@ -62,6 +66,21 @@ static void device_clear_endpoint(stZWaveEndPoint_t *ep) {
 }
 
 char *device_get_extaddr(stZWaveDevice_t *zd) {
+	char mac[8];
+
+	memset(mac, zd->bNodeID, 8);
+
+	stZWaveClass_t *class = device_get_class(zd, 0, 0x72);
+	if (class != NULL && class->version >= 2) {
+		stZWaveCommand_t *cmd = device_get_cmd(class, 0x07);
+		if (cmd != NULL) {
+			memcpy(mac, cmd->data + 2, 8);
+		}
+	}
+	log_warn("no manufacturer id, use zwave node id as mac!!!");
+
+	memcpy(zd->mac, mac, 8);
+
 	return zd->mac;
 }
 
@@ -241,9 +260,13 @@ stZWaveClass_t *device_get_class(stZWaveDevice_t *zd, char epid, char classid) {
 	stZWaveEndPoint_t *ep = NULL;
 	
 	if (epid == 0) {
+	log_info("[%d] ...", __LINE__);
 		ep = &zd->root;
+	log_info("[%d] ...", __LINE__);
 	} else {
-		ep = device_get_subep(zd, ep);
+	log_info("[%d] ...", __LINE__);
+		ep = device_get_subep(zd, epid);
+	log_info("[%d] ...", __LINE__);
 	}
 
 	if (ep == NULL) {
@@ -252,12 +275,98 @@ stZWaveClass_t *device_get_class(stZWaveDevice_t *zd, char epid, char classid) {
 
 
 	int i = 0;
+	log_info("[%d] ...", __LINE__);
 	for (i = 0; i < ep->classcnt; i++) {
+	log_info("[%d] ...", __LINE__);
 		stZWaveClass_t *class = &ep->classes[i];
 		if (class->classid == classid) {
 			return class;
 		}
 	}
+	log_info("[%d] ...", __LINE__);
 
 	return NULL;
 }
+
+const char *device_make_macstr(stZWaveDevice_t *zd) {
+	char mac[8];
+
+	memset(mac, zd->bNodeID, 8);
+
+	stZWaveClass_t *class = device_get_class(zd, 0, 0x72);
+	if (class != NULL && class->version >= 2) {
+		stZWaveCommand_t *cmd = device_get_cmd(class, 0x07);
+		if (cmd != NULL) {
+			memcpy(mac, cmd->data + 2, 8);
+		}
+	}
+	log_warn("no manufacturer id, use zwave node id as mac!!!");
+
+	static char macstr[32];
+	hex_string(macstr, sizeof(macstr), (u8*)mac, sizeof(mac), 1, 0);
+
+	return macstr;
+}
+int device_get_battery(stZWaveDevice_t *zd) {
+	stZWaveClass_t *class = device_get_class(zd, 0, 0x80);
+	if (class != NULL) {
+		stZWaveCommand_t *cmd = device_get_cmd(class, 0x07);
+		if (cmd != NULL) {
+			char *buf = cmd->data;
+			int battery = buf[0]&0xff;
+			return battery;
+		}
+	}
+	return 100;
+}
+int device_get_online(stZWaveDevice_t *zd) {
+	int online = zd->online;
+	return !!online;
+}
+const char *device_make_modelstr(stZWaveDevice_t *zd) {
+	return "unknow";
+}
+int device_is_lowpower(stZWaveDevice_t *zd) {
+	stZWaveClass_t *class = device_get_class(zd, 0, 0x80);
+	if (class != NULL) {
+		return 1;
+	}
+	return 0;
+}
+const char *device_make_typestr(stZWaveDevice_t *zd) {
+	stZWaveClass_t *class = device_get_class(zd, 0, 0x25);
+	if (class != NULL) {
+		return "1213";
+	}
+	
+	class = device_get_class(zd, 0, 0x71);
+	if (class != NULL) {
+		return "1209";
+	}
+
+	return "unkonw";
+}
+const char *device_make_versionstr(stZWaveDevice_t *zd) {
+	stZWaveClass_t *class = device_get_class(zd, 0, 0x86);
+	if (class != NULL) {
+		stZWaveCommand_t *cmd = device_get_cmd(class, 0x07);
+		if (cmd != NULL) {
+			char *buf = cmd->data;
+			static char version[32];
+			sprintf(version, "%02X-%02X.%02X-%02X.%02X", buf[0]&0xff, buf[1]&0xff,buf[2]&0xff, buf[3]&0xff, buf[4]&0xff);
+			return version;
+		}
+	}
+	return "unknow";
+}
+
+
+char device_get_nodeid_by_mac(const char *mac) {
+	stZWaveDevice_t *zd = device_get_by_extaddr((char *)mac);
+	if (zd == NULL) {
+		return -1;
+	}
+	
+	return zd->bNodeID;
+}
+

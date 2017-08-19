@@ -210,7 +210,7 @@ $(eval $(call LinkApp,testclasscmd,$(testclasscmdobjs)))
 
 
 scp :
-	scp -P 22 $(ROOTDIR)/main root@192.168.10.101:/tmp
+	scp -P 22 $(ROOTDIR)/build/$(targets) root@192.168.0.230:/tmp
 
 startvc :
 	(cd $(ROOTDIR)/utils/VirtualCom;\

@@ -43,18 +43,8 @@ static stInventory_t *zwave_util_get_inventory();
 static int						zwave_util_sync_dev();
 static int						zwave_util_listchange_auto_report();
 
-static int						zwave_util_device_is_lowpower(stZWaveDevice_t *zd);
-static int						zwave_util_device_get_mac(stZWaveDevice_t *zd, char mac[8]);
-static int						zwave_util_device_get_online(stZWaveDevice_t *zd);
-static int						zwave_util_get_id_by_mac(const char *mac);
-
 static int						zwave_util_class_init(stZWaveDevice_t *zd);
 
-/*
-static const char * zwave_parse_dev_type(stZWaveDevice_t *zd);
-static const char *	zwave_parse_dev_model(stZWaveDevice_t *zd);
-static const char *	zwave_parse_dev_version(stZWaveDevice_t *zd);
-*/
 
 static ZWAVE_IFACE_FUNC zwave_iface_funcs[] = {
 };
@@ -85,7 +75,7 @@ static void zwave_run(struct timer *timer) {
 
 	if (lockqueue_pop(&ze.eq, (void **)&e) && e != NULL) {
 
-		//log_debug("zwave recv command");
+		log_info("zwave recv command");
 		zwave_iface_funcs[e->eid](e);
 
 		if (e->param != NULL) {
@@ -157,21 +147,30 @@ static void zwave_query_run(struct timer *timer) {
 			continue;
 		} 
 
+	log_info("[%d] ...", __LINE__);
 		stZWaveDevice_t *zd = device_get_by_nodeid(id);
-		if (zwave_util_device_is_lowpower(zd)) {
+		if (zd == NULL) {
 			continue;
 		}
+	log_info("[%d] ...", __LINE__);
+		if (device_is_lowpower(zd)) {
+			continue;
+		}
+	log_info("[%d] ...", __LINE__);
 		
 		/* query the basic class at endpoint 0*/
 		char outparam[128];
 		int outlen;
+	log_info("[%d] ...", __LINE__);
 		int ret = zwave_api_util_cc(id, 0, 0x20, 0x02, NULL, 0, 0, outparam, &outlen);
+	log_info("[%d] ...", __LINE__);
 		if (ret != 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
 		}
 	}
 
 	timer_set(ze.th, &ze.tr_query, 5*60 * 1000);
+	log_info("[%d] ...", __LINE__);
 }
 
 int zwave_init(void *_th, void *_fet, const char *dev, int buad) {
@@ -251,6 +250,8 @@ int zwave_include() {
 		stZWaveDevice_t *zd = device_get_by_nodeid(id&0xff);
 		if (zd != NULL) {
 			//zwave_util_class_init(zd);
+
+			ds_add_device(zd);
 		}
 
 		stInventory_t *inv = zwave_util_get_inventory();
@@ -333,10 +334,13 @@ int zwave_test() {
 		stZWaveDevice_t *zd = device_get_by_nodeid(id&0xff);
 		if (zd != NULL) {
 			//zwave_util_class_init(zd);
+
+			ds_add_device(zd);
 		}
 
+		zwave_util_sync_dev();
+
 		log_info("[%d] request info : %d over", __LINE__, id);
-	
 	}
 #endif
 	return 0;
@@ -486,83 +490,9 @@ static int	zwave_util_listchange_auto_report() {
 
 
 ///////////////////////////////////////////parse/////////////////////////////////////////
-static int	zwave_util_device_get_mac(stZWaveDevice_t *zd, char mac[8]) {
-	memset(mac, zd->bNodeID, 8);
-
-	stZWaveClass_t *class = device_get_class(zd, 0, 0x72);
-	if (class != NULL && class->version >= 2) {
-		stZWaveCommand_t *cmd = device_get_cmd(class, 0x07);
-		if (cmd != NULL) {
-			memcpy(mac, cmd->data + 2, 8);
-		}
-	}
-	
-	log_warn("no manufacturer id, use zwave node id as mac!!!");
-	return 0;
-}
-static int	zwave_util_device_get_online(stZWaveDevice_t *zd) {
-	int online = zd->online;
-	return !!online;
-}
-
-static int zwave_util_get_id_by_mac(const char *mac) {
-	stZWaveDevice_t *zd = device_get_by_extaddr((char *)mac);
-	if (zd == NULL) {
-		return -1;
-	}
-	
-	return zd->bNodeID;
-}
-
-static int	zwave_util_device_is_lowpower(stZWaveDevice_t *zd) {
-
-	stZWaveClass_t *class = device_get_class(zd, 0, 0x80);
-	if (class != NULL) {
-		stZWaveCommand_t *cmd = device_get_cmd(class, 0x07);
-		if (cmd != NULL) {
-			char *buf = cmd->data;
-			int battery = buf[0]&0xff;
-			return battery;
-		}
-	}
-
-	return 100;
-}
-
 static stInventory_t *zwave_util_get_inventory() {
 	return &ze.inventory;
 }
 
-static const char *zwave_parse_dev_type(stZWaveDevice_t *zd) {
-	stZWaveClass_t *class = device_get_class(zd, 0, 0x25);
-	if (class != NULL) {
-		return "1213";
-	}
-	
-	class = device_get_class(zd, 0, 0x71);
-	if (class != NULL) {
-		return "1209";
-	}
-
-	return "unkonw";
-}
-static const char *zwave_parse_dev_model(stZWaveDevice_t *zd)  {
-	return "unknow";
-}
-static const char *zwave_parse_dev_version(stZWaveDevice_t *zd){
-	stZWaveClass_t *class = device_get_class(zd, 0, 0x86);
-	if (class != NULL) {
-		stZWaveCommand_t *cmd = device_get_cmd(class, 0x07);
-		if (cmd != NULL) {
-			char *buf = cmd->data;
-			static char version[32];
-			sprintf(version, "%02X-%02X.%02X-%02X.%02X", buf[0]&0xff, buf[1]&0xff,buf[2]&0xff, buf[3]&0xff, buf[4]&0xff);
-			return version;
-		}
-	}
-
-	log_info("%d", __LINE__);
-	return "unknow";
-}
 
 

@@ -305,7 +305,7 @@ int	frame_recv(stDataFrame_t **frame, int timeout) {
 
 int	frame_ack() {
 	char x = ACK_CHAR;
-	log_info("[%d] WRITE ACK", __LINE__);
+	log_debug("[%d] WRITE ACK", __LINE__);
 	serial_write(fd, &x, 1, 80);
 	return 0;
 }

@@ -26,7 +26,8 @@
 #include "cmd.h"
 #include "zwave.h"
 #include "zwave_iface.h"
-
+#include "zwave_device.h"
+#include "zwave_device_storage.h"
 /////////////////////////////////////////////////////////////////////////////////////////////////
 void				run_main();
 static void ds_child_exit_handler(int s);
@@ -45,6 +46,8 @@ static int use_cmd = 0;
 static char *uart_dev = "/dev/ttyS1";
 static int uart_buad = 115200;
 
+
+extern stZWaveCache_t zc;
 
 int parse_args(int argc, char *argv[]);
 int usage();
@@ -87,16 +90,16 @@ void run_main() {
 	file_event_init(&fet);
 
 	
-	/*
 	if (use_cmd) {
 		cmd_init(&th, &fet);
 	}
-	*/
 
 	//uproto_init(&th, &fet);
 
-	//zwave_iface_init(&th, &fet);
-	//zwave_init(&th, &fet, uart_dev, uart_buad);
+	ds_init("/etc/config/dusun/zwave/zwave.db");
+	ds_load_alldevs(zc.devs);
+
+	zwave_init(&th, &fet, uart_dev, uart_buad);
 
 	timer_set(&th, &tr, 10);
 	log_info("[%s] %d : goto main loop", __func__, __LINE__);

@@ -702,42 +702,15 @@ static int set_device_light_onoff(const char *uuid, const char *cmdmac,  const c
 }
 static int set_device_light_toggle(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
 	log_debug("[%s]", __func__);
-
-	int ret = zwave_iface_device_light_toggle(cmdmac);
-
-	if (ret != 0) ret = CODE_TIMEOUT;
-	uproto_response_ucmd(uuid, ret);
+	
+	uproto_response_ucmd(uuid, -1);
 	
 	return 0;
 }
 static int set_device_light_brightness(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
 	log_debug("[%s]", __func__);
 
-	if (value == NULL) {
-		log_debug("error arguments!");
-		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
-		return -1;
-	}
-	
-	const char *val		= json_get_string(value, "value");
-	if (val == NULL) {
-		log_debug("error arguments (value null?)!");
-		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
-		return -2;
-	}
-
-	int ival = 0;
-	int ret;
-	if (sscanf(val, "%d", &ival) == 1) {
-		ret = zwave_iface_device_light_brightness(cmdmac, val[0] - '0');
-	} else {
-		log_debug("error brightness value");
-		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
-		return -3;
-	}
-
-	if (ret != 0) ret = CODE_TIMEOUT;
-	uproto_response_ucmd(uuid, ret);
+	uproto_response_ucmd(uuid, -1);
 	return 0;
 }
 
