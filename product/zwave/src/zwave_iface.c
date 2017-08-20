@@ -79,3 +79,8 @@ int zwave_iface_test() {
 	zwave_test();
 	return 0;
 }
+
+int zwave_iface_viewall() {
+	device_view_all();
+	return 0;
+}

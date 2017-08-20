@@ -1,7 +1,9 @@
 #ifndef __ZWAVE_CLASS_INIT_H_
 #define __ZWAVE_CLASS_INIT_H_
 
-typedef int (*CLASS_INIT)(int id, char class, int version);
+#include "zwave_device.h"
+
+typedef int (*CLASS_INIT)(stZWaveDevice_t *zd, stZWaveClass_t *class);
 
 typedef struct stClassCommandFuncs {
 	char							class;
@@ -9,7 +11,7 @@ typedef struct stClassCommandFuncs {
 }stClassCommandFuncs_t;
 
 
-int zwave_class_init_init(int id, char class, int version);
+int zwave_class_init_init(stZWaveDevice_t *zd, stZWaveClass_t *class);
 
 
 #endif

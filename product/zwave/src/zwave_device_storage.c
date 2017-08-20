@@ -333,6 +333,17 @@ static int ds_free_device(stZWaveDevice_t *dev) {
 	dev->nbit = -1;
 	dev->nbit_subeps_head = -1;
 
+	if (dev->root.classcnt > 0) {
+		stZWaveEndPoint_t *ep = &dev->root;
+		ep->nbit_classes_head = -1;
+		int i = 0;
+		for (i = 0; i < ep->classcnt; i++) {
+			ds_free_class(&ep->classes[i]);
+		}
+	} else {
+		dev->root.nbit_classes_head = -1;
+	}
+
 	if (dev->subepcnt > 0) {
 		int i = 0; 
 		for (i = 0; i < dev->subepcnt; i++) {
@@ -400,6 +411,26 @@ static int ds_malloc_ep(stZWaveEndPoint_t *ep) {
 static int ds_malloc_device(stZWaveDevice_t *dev) {
 	dev->nbit = ds_malloc('D');
 
+
+	if (dev->root.classcnt > 0) {
+		stZWaveEndPoint_t *ep = &dev->root;
+		int i = 0;
+		for (i = 0; i < ep->classcnt; i++) {
+			ds_malloc_class(&ep->classes[i]);
+			if (i == 0) {
+				ep->nbit_classes_head = ep->classes[i].nbit;
+			} else {
+				ep->classes[i-1].nbit_next = ep->classes[i].nbit;
+			}
+
+			if (i == ep->classcnt-1) {
+				ep->classes[i].nbit_next = -1;
+			} 
+		}
+	} else {
+		dev->root.nbit_classes_head = -1;
+	}
+
 	if (dev->subepcnt > 0) {
 		int i = 0; 
 		for (i = 0; i < dev->subepcnt; i++) {
@@ -466,6 +497,15 @@ static int ds_save_device(FILE *fp, stZWaveDevice_t *dev) {
 	fseek(fp, ds_offset('D', dev->nbit), SEEK_SET);
 	fwrite(dev, ds_tag_size('D'), 1, fp);
 
+	if (dev->root.classcnt > 0) {
+		stZWaveEndPoint_t *ep = &dev->root;
+		int i = 0;
+		for (i = 0; i < ep->classcnt; i++) {
+			ds_save_class(fp, &ep->classes[i]);
+		}
+	}
+
+
 	if (dev->subepcnt > 0) {
 		int i = 0;
 		for (i = 0; i < dev->subepcnt; i++) {
@@ -528,6 +568,22 @@ static int ds_load_device(FILE *fp, int nbit, stZWaveDevice_t *dev) {
 	fseek(fp, ds_offset('D', nbit), SEEK_SET);
 	int ret = fread(dev, ds_tag_size('D'), 1, fp);
 	ret = ret;
+
+	if (dev->root.classcnt > 0) {
+		int i = 0;
+		stZWaveEndPoint_t *ep = &dev->root;
+		ep->classes = (stZWaveClass_t*)malloc(ep->classcnt * sizeof(stZWaveClass_t));
+		for (i = 0; i < ep->classcnt; i++) {
+			if (i == 0) {
+				ep->classes[i].nbit = ep->nbit_classes_head;
+			} else  {
+				ep->classes[i].nbit = ep->classes[i-1].nbit_next;
+			}
+			ds_load_class(fp, ep->classes[i].nbit, &ep->classes[i]);
+		}
+	} else {
+		dev->root.nbit_classes_head = -1;
+	}
 
 	if (dev->subepcnt > 0) {
 		int i = 0;

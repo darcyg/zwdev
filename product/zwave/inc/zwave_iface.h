@@ -19,4 +19,6 @@ int zwave_iface_report(json_t *rpt);
 
 int zwave_iface_test();
 
+int zwave_iface_viewall();
+
 #endif

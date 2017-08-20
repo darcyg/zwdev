@@ -19,6 +19,7 @@ void do_cmd_quit(char *argv[], int argc);
 void do_cmd_list(char *argv[], int argc);
 void do_cmd_help(char *argv[], int argc);
 void do_cmd_info(char *argv[], int argc);
+void do_cmd_viewall(char *argv[], int argc);
 
 void do_cmd_test(char *argv[], int argc);
 void do_cmd_include(char *argv[], int argc);
@@ -34,6 +35,7 @@ static stCmd_t cmds[] = {
 	{"info", do_cmd_info, "get zwave network info"},
 	{"help", do_cmd_help, "help info"},
 	{"test", do_cmd_test, "test ..."},
+	{"viewall", do_cmd_viewall, "view all zwave devices"},
 };
 
 static stCmdEnv_t ce;
@@ -194,4 +196,7 @@ void do_cmd_test(char *argv[], int argc) {
 	zwave_iface_test();
 }
 
+void do_cmd_viewall(char *argv[], int argc) {
+	zwave_iface_viewall();
+}
 

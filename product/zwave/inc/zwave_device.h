@@ -92,4 +92,9 @@ int device_is_lowpower(stZWaveDevice_t *zd);
 const char *device_make_typestr(stZWaveDevice_t *zd);
 const char *device_make_versionstr(stZWaveDevice_t *zd);
 char device_get_nodeid_by_mac(const char *mac);
+
+
+
+void device_view_all();
+
 #endif

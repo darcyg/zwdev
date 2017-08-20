@@ -147,30 +147,24 @@ static void zwave_query_run(struct timer *timer) {
 			continue;
 		} 
 
-	log_info("[%d] ...", __LINE__);
 		stZWaveDevice_t *zd = device_get_by_nodeid(id);
 		if (zd == NULL) {
 			continue;
 		}
-	log_info("[%d] ...", __LINE__);
 		if (device_is_lowpower(zd)) {
 			continue;
 		}
-	log_info("[%d] ...", __LINE__);
 		
 		/* query the basic class at endpoint 0*/
 		char outparam[128];
 		int outlen;
-	log_info("[%d] ...", __LINE__);
 		int ret = zwave_api_util_cc(id, 0, 0x20, 0x02, NULL, 0, 0, outparam, &outlen);
-	log_info("[%d] ...", __LINE__);
 		if (ret != 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
 		}
 	}
 
 	timer_set(ze.th, &ze.tr_query, 5*60 * 1000);
-	log_info("[%d] ...", __LINE__);
 }
 
 int zwave_init(void *_th, void *_fet, const char *dev, int buad) {
@@ -333,7 +327,7 @@ int zwave_test() {
 								ni.len -3, ni.commandclasses);
 		stZWaveDevice_t *zd = device_get_by_nodeid(id&0xff);
 		if (zd != NULL) {
-			//zwave_util_class_init(zd);
+			zwave_util_class_init(zd);
 
 			ds_add_device(zd);
 		}
@@ -464,7 +458,7 @@ static int	zwave_util_class_init(stZWaveDevice_t *zd) {
 	log_info("[%d] -- ", __LINE__);
 	int i = 0;
 	for (i = 0; i < zd->root.classcnt; i++) {
-		//zwave_class_init_init(zd, zd->root.classes[i].classid, 0);
+		zwave_class_init_init(zd, &zd->root.classes[i]);
 	}
 	return 0;
 }

@@ -7,6 +7,7 @@
 #include "hex.h"
 
 #include "zwave_device_storage.h"
+#include "zwave_class_cmd.h"
 
 
 
@@ -203,6 +204,13 @@ int device_fill_ep(stZWaveEndPoint_t *ze, char ep, char basic, char generic,
 			ze->classes[i].nbit = -1;
 			ze->classes[i].nbit_next = -1;
 			ze->classes[i].nbit_cmds_head = -1;
+
+			stZWClass_t *c = zcc_get_class(ze->classes[i].classid);
+			char cmds[MAX_CMD_NUM];
+			int cmdcnt = zcc_get_class_cmd_rpt(c, cmds);
+			if (cmdcnt > 0) {
+				device_add_cmds(&ze->classes[i], cmdcnt, cmds);
+			}
 		}
 	} 
 
@@ -250,6 +258,7 @@ stZWaveCommand_t *device_get_cmd(stZWaveClass_t *class, char cmd) {
 
 int device_update_cmds_data(stZWaveCommand_t *zc, char *data, int len) {
 	len = len > sizeof(zc->data) ? sizeof(zc->data) : len;
+	zc->len = len;
 	memcpy(zc->data, data, len);
 	return 0;
 }
@@ -260,13 +269,9 @@ stZWaveClass_t *device_get_class(stZWaveDevice_t *zd, char epid, char classid) {
 	stZWaveEndPoint_t *ep = NULL;
 	
 	if (epid == 0) {
-	log_info("[%d] ...", __LINE__);
 		ep = &zd->root;
-	log_info("[%d] ...", __LINE__);
 	} else {
-	log_info("[%d] ...", __LINE__);
 		ep = device_get_subep(zd, epid);
-	log_info("[%d] ...", __LINE__);
 	}
 
 	if (ep == NULL) {
@@ -275,15 +280,12 @@ stZWaveClass_t *device_get_class(stZWaveDevice_t *zd, char epid, char classid) {
 
 
 	int i = 0;
-	log_info("[%d] ...", __LINE__);
 	for (i = 0; i < ep->classcnt; i++) {
-	log_info("[%d] ...", __LINE__);
 		stZWaveClass_t *class = &ep->classes[i];
 		if (class->classid == classid) {
 			return class;
 		}
 	}
-	log_info("[%d] ...", __LINE__);
 
 	return NULL;
 }
@@ -368,5 +370,58 @@ char device_get_nodeid_by_mac(const char *mac) {
 	}
 	
 	return zd->bNodeID;
+}
+
+static void device_view_command(stZWaveCommand_t *command) {
+	char buf[sizeof(command->data)*3 + 4];
+	int i = 0; 
+	int len = 0;
+	for (i = 0; i < command->len; i++) {
+		len += sprintf(buf + len, "%02X ", command->data[i]&0xff);
+	}
+	log_info("      cmdid:%02X, len: %d, data:[ %s]", command->cmdid&0xff, command->len, buf);
+}
+
+static void device_view_class(stZWaveClass_t *class) {
+	log_info("    classid:%02X, version:%d", class->classid&0xff, class->version);
+	int i = 0;
+	for (i = 0; i < class->cmdcnt; i++) {
+		device_view_command(&class->cmds[i]);
+	}
+}
+
+static void device_view_endpoint(stZWaveEndPoint_t *ep) {
+	log_info("  ep:%02X, basic:%02X, generic: %02X, specific:%02X ",
+					ep->ep&0xff, ep->basic&0xff, ep->generic&0xff, ep->specific&0xff);
+	int i = 0;
+	for (i = 0; i < ep->classcnt; i++) {
+		device_view_class(&ep->classes[i]);
+	}
+}
+
+static void device_view_device(stZWaveDevice_t *dev) {
+	log_info("mac:%08X%08X, nodeid:%02X, security:%02X, capacility:%02X, online:%02X",
+						*(int*)dev->mac, *(int*)(dev->mac+4), dev->bNodeID&0xff, dev->security&0xff, dev->capability&0xff, 
+						dev->online);
+	device_view_endpoint(&dev->root);
+	int i = 0;
+	for (i = 0; i < dev->subepcnt; i++) {
+		device_view_endpoint(&dev->subeps[i]);
+	}
+}
+
+
+void device_view_all() {
+	stZWaveDevice_t *devs = zc.devs;
+	int i = 0;
+	int cnt = sizeof(zc.devs)/sizeof(zc.devs[0]);
+
+	for (i = 0; i < cnt; i++) {
+		if (devs[i].used == 0) {
+			continue;
+		}
+
+		device_view_device(&devs[i]);
+	}
 }
 
