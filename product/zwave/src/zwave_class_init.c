@@ -9,6 +9,7 @@
 #include "zwave_api.h"
 #include "zwave_class.h"
 #include "zwave_class_init.h"
+#include "zwave_class_cmd.h"
 
 static int powerlevel_init(stZWaveDevice_t *zd, stZWaveClass_t *class);
 static int switch_binary_init(stZWaveDevice_t *zd, stZWaveClass_t *class);
@@ -53,8 +54,19 @@ int zwave_class_init_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 	}
 	log_info("[%d] class:%02x, version:%d", __LINE__, class->classid&0xff, ret);
 	int version = ret;
+	
 
-	class->version = version;
+	if (class->version < 0) {
+		class->version = version;
+		stZWClass_t *c = zcc_get_class(class->classid, class->version);
+		if (c != NULL) {
+			char cmds[MAX_CMD_NUM];
+			int cmdcnt = zcc_get_class_cmd_rpt(c, cmds);
+			if (cmdcnt > 0) {
+				device_add_cmds(class, cmdcnt, cmds);
+			}
+		}
+	} 
 	
 	if (_zwave_class_init_funcs[class->classid&0xff].init != NULL && class->version >= 1) {
 		_zwave_class_init_funcs[class->classid&0xff].init(zd, class);
@@ -70,7 +82,7 @@ static int powerlevel_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 	char outparam[128];
 	int outlen;
 	char command = 0x02;
-	int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0, 1, outparam, &outlen);
+	int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0, 1, outparam, &outlen);
 	if (ret != 0) {
 		log_err("[%d] exec class command error: %d", __LINE__, ret);
 		return -2;
@@ -96,7 +108,7 @@ static int switch_binary_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 	char outparam[128];
 	int outlen;
 	char command = 0x02;
-	int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0, 1, outparam, &outlen);
+	int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0, 1, outparam, &outlen);
 	if (ret != 0) {
 		log_err("[%d] exec class command error: %d", __LINE__, ret);
 		return -2;
@@ -122,7 +134,7 @@ static int zwaveplus_info_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 	char outparam[128];
 	int outlen;
 	char command = 0x01;
-	int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0, 1, outparam, &outlen);
+	int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0, 1, outparam, &outlen);
 	if (ret != 0) {
 		log_err("[%d] exec class command error: %d", __LINE__, ret);
 		return -2;
@@ -149,7 +161,7 @@ static int association_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 	char outparam[128];
 	int outlen;
 	char command = 0x05;
-	int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0, 1, outparam, &outlen);
+	int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0, 1, outparam, &outlen);
 	if (ret != 0) {
 		log_err("[%d] exec class command error: %d", __LINE__, ret);
 		return -2;
@@ -172,13 +184,13 @@ static int association_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 		char gid = i+1;
 		char command = 0x01;
 		char buf[2] = {gid, 0x01};
-		int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, buf, 2, 0, outparam, &outlen);
+		int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, buf, 2, 0, outparam, &outlen);
 		if (ret < 0) {
 			log_err("[%d] association set failed:%d", __LINE__, ret);
 		}
 
 		command = 0x02;
-		ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, &gid, 1, 1, outparam, &outlen);
+		ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, &gid, 1, 1, outparam, &outlen);
 		if (ret < 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
 			return -2;
@@ -198,7 +210,7 @@ static int association_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 
 	if (class->version == 2) {
 		command = 0x0b;
-		int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0, 1, outparam, &outlen);
+		int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0, 1, outparam, &outlen);
 		if (ret != 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
 			return -2;
@@ -227,7 +239,7 @@ static int version_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 	char outparam[128];
 	int outlen;
 	char command = 0x11;
-	int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0, 1, outparam, &outlen);
+	int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid, command, NULL, 0, 1, outparam, &outlen);
 	if (ret != 0) {
 		log_err("[%d] exec class command error: %d", __LINE__, ret);
 		return -2;
@@ -252,7 +264,7 @@ static int manufacturer_specific_init(stZWaveDevice_t *zd, stZWaveClass_t *class
 	char outparam[128];
 	int outlen;
 	char command = 0x04;
-	int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0, 1, outparam, &outlen);
+	int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0, 1, outparam, &outlen);
 	if (ret != 0) {
 		log_err("[%d] exec class command error: %d", __LINE__, ret);
 		return -2;
@@ -275,7 +287,7 @@ static int manufacturer_specific_init(stZWaveDevice_t *zd, stZWaveClass_t *class
 		char command = 0x06;
 		//char inparam[] = {0x01};
 		char inparam[] = {0x02};
-		int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, inparam, 1, 1, outparam, &outlen);
+		int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, inparam, 1, 1, outparam, &outlen);
 		if (ret != 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
 			return -2;
@@ -306,7 +318,7 @@ static int battery_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 	char outparam[128];
 	int outlen;
 	char command = 0x02;
-	int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0, 1, outparam, &outlen);
+	int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0, 1, outparam, &outlen);
 	if (ret != 0) {
 		log_err("[%d] exec class command error: %d", __LINE__, ret);
 		return -2;
@@ -335,7 +347,7 @@ static int wakeup_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 	//int wui = 15 * 60;
 	int wui = 1 * 15;
 	char inparam[4] = {(wui>>16)&0xff, (wui>>8)&0xff,(wui>>0)&0xff, 0x01};
-	int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, inparam, sizeof(inparam), 0, outparam, &outlen);
+	int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, inparam, sizeof(inparam), 0, outparam, &outlen);
 	if (ret != 0) {
 		log_err("[%d] exec class command error: %d", __LINE__, ret);
 		return -2;
@@ -345,7 +357,7 @@ static int wakeup_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 	/* class | command | value */
 	/* 84        06      interval*/
 	command = 0x05;
-	ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0,  1, outparam, &outlen);
+	ret = zwave_api_util_cc(zd->bNodeID,0,  class->classid,  command, NULL, 0,  1, outparam, &outlen);
 	if (ret != 0) {
 		log_err("[%d] exec class command error: %d", __LINE__, ret);
 		return -2;
@@ -375,7 +387,7 @@ static int notify_alarm_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 		char outparam[128];
 		int outlen;
 		char command = 0x07;
-		int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0,  1, outparam, &outlen);
+		int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0,  1, outparam, &outlen);
 		if (ret != 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
 			return -2;
@@ -407,7 +419,7 @@ static int notify_alarm_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 		int outlen;
 		char inparam[1] = {support_rpt};
 		char command = 0x01;
-		int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, inparam, 1,  1, outparam, &outlen);
+		int ret = zwave_api_util_cc(zd->bNodeID,0,  class->classid,  command, inparam, 1,  1, outparam, &outlen);
 		if (ret != 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
 			return -2;
@@ -429,7 +441,7 @@ static int notify_alarm_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 		int outlen;
 		char inparam[2] = {support_rpt, 0xff};
 		char command = 0x06;
-		int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, inparam, 2,  0, outparam, &outlen);
+		int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, inparam, 2,  0, outparam, &outlen);
 		if (ret != 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
 			return -2;
@@ -445,7 +457,7 @@ static int notify_alarm_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 		int outlen;
 		char inparam[3] = {v1_alarm, support_rpt, support_evt};
 		char command = 0x04;
-		int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, inparam, 3,  1, outparam, &outlen);
+		int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, inparam, 3,  1, outparam, &outlen);
 		if (ret != 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
 			return -2;
@@ -473,9 +485,9 @@ static int switch_multi_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 		char inparam[2] = {0x02, 0x02};
 		int ret = 0;
 		if (class->version  == 1) {
-			ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, inparam, 1,  0, outparam, &outlen);
+			ret = zwave_api_util_cc(zd->bNodeID,0,  class->classid, command, inparam, 1,  0, outparam, &outlen);
 		} else if (class->version >= 2) {
-			ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, inparam, 2,  0, outparam, &outlen);
+			ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid, command, inparam, 2,  0, outparam, &outlen);
 		}
 		if (ret != 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
@@ -483,7 +495,7 @@ static int switch_multi_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 		}
 	
 		command = 0x02;
-		ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0,  1, outparam, &outlen);
+		ret = zwave_api_util_cc(zd->bNodeID,0,  class->classid,  command, NULL, 0,  1, outparam, &outlen);
 		if (ret != 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
 			return -2;
@@ -502,7 +514,7 @@ static int switch_multi_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 		char outparam[128];
 		int outlen;
 		char command = 0x06;
-		int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0,  1, outparam, &outlen);
+		int ret = zwave_api_util_cc(zd->bNodeID,0,  class->classid,  command, NULL, 0,  1, outparam, &outlen);
 		if (ret != 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
 			return -2;
@@ -527,14 +539,14 @@ static int switch_all_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 	int outlen;
 	char command = 0x01;
 	char inparam[1] = {0x03};
-	int ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, inparam, 1,  0, outparam, &outlen);
+	int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, inparam, 1,  0, outparam, &outlen);
 	if (ret != 0) {
 		log_err("[%d] exec class command error: %d", __LINE__, ret);
 		return -2;
 	}
 	
 	command = 0x02;
-	ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0,  1, outparam, &outlen);
+	ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0,  1, outparam, &outlen);
 	if (ret != 0) {
 		log_err("[%d] exec class command error: %d", __LINE__, ret);
 		return -2;
@@ -560,14 +572,14 @@ static int protection_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 		char command = 0x01;
 		char inparam[1] = {0x00};
 		int ret;
-		ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, inparam, 1,  0, outparam, &outlen);
+		ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, inparam, 1,  0, outparam, &outlen);
 		if (ret != 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
 			return -2;
 		}
 
 		command = 0x02;
-		ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0,  1, outparam, &outlen);
+		ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0,  1, outparam, &outlen);
 		if (ret != 0) {
 			log_err("[%d] exec class command error: %d", __LINE__, ret);
 			return -2;
@@ -590,7 +602,7 @@ static int protection_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 			int outlen;
 			char command = 0x04;
 			int ret;
-			ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0,  1, outparam, &outlen);
+			ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0,  1, outparam, &outlen);
 			if (ret != 0) {
 				log_err("[%d] exec class command error: %d", __LINE__, ret);
 				return -2;
@@ -618,14 +630,14 @@ static int protection_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 			char command = 0x09;
 			char inparam[1] = {0x00};
 			int ret;
-			ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, inparam, 1,  0, outparam, &outlen);
+			ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, inparam, 1,  0, outparam, &outlen);
 			if (ret != 0) {
 				log_err("[%d] exec class command error: %d", __LINE__, ret);
 				return -2;
 			}
 
 			command = 0x0a;
-			ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0,  1, outparam, &outlen);
+			ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0,  1, outparam, &outlen);
 			if (ret != 0) {
 				log_err("[%d] exec class command error: %d", __LINE__, ret);
 				return -2;
@@ -645,14 +657,14 @@ static int protection_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 			char command = 0x06;
 			char inparam[1] = {0x01};
 			int ret;
-			ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, inparam, 1,  0, outparam, &outlen);
+			ret = zwave_api_util_cc(zd->bNodeID,0,  class->classid, command, inparam, 1,  0, outparam, &outlen);
 			if (ret != 0) {
 				log_err("[%d] exec class command error: %d", __LINE__, ret);
 				return -2;
 			}
 
 			command = 0x07;
-			ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0,  1, outparam, &outlen);
+			ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0,  1, outparam, &outlen);
 			if (ret != 0) {
 				log_err("[%d] exec class command error: %d", __LINE__, ret);
 				return -2;
@@ -673,14 +685,14 @@ static int protection_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 			char command = 0x01;
 			char inparam[2] = {0x00, 0x00};
 			int ret;
-			ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, inparam, 2,  0, outparam, &outlen);
+			ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, inparam, 2,  0, outparam, &outlen);
 			if (ret != 0) {
 				log_err("[%d] exec class command error: %d", __LINE__, ret);
 				return -2;
 			}
 
 			command = 0x02;
-			ret = zwave_api_util_cc(zd->bNodeID, class->classid, 0, command, NULL, 0,  1, outparam, &outlen);
+			ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0,  1, outparam, &outlen);
 			if (ret != 0) {
 				log_err("[%d] exec class command error: %d", __LINE__, ret);
 				return -2;

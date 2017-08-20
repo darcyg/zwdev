@@ -79,11 +79,11 @@ stZWClass_t zcc_ccs[] = {
 	},
 
 	{0x72, 1, "manufacturer_specific", 2, {
-			{0x04, "get", 'r', 0, ""},
+			{0x04, "get", 'g', 0, ""},
 			{0x05, "rpt", 'r', 0, ""},
 		},
 	},
-	{0x72, 2, "manufacturer_specific", 2, {
+	{0x72, 2, "manufacturer_specific", 4, {
 			{0x04, "get", 'g', 0, ""},
 			{0x05, "rpt", 'r', 0, ""},
 			{0x06, "dev_specific_get", 'g', 0, ""},
@@ -262,17 +262,32 @@ stZWClass_t zcc_ccs[] = {
 	},
 };
 
-stZWClass_t *zcc_get_class(char classid) {
+stZWClass_t *zcc_get_class(char classid, int version) {
 	int i = 0;
 	int cnt = sizeof(zcc_ccs)/sizeof(zcc_ccs[0]);
+	
+	stZWClass_t *ret = NULL;
+	
 	for (i = 0; i < cnt; i++) {
 		stZWClass_t *class = &zcc_ccs[i];
-		if (class->classid == classid) {
+		if (class->classid != classid) {
+			continue;
+		}
+		
+		if (class->version == version) {
 			return class;
+		}
+		
+		if (ret == NULL) {
+			ret = class;
+		} else {
+			if (class->version > ret->version) {
+				ret = class;
+			}
 		}
 	}
 
-	return NULL;
+	return ret;
 }
 stZWCmd_t *zcc_get_cmd(stZWClass_t *class, char cmdid) {
 	int i = 0;
@@ -300,5 +315,23 @@ int zcc_get_class_cmd_rpt(stZWClass_t *class, char cmds[MAX_CMD_NUM]) {
 	return j;
 }
 
+const char *zcc_get_class_name(char classid, int version) {
+	stZWClass_t *class = zcc_get_class(classid, version);
+	if (class == NULL) {
+		return "unkown";
+	}
+	return class->name;
+}
 
+const char *zcc_get_cmd_name(char classid,int version, char cmdid) {
+	stZWClass_t *class = zcc_get_class(classid, version);
+	if (class == NULL) {
+		return "unkown";
+	}
+	stZWCmd_t *cmd = zcc_get_cmd(class, cmdid);
+	if (cmd == NULL) {
+		return "unkown";
+	}
+	return cmd->name;
 
+}

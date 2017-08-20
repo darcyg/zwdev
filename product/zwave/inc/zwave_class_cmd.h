@@ -19,10 +19,12 @@ typedef struct stZWClass {
 	stZWCmd_t		cmds[MAX_CMD_NUM];
 }stZWClass_t;
 
-stZWClass_t *zcc_get_class(char classid);
+stZWClass_t *zcc_get_class(char classid, int version);
 stZWCmd_t *zcc_get_cmd(stZWClass_t *class, char cmdid);
 int zcc_get_class_cmd_rpt(stZWClass_t *class, char cmds[MAX_CMD_NUM]);
 
+const char *zcc_get_class_name(char classid, int version);
+const char *zcc_get_cmd_name(char classid, int version, char cmdid);
 #endif
 
 

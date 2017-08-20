@@ -62,17 +62,18 @@ int zwave_iface_device_light_onoff(const char *mac, int onoff) {
 	return 0;
 }
 
-int zwave_iface_report(json_t *rpt) {
-	log_info("[%s] %d", __func__, __LINE__);
-
-	return 0;
-}
-
-
 int zwave_iface_report_devcie_list() {
 	log_info("[%s] %d", __func__, __LINE__);
 	return 0;
 }
+
+
+int zwave_iface_switch_onoff_rpt(stZWaveDevice_t *zd, char ep, stZWaveClass_t *zcls, stZWaveCommand_t *zcmd) {
+	log_info("[%s] %d", __func__, __LINE__);
+	return 0;
+}
+
+
 
 int zwave_iface_test() {
 	log_info("[%s] %d", __func__, __LINE__);
@@ -81,6 +82,8 @@ int zwave_iface_test() {
 }
 
 int zwave_iface_viewall() {
+	log_info("[%s] %d", __func__, __LINE__);
 	device_view_all();
 	return 0;
 }
+

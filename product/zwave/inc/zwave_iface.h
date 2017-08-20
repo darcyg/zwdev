@@ -2,6 +2,7 @@
 #define __ZWAVE_IFACE_H_
 
 #include <jansson.h>
+#include "zwave_device.h"
 
 json_t *	zwave_iface_list();
 int				zwave_iface_include();
@@ -10,15 +11,12 @@ json_t *	zwave_iface_info();
 
 int zwave_iface_device_light_onoff(const char *mac, int onoff);
 
-int zwave_iface_init();
-int zwave_iface_wait();
-int zwave_iface_push(json_t *elem);
-
-
-int zwave_iface_report(json_t *rpt);
-
 int zwave_iface_test();
 
 int zwave_iface_viewall();
 
+int zwave_iface_switch_onoff_rpt(stZWaveDevice_t *zd, char ep, stZWaveClass_t *zcls, stZWaveCommand_t *zcmd);
+
+
+int zwave_iface_report_devcie_list();
 #endif

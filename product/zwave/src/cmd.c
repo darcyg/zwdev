@@ -140,9 +140,7 @@ void do_cmd_list(char *argv[], int argc) {
 	}
 }
 void do_cmd_include(char *argv[], int argc) {
-	system_led_blink("zigbee", 500, 500);
 	int ret = zwave_iface_include();
-	system_led_off("zigbee");
 
 	if (ret == 0) {
 		log_info("include ok");
@@ -155,9 +153,7 @@ void do_cmd_exclude(char *argv[], int argc) {
 		log_debug("exclude must has one argment as <mac>");
 		return;
 	}
-	system_led_blink("zigbee", 500, 500);
 	zwave_iface_exclude(argv[1]);
-	system_led_off("zigbee");
 }
 
 void do_cmd_help(char *argv[], int argc) {

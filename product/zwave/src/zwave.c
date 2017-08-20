@@ -20,6 +20,7 @@
 #include "zwave_device.h"
 #include "zwave_device_storage.h"
 #include "zwave_util.h"
+#include "zwave_iface.h"
 
 
 static stZWaveEnv_t ze = {
@@ -230,6 +231,7 @@ int zwave_push(int eid, void *param, int len) {
 int zwave_include() {
 	log_debug("[%d]", __LINE__);
 
+	system_led_blink("zigbee", 500, 500);
 	stAddNodeToNetwork_t antn;
 	int ret = zwave_api_ZWaveAddNodeToNetwork(&antn);
 
@@ -243,7 +245,7 @@ int zwave_include() {
 
 		stZWaveDevice_t *zd = device_get_by_nodeid(id&0xff);
 		if (zd != NULL) {
-			//zwave_util_class_init(zd);
+			zwave_util_class_init(zd);
 
 			ds_add_device(zd);
 		}
@@ -252,14 +254,17 @@ int zwave_include() {
 		zwave_api_SerialApiGetInitData(&inv->initdata);
 		zwave_util_sync_dev();
 	}
+	system_led_off("zigbee");
 
 	return ret;
 }
 int zwave_exclude(char mac[8]) {
 	log_debug("[%d]", __LINE__);
 
+	system_led_blink("zigbee", 500, 500);
 	stZWaveDevice_t *zd = device_get_by_extaddr(mac);
 	if (zd == NULL) {
+		system_led_off("zigbee");
 		return 0;
 	}
 
@@ -268,10 +273,11 @@ int zwave_exclude(char mac[8]) {
 	zwave_api_SerialApiGetInitData(&ze.inventory.initdata);
 	zwave_util_sync_dev();
 
+	system_led_off("zigbee");
 	return ret;
 }
 
-int zwave_light_onoff(char mac[8], char ep, int onoff) {
+int zwave_switch_onoff(char mac[8], char ep, int onoff) {
 	log_debug("[%d]", __LINE__);
 	
 	stZWaveDevice_t *zd = device_get_by_extaddr(mac);
@@ -341,7 +347,6 @@ int zwave_test() {
 }
 
 int zwave_async_data(stDataFrame_t *dfr) {
-#if 0
 	if (dfr->cmd != 0x04) {
 		log_warn("[%d] unsupport aysnc data:%02x", __LINE__, dfr->cmd);
 		return 0;
@@ -351,75 +356,54 @@ int zwave_async_data(stDataFrame_t *dfr) {
 	/* class | command | value */
 	/* xx        xx       xxx     version */
 	int id = dfr->payload[1]&0xff;
-	char class = dfr->payload[3]&0xff;
-	char command = dfr->payload[4]&0xff;
+	char classid = dfr->payload[3]&0xff;
+	char cmdid = dfr->payload[4]&0xff;
 	
-	json_t *jdev = memory_get_dev(id);
 
-	json_t *jclasses = json_object_get(jdev, "classes");
-
-	char sclass[32];
-	sprintf(sclass, "%02x", class&0xff);
-	json_t *jclass = json_object_get(jclasses, sclass);
-
-	char scommand[32];
-	sprintf(scommand, "%02x", command&0xff);
-	json_t *jcommand = json_object_get(jclass, scommand);
-	if (jcommand != NULL) {
-		json_object_del(jclass, scommand);
+	stZWaveDevice_t *zd = device_get_by_nodeid(id&0xff);
+	if (zd == NULL) {
+		log_warn("no such device : %02X", id&0xff);
+		return  0;
 	}
-	char svalue[(dfr->payload[2] - 2) * 3+1];
-	hex_string(svalue, sizeof(svalue), (const u8*)&dfr->payload[5], dfr->payload[2] - 2, 1, ' ');
-	json_object_set_new(jclass, scommand, json_string(svalue));
 
-	memory_set_dev(id, jdev);
-	flash_save_dev(id, jdev);
+	stZWaveClass_t *zcls = device_get_class(zd, 0, classid);
+	if (zcls == NULL) {
+		log_warn("no such class : %02X", classid&0xff);
+	}
 
-	int online_old; json_get_int(jdev, "online", &online_old);
-	json_object_del(jdev, "online");
-	json_object_set_new(jdev, "online", json_integer(15*60));
+	stZWaveCommand_t *zcmd = device_get_cmd(zcls, cmdid);
+	if (zcmd == NULL) {
+		log_warn("no such cmd : %02X", cmdid&0xff);
+	}
 
+	device_update_cmds_data(zcmd, &dfr->payload[5], dfr->payload[2] - 2);
+	ds_update_cmd_data(zcmd);
+
+
+	int online_old = zd->online;
+	zd->online = 15 * 60;;
 	if (online_old <= 0) {
 		zwave_util_listchange_auto_report();
 	}
-	
 
 	{
-		if ((class&0xff) == 0x25 && command == 0x03) {
-			const char *mac = zwave_parse_dev_mac(jdev);
-			json_t *jrpt = json_object();
-			json_object_set_new(jrpt, "mac", json_string(mac));
-
-			json_object_set_new(jrpt, "attr", json_string("device.light.onoff"));
-
-			char rptbuf_val[32];
-			sprintf(rptbuf_val, "%d", !!dfr->payload[5]);
-			json_object_set_new(jrpt, "value", json_string(rptbuf_val));
-
-			zwave_iface_report(jrpt);
-		} else if ((class&0xff) == 0x71 && command == 0x05) {
+		if ((classid&0xff) == 0x25 && cmdid == 0x03) {
+			zwave_iface_switch_onoff_rpt(zd, 0, zcls, zcmd);
+		} else if ((classid&0xff) == 0x71 && cmdid == 0x05) {
 			if (dfr->payload[9] == 0x07 && dfr->payload[10] == 0x08) {
-				const char *mac = zwave_parse_dev_mac(jdev);
-				json_t *jrpt = json_object();
-				json_object_set_new(jrpt, "mac", json_string(mac));
-
-				json_object_set_new(jrpt, "attr", json_string("device.zone_status"));
-				json_object_set_new(jrpt, "zone", json_string("pir"));
-				char rptbuf_val[32];
-				
-				strcpy(ze.sim_mac, mac);
-				ze.sim_pir = 1;
-
-				sprintf(rptbuf_val, "%d", ze.sim_pir);
-				json_object_set_new(jrpt, "value", json_string(rptbuf_val));
-
-				zwave_iface_report(jrpt);
-
-				timer_set(&ze.th, &ze.sim_tr_pir, 30*1000);
+				/*
+				zwave_iface_notification_rpt(zd, 0, zc, zcmd);
+				*/
 			}
+		} else if ((classid&0xff) == 0x60 && cmdid == 0x0d) {
+			/* srcep | dstep | dstclass | dstcommand | data... */
+			char ep = dfr->payload[5 + 0];
+			zcls = device_get_class(zd, ep, dfr->payload[5 + 2]);
+			zcmd = device_get_cmd(zcls, dfr->payload[5+3]);
+			device_update_cmds_data(zcmd, &dfr->payload[5+4], dfr->payload[2] - 2 -4);
+			zwave_iface_switch_onoff_rpt(zd, ep, zcls, zcmd);
 		}
 	}
-#endif
 
 	system_led_shot("zigbee");
 	return 0;
@@ -465,19 +449,8 @@ static int	zwave_util_class_init(stZWaveDevice_t *zd) {
 
 static int	zwave_util_listchange_auto_report() {
 	log_info("[%d] -- ", __LINE__);
-	/*
-	json_t *jmsg = json_object();
 
-	json_t *jdevs = zwave_util_list();
-	json_object_set_new(jmsg, "device_list", jdevs);
-
-	char gmac[32]; system_mac_get(gmac);
-	json_object_set_new(jmsg, "mac", json_string(gmac));
-
-	json_object_set_new(jmsg, "attr", json_string("mod.device_list"));
-	
-	zwave_iface_report(jmsg);
-	*/
+	zwave_iface_report_devcie_list();
 
 	return 0;
 }

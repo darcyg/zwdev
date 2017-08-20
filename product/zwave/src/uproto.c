@@ -627,9 +627,7 @@ static int set_mod_add_device(const char *uuid, const char *cmdmac,  const char 
 	}
 
 	/* run as found_device */
-	system_led_blink("zigbee", 500, 500);
 	int ret = zwave_iface_include();
-	system_led_off("zigbee");
 	
 	if (ret != 0) ret = CODE_TIMEOUT;
 	uproto_response_ucmd(uuid, ret);
@@ -654,9 +652,7 @@ static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char 
 		return -2;
 	}
 
-	system_led_blink("zigbee", 500, 500);
 	int ret = zwave_iface_exclude(mac);
-	system_led_off("zigbee");
 
 	if (ret != 0) ret = CODE_TIMEOUT;
 	uproto_response_ucmd(uuid, ret);
@@ -667,9 +663,7 @@ static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char 
 static int set_mod_find_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
 	log_debug("[%s]", __func__);
 
-	system_led_blink("zigbee", 500, 500);
 	int ret = zwave_iface_include();
-	system_led_off("zigbee");
 	
 	if (ret != 0) ret = CODE_TIMEOUT;
 	uproto_response_ucmd(uuid, ret);

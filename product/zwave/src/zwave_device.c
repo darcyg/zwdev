@@ -205,12 +205,14 @@ int device_fill_ep(stZWaveEndPoint_t *ze, char ep, char basic, char generic,
 			ze->classes[i].nbit_next = -1;
 			ze->classes[i].nbit_cmds_head = -1;
 
-			stZWClass_t *c = zcc_get_class(ze->classes[i].classid);
+			/*
+			stZWClass_t *c = zcc_get_class(ze->classes[i].classid, ze->classes[i].version);
 			char cmds[MAX_CMD_NUM];
 			int cmdcnt = zcc_get_class_cmd_rpt(c, cmds);
 			if (cmdcnt > 0) {
 				device_add_cmds(&ze->classes[i], cmdcnt, cmds);
 			}
+			*/
 		}
 	} 
 
@@ -372,26 +374,29 @@ char device_get_nodeid_by_mac(const char *mac) {
 	return zd->bNodeID;
 }
 
-static void device_view_command(stZWaveCommand_t *command) {
+static void device_view_command(stZWaveClass_t *class, stZWaveCommand_t *command) {
 	char buf[sizeof(command->data)*3 + 4];
 	int i = 0; 
 	int len = 0;
+	buf[0] = 0;
 	for (i = 0; i < command->len; i++) {
 		len += sprintf(buf + len, "%02X ", command->data[i]&0xff);
 	}
-	log_info("      cmdid:%02X, len: %d, data:[ %s]", command->cmdid&0xff, command->len, buf);
+	const char *name = zcc_get_cmd_name(class->classid, class->version, command->cmdid);
+	printf("      cmdid:%02X(%s), len: %d, data:[ %s]\n", command->cmdid&0xff, name,  command->len, buf);
 }
 
 static void device_view_class(stZWaveClass_t *class) {
-	log_info("    classid:%02X, version:%d", class->classid&0xff, class->version);
+	const char *name = zcc_get_class_name(class->classid, class->version);
+	printf("    classid:%02X(%s), version:%d\n", class->classid&0xff, name, class->version);
 	int i = 0;
 	for (i = 0; i < class->cmdcnt; i++) {
-		device_view_command(&class->cmds[i]);
+		device_view_command(class, &class->cmds[i]);
 	}
 }
 
 static void device_view_endpoint(stZWaveEndPoint_t *ep) {
-	log_info("  ep:%02X, basic:%02X, generic: %02X, specific:%02X ",
+	printf("  ep:%02X, basic:%02X, generic: %02X, specific:%02X \n",
 					ep->ep&0xff, ep->basic&0xff, ep->generic&0xff, ep->specific&0xff);
 	int i = 0;
 	for (i = 0; i < ep->classcnt; i++) {
@@ -400,7 +405,7 @@ static void device_view_endpoint(stZWaveEndPoint_t *ep) {
 }
 
 static void device_view_device(stZWaveDevice_t *dev) {
-	log_info("mac:%08X%08X, nodeid:%02X, security:%02X, capacility:%02X, online:%02X",
+	printf("mac:%08X%08X, nodeid:%02X, security:%02X, capacility:%02X, online:%02X\n",
 						*(int*)dev->mac, *(int*)(dev->mac+4), dev->bNodeID&0xff, dev->security&0xff, dev->capability&0xff, 
 						dev->online);
 	device_view_endpoint(&dev->root);

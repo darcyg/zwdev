@@ -33,7 +33,7 @@ typedef struct stZWaveEnv {
 int zwave_include();
 int zwave_exclude(char mac[8]);
 //int zwave_info(); move to zwave_iface
-int zwave_light_onoff(char mac[8], char ep, int onoff);
+int zwave_switch_onoff(char mac[8], char ep, int onoff);
 
 
 #endif
