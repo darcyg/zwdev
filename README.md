@@ -32,6 +32,20 @@
 			* zwave device will not be ack very quicklly
 		- Todo:
 
+	v1.0.0_zwave_beta2(2017/8/21)
+		- Functions:
+			* include/exclude/list/netinfo/switchonoff zwavee device
+			* support haoen switch(3/2)
+		- Changes:
+			* device storage and ubus proto 
+			* class command deal logic
+		- Problem:
+			* sensor pir only report motion detection message(pir valus is 1)
+			* zwave device will not be ack very quicklly
+		- Todo:
+
+	
+
 # Use:  
 	1. cp zwave_deconfig to rootdir
 	2. make -j10 V=16
