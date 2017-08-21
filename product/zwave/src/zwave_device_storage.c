@@ -691,8 +691,7 @@ int ds_add_device(stZWaveDevice_t *dev) {
 		return -1;
 	}
 
-	printf("[%s] add device: %08X%08X, nodeid:[%02X]\n", __func__,
-					 *(int*)device_get_extaddr(dev), *(int*)(device_get_extaddr(dev)+4), dev->bNodeID&0xff);
+	printf("[%s] add device: %s, nodeid:[%02X]\n", __func__,device_make_macstr(dev), dev->bNodeID);
 	if (dev->nbit >= 0) {
 		return -2;
 	}
@@ -709,8 +708,7 @@ int ds_add_device(stZWaveDevice_t *dev) {
 	return 0;
 }
 int ds_del_device(stZWaveDevice_t *dev) {
-	printf("[%s] del device: %08X%08X...\n", __func__,
-					 *(int*)device_get_extaddr(dev), *(int*)(device_get_extaddr(dev)+4));
+	printf("[%s] del device: %s...\n", __func__, device_make_macstr(dev));
 
 	ds_free_device(dev);
 

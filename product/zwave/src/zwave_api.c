@@ -623,20 +623,21 @@ int zwave_api_util_cc(int id, char ep, char class, int command, char *inparam, i
 	int size = 0;
 
 	sdi.nodeID = id&0xff;
-	sdi.pData_len = (inlen+2) & 0xff;
 	if (ep == 0) {
 		sdi.pData_data[0] = class&0xff;	
 		sdi.pData_data[1] = command&0xff;
 		memcpy(sdi.pData_data + 2, inparam, inlen);
 	} else {
 		sdi.pData_data[0] = 0x60;
-		sdi.pData_data[1] = 0;
-		sdi.pData_data[2] = ep;
-		sdi.pData_data[3] = class&0xff;
-		sdi.pData_data[4] = command&0xff;
-		memcpy(sdi.pData_data + 5, inparam, inlen);
-		inlen += 3;
+		sdi.pData_data[1] = 0x0D;
+		sdi.pData_data[2] = 0;
+		sdi.pData_data[3] = ep;
+		sdi.pData_data[4] = class&0xff;
+		sdi.pData_data[5] = command&0xff;
+		memcpy(sdi.pData_data + 6, inparam, inlen);
+		inlen += 4;
 	}
+	sdi.pData_len = (inlen+2) & 0xff;
 
 	sdi.txOptions = 0x25;
 	sdi.funcID = geneFuncID();

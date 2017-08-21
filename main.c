@@ -94,7 +94,7 @@ void run_main() {
 		cmd_init(&th, &fet);
 	}
 
-	//uproto_init(&th, &fet);
+	uproto_init(&th, &fet);
 
 	ds_init("/etc/config/dusun/zwave/zwave.db");
 	ds_load_alldevs(zc.devs);

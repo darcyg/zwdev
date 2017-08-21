@@ -8,6 +8,7 @@
 #include "file_event.h"
 #include "jansson.h"
 #include "json_parser.h"
+#include "hex.h"
 
 #include "cmd.h"
 #include "zwave_iface.h"
@@ -15,23 +16,22 @@
 
 
 void do_cmd_exit(char *argv[], int argc);
-void do_cmd_quit(char *argv[], int argc);
 void do_cmd_list(char *argv[], int argc);
 void do_cmd_help(char *argv[], int argc);
 void do_cmd_info(char *argv[], int argc);
+void do_cmd_test(char *argv[], int argc);
 void do_cmd_viewall(char *argv[], int argc);
 
-void do_cmd_test(char *argv[], int argc);
 void do_cmd_include(char *argv[], int argc);
 void do_cmd_exclude(char *argv[], int argc);
-void do_cmd_onoff(char *argv[], int argc);
+void do_cmd_switch_onoff(char *argv[], int argc);
 
 static stCmd_t cmds[] = {
 	{"exit", do_cmd_exit, "exit the programe!"},
 	{"list", do_cmd_list, "list all zwave devices"},
 	{"include", do_cmd_include, "include a zwave device"},
 	{"exclude", do_cmd_exclude, "exclude a zwave device : exclude <mac>"},
-	{"onoff", do_cmd_onoff, "onoff binary switch: onoff <mac> <onoff>"},
+	{"onoff", do_cmd_switch_onoff, "onoff binary switch: onoff <mac> <onoff>"},
 	{"info", do_cmd_info, "get zwave network info"},
 	{"help", do_cmd_help, "help info"},
 	{"test", do_cmd_test, "test ..."},
@@ -153,7 +153,9 @@ void do_cmd_exclude(char *argv[], int argc) {
 		log_debug("exclude must has one argment as <mac>");
 		return;
 	}
-	zwave_iface_exclude(argv[1]);
+	char mac[8];
+	hex_parse((u8*)mac, sizeof(mac), argv[1], 0);
+	zwave_iface_exclude(mac);
 }
 
 void do_cmd_help(char *argv[], int argc) {
@@ -177,14 +179,14 @@ void do_cmd_info(char *argv[], int argc) {
 }
 
 
-void do_cmd_onoff(char *argv[], int argc) {
-	if (argc != 3) {
+void do_cmd_switch_onoff(char *argv[], int argc) {
+	if (argc != 4) {
 		log_debug("error argments!");
 		return;
 	}
-	log_debug("onoff:%s, value:%s", argv[1], argv[2]);
+	log_debug("onoff:%s, ep: %s, value:%s", argv[1], argv[2], argv[3]);
 
-	zwave_iface_device_light_onoff(argv[1], atoi(argv[2]));
+	zwave_iface_device_switch_onoff(argv[1], atoi(argv[2]), atoi(argv[3]));
 }
 
 

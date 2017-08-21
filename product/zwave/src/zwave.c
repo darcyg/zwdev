@@ -42,7 +42,7 @@ int										zwave_async_data(stDataFrame_t *dfr);
 
 static stInventory_t *zwave_util_get_inventory();
 static int						zwave_util_sync_dev();
-static int						zwave_util_listchange_auto_report();
+static int						zwave_util_rpt_status();
 
 static int						zwave_util_class_init(stZWaveDevice_t *zd);
 
@@ -92,7 +92,6 @@ static void zwave_run(struct timer *timer) {
 static void zwave_online_run(struct timer *timer) {
 
 	int i = 0;
-	int offline_flag = 0;
 
 	stInventory_t *inv = zwave_util_get_inventory();
 	for (i = 0; i < inv->initdata.nodes_map_size * 8; i++) {
@@ -117,7 +116,7 @@ static void zwave_online_run(struct timer *timer) {
 			online -= 5*60;
 			if (online <= 0) {
 				online = 0;
-				offline_flag++;
+				zwave_util_rpt_status(zd);
 			}
 		} else if (online <= 0) { //offline , do nothing
 			online = 0;
@@ -127,10 +126,6 @@ static void zwave_online_run(struct timer *timer) {
 	}
 
 	timer_set(ze.th, &ze.tr_online, 5*60*1000);
-
-	if (offline_flag) {
-		zwave_util_listchange_auto_report();
-	}
 }
 
 static void zwave_query_run(struct timer *timer) {
@@ -228,6 +223,9 @@ int zwave_push(int eid, void *param, int len) {
 
 
 ////////////////////////////////////////////////////////////////////////////
+stInventory_t* zwave_get_inventory() {
+	return zwave_util_get_inventory();
+}
 int zwave_include() {
 	log_debug("[%d]", __LINE__);
 
@@ -245,9 +243,13 @@ int zwave_include() {
 
 		stZWaveDevice_t *zd = device_get_by_nodeid(id&0xff);
 		if (zd != NULL) {
+			zd->online = 15*60;
+
 			zwave_util_class_init(zd);
 
 			ds_add_device(zd);
+
+			zwave_iface_report_register(device_get_extaddr(zd));
 		}
 
 		stInventory_t *inv = zwave_util_get_inventory();
@@ -307,7 +309,7 @@ int zwave_switch_onoff(char mac[8], char ep, int onoff) {
 
 //////////////////////////////////////////////////////////////////////
 int zwave_test() {
-#if 1
+#if 0
 	stInventory_t *inv = zwave_util_get_inventory();
 
 	int i = 0;
@@ -358,6 +360,9 @@ int zwave_async_data(stDataFrame_t *dfr) {
 	int id = dfr->payload[1]&0xff;
 	char classid = dfr->payload[3]&0xff;
 	char cmdid = dfr->payload[4]&0xff;
+	char *data = &dfr->payload[5];
+	int len = dfr->payload[2] - 2;
+	char ep = 0;
 	
 
 	stZWaveDevice_t *zd = device_get_by_nodeid(id&0xff);
@@ -366,27 +371,29 @@ int zwave_async_data(stDataFrame_t *dfr) {
 		return  0;
 	}
 
+	int online_old = zd->online;
+	zd->online = 15 * 60;;
+	if (online_old <= 0) {
+		zwave_util_rpt_status(zd);
+	}
+
 	stZWaveClass_t *zcls = device_get_class(zd, 0, classid);
 	if (zcls == NULL) {
 		log_warn("no such class : %02X", classid&0xff);
+		return  0;
 	}
 
 	stZWaveCommand_t *zcmd = device_get_cmd(zcls, cmdid);
 	if (zcmd == NULL) {
 		log_warn("no such cmd : %02X", cmdid&0xff);
+		return  0;
 	}
 
-	device_update_cmds_data(zcmd, &dfr->payload[5], dfr->payload[2] - 2);
+
+	device_update_cmds_data(zcmd, data, len);
 	ds_update_cmd_data(zcmd);
-
-
-	int online_old = zd->online;
-	zd->online = 15 * 60;;
-	if (online_old <= 0) {
-		zwave_util_listchange_auto_report();
-	}
-
 	{
+	#if 0
 		if ((classid&0xff) == 0x25 && cmdid == 0x03) {
 			zwave_iface_switch_onoff_rpt(zd, 0, zcls, zcmd);
 		} else if ((classid&0xff) == 0x71 && cmdid == 0x05) {
@@ -403,6 +410,19 @@ int zwave_async_data(stDataFrame_t *dfr) {
 			device_update_cmds_data(zcmd, &dfr->payload[5+4], dfr->payload[2] - 2 -4);
 			zwave_iface_switch_onoff_rpt(zd, ep, zcls, zcmd);
 		}
+	#else
+		if ((classid&0xff) == 0x60 && cmdid == 0x0d) {
+			ep = dfr->payload[5 + 0];
+			classid = dfr->payload[5 + 2];
+			cmdid = dfr->payload[5 + 3];
+			data = &dfr->payload[5+4];
+			len = dfr->payload[2] - 2 - 4;
+			//device_update_cmds_data(zcmd, data, len);
+		} else {
+		}
+		zwave_iface_report_cmd(zd->mac, ep, classid, cmdid, data, len);
+	#endif
+
 	}
 
 	system_led_shot("zigbee");
@@ -426,8 +446,9 @@ static int	zwave_util_sync_dev() {
 		if (id_bit == 0) {
 			stZWaveDevice_t *zd = device_get_by_nodeid(id);
 			if (zd != NULL) {
-				device_del(zd->bNodeID);
+				zwave_iface_report_unregister(device_get_extaddr(zd));
 				ds_del_device(zd);
+				device_del(zd->bNodeID);
 			}
 			continue;
 		}
@@ -447,14 +468,11 @@ static int	zwave_util_class_init(stZWaveDevice_t *zd) {
 	return 0;
 }
 
-static int	zwave_util_listchange_auto_report() {
+static int						zwave_util_rpt_status(stZWaveDevice_t *zd) {
 	log_info("[%d] -- ", __LINE__);
-
-	zwave_iface_report_devcie_list();
-
+	zwave_iface_report_status(zd->mac);
 	return 0;
 }
-
 
 ///////////////////////////////////////////parse/////////////////////////////////////////
 static stInventory_t *zwave_util_get_inventory() {

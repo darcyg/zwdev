@@ -76,9 +76,12 @@ char *device_get_extaddr(stZWaveDevice_t *zd) {
 		stZWaveCommand_t *cmd = device_get_cmd(class, 0x07);
 		if (cmd != NULL) {
 			memcpy(mac, cmd->data + 2, 8);
+		} else {
+			log_warn("no manufacturer id(no cmd 0x07), use zwave node id as mac!!!");
 		}
+	} else {
+		log_warn("no manufacturer id(no class 0x72), use zwave node id as mac!!!");
 	}
-	log_warn("no manufacturer id, use zwave node id as mac!!!");
 
 	memcpy(zd->mac, mac, 8);
 
@@ -302,9 +305,13 @@ const char *device_make_macstr(stZWaveDevice_t *zd) {
 		stZWaveCommand_t *cmd = device_get_cmd(class, 0x07);
 		if (cmd != NULL) {
 			memcpy(mac, cmd->data + 2, 8);
+		} else {
+			log_warn("no manufacturer id(no cmd 0x07), use zwave node id as mac!!!");
 		}
+	}  else {
+		log_warn("class:%p, version:%d\n", class, class != NULL ? class->version : -1);
+		log_warn("no manufacturer id(no class 0x72), use zwave node id as mac!!!");
 	}
-	log_warn("no manufacturer id, use zwave node id as mac!!!");
 
 	static char macstr[32];
 	hex_string(macstr, sizeof(macstr), (u8*)mac, sizeof(mac), 1, 0);
@@ -405,8 +412,8 @@ static void device_view_endpoint(stZWaveEndPoint_t *ep) {
 }
 
 static void device_view_device(stZWaveDevice_t *dev) {
-	printf("mac:%08X%08X, nodeid:%02X, security:%02X, capacility:%02X, online:%02X\n",
-						*(int*)dev->mac, *(int*)(dev->mac+4), dev->bNodeID&0xff, dev->security&0xff, dev->capability&0xff, 
+	printf("mac:%s, nodeid:%02X, security:%02X, capacility:%02X, online:%02X\n",
+						device_make_macstr(dev), dev->bNodeID&0xff, dev->security&0xff, dev->capability&0xff, 
 						dev->online);
 	device_view_endpoint(&dev->root);
 	int i = 0;

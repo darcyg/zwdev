@@ -35,5 +35,6 @@ int zwave_exclude(char mac[8]);
 //int zwave_info(); move to zwave_iface
 int zwave_switch_onoff(char mac[8], char ep, int onoff);
 
+stInventory_t* zwave_get_inventory();
 
 #endif

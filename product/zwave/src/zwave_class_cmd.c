@@ -250,7 +250,7 @@ stZWClass_t zcc_ccs[] = {
 	{0x60, 3, "multi_channel", 10, {
 			{0x09, "cap_get", 'g', 0, ""},
 			{0x0a, "cap_rpt", 'r', 0, ""},
-			{0x0d, "cmd_encap", 's', 0, ""},
+			{0x0d, "cmd_encap", 'r', 0, ""},
 			{0x0b, "ep_find", 'g', 0, ""},
 			{0x0c, "ep_find_rpt", 'r', 0, ""},
 			{0x07, "ep_get", 'g', 0, ""},

@@ -48,6 +48,7 @@ srcs							+= $(ROOTDIR)/product/zwave/src/zwave_util.c
 srcs							+= $(ROOTDIR)/product/zwave/src/zwave_iface.c
 srcs							+= $(ROOTDIR)/product/zwave/src/cmd.c
 srcs							+= $(ROOTDIR)/product/zwave/src/uproto.c
+srcs							+= $(ROOTDIR)/product/zwave/src/uproto_dusun.c
 
 srcs							+= $(ROOTDIR)/src/lockqueue.c
 srcs							+= $(ROOTDIR)/src/mutex.c
@@ -211,7 +212,7 @@ $(eval $(call LinkApp,testclasscmd,$(testclasscmdobjs)))
 
 
 scp :
-	scp -P 22 $(ROOTDIR)/build/$(targets) root@192.168.0.230:/tmp
+	scp -P 2200 $(ROOTDIR)/build/$(targets) root@192.168.0.230:/root
 
 startvc :
 	(cd $(ROOTDIR)/utils/VirtualCom;\

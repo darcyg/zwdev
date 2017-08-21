@@ -1,6 +1,5 @@
-#ifndef _AMBER_UPROTO_H_
-#define _AMBER_UPROTO_H_
-
+#ifndef _UPROTO_H_
+#define _UPROTO_H_
 
 #include "timer.h"
 #include "file_event.h"
@@ -13,7 +12,7 @@
 
 #define UPROTO_EVENT_ID_LISTEN "DS.GREENPOWER"
 #define UPROTO_EVENT_ID_REPORT "DS.GATEWAY"
-#define UPROTO_ME								"GREENPOWER"
+#define UPROTO_ME				"GREENPOWER"
 
 enum emUprotoError{
 	CODE_SUCCESS									= 0,			// 成功
@@ -39,24 +38,17 @@ enum emUprotoError{
 }emUprotoError_t;
 
 enum {
-	UE_SEND_MSG		= 0x00,
-};
-
-enum {
-	PROTO_DUSUN = 0x01,
+	UE_SEND_MSG = 0x00,
 };
 
 typedef struct stUprotoEnv {
 	struct file_event_table *fet;
 	struct timer_head *th;
 	struct timer step_timer;
-	
 	stLockQueue_t msgq;
 
-	struct ubus_context *ubus_ctx;
-	struct ubus_event_handler listener;
-
-	int	protoused;		/* 0-> dusun, 1->alink */
+  struct ubus_context *ubus_ctx;
+  struct ubus_event_handler listener;
 }stUprotoEnv_t;
 
 typedef int (*UPROTO_HANDLER)(const char *uuid, const char *cmdmac, const char *attr, json_t *value);
@@ -67,12 +59,10 @@ typedef struct stUprotoCmd {
 
 typedef int (*UPROTO_CMD_GET)(const char *uuid, const char * cmdmac, const char *attr, json_t *value);
 typedef int (*UPROTO_CMD_SET)(const char *uuid, const char * cmdmac, const char *attr, json_t *value);
-typedef int (*UPROTO_CMD_RPT)(const char *uuid, const char * cmdmac, const char *attr, json_t *value);
 typedef struct stUprotoAttrCmd {
 	const char *name;
 	UPROTO_CMD_GET get;
 	UPROTO_CMD_SET set;
-	UPROTO_CMD_RPT rpt;
 }stUprotoAttrCmd_t;
 
 
@@ -83,33 +73,5 @@ void uproto_run(struct timer *timer);
 void uproto_in(void *arg, int fd);
 
 
-int uproto_rpt_register(const char *extaddr);
-int uproto_rpt_unregister(const char *extaddr);
-int uproto_rpt_status(const char *extaddr);
-int uproto_rpt_attr(const char *extaddr, unsigned char ep, unsigned char clsid, const char *buf, int len);
-int uproto_rpt_cmd(const char *extaddr, unsigned char ep, unsigned char clsid, unsigned char cmdid, const char *buf, int len);
-
-
-typedef int (*PROTO_CMD_HANDLER)(const char *cmd);
-typedef int (*PROTO_RPT_REGISTER)(const char *extaddr);
-typedef int (*PROTO_RPT_UNREGISTER)(const char *extaddr);
-typedef int (*PROTO_RPT_STATUS)(const char *extaddr);
-typedef int (*PROTO_RPT_ATR)(const char *extaddr, unsigned char ep, unsigned char clsid, const char *buf, int len);
-typedef int (*PROTO_RPT_CMD)(const char *extaddr, unsigned char ep, unsigned char clsid, unsigned char cmdid, const char *buf, int len);
-typedef struct stProto {
-	PROTO_CMD_HANDLER			handler;
-	PROTO_RPT_REGISTER		rptregister;
-	PROTO_RPT_UNREGISTER	rptunregister;
-	PROTO_RPT_STATUS			rptstatus;
-	PROTO_RPT_ATR					rptatr;
-	PROTO_RPT_CMD					rptcmd;
-}stProto_t;
-
-/* dusun */
-int uproto_handler_cmd_dusun(const char *cmd);
-int uproto_rpt_register_dusun(const char *extaddr);
-int uproto_rpt_unregister_dusun(const char *extaddr);
-int uproto_rpt_status_dusun(const char *extaddr);
-int uproto_rpt_attr_dusun(const char *extaddr, unsigned char ep, unsigned char clsid, const char *buf, int len);
-int uproto_rpt_cmd_dusun(const char *extaddr, unsigned char ep, unsigned char clsid, unsigned char cmdid, const char *buf, int len);
+int uproto_report_umsg(const char *submac, const char *attr, json_t *jret);
 #endif
