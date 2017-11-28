@@ -97,6 +97,13 @@ typedef struct stAddNodeToNetworkIn {
 	char yummy2;
 }stAddNodeToNetworkIn_t;
 
+typedef struct stIsFailedNodeIn {
+	char bNodeID;
+}stIsFailedNodeIn_t;
+typedef struct stRemoveFailedNodeIn {
+	char bNodeID;
+	char funcID;
+}stRemoveFailedNodeIn_t;
 
 
 typedef struct stInventory {
@@ -184,6 +191,8 @@ int zwave_api_ZWaveRequestNodeInfo(int id, stNodeInfo_t *ni);
 int zwave_api_ZWaveAddNodeToNetwork(stAddNodeToNetwork_t *antn);
 int zwave_api_ZWaveRemoveNodeFromNetwork();
 int zwave_api_ZWaveSendData(void *data, int len);
+int zwave_api_ZWaveRemoveFailedNodeId(char id);
+int zwave_api_ZWaveIsFailedNode(char id);
 
 int zwave_api_util_cc(int id, char ep, char class, int command, char *inparam, int inlen, int wait,  char  *outparam, int *outlen);
 int zwave_api_util_wait_frame(stDataFrame_t **dfr, int timeout, char expect);

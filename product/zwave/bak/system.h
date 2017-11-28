@@ -5,6 +5,7 @@
 #define LED_ERR         "errled"
 #define LED_PWR         "pwrled"
 #define LED_ZIGBEE      "zigbee"
+#define LED_ZWAVE				"zwled"
 
 
 int system_wifi_get(int *enable, char *mode, char *ssid, char *password) ;

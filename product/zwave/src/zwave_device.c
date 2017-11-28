@@ -321,7 +321,7 @@ const char *device_make_macstr(stZWaveDevice_t *zd) {
 int device_get_battery(stZWaveDevice_t *zd) {
 	stZWaveClass_t *class = device_get_class(zd, 0, 0x80);
 	if (class != NULL) {
-		stZWaveCommand_t *cmd = device_get_cmd(class, 0x07);
+		stZWaveCommand_t *cmd = device_get_cmd(class, 0x03);
 		if (cmd != NULL) {
 			char *buf = cmd->data;
 			int battery = buf[0]&0xff;

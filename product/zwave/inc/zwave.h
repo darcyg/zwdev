@@ -34,6 +34,7 @@ int zwave_include();
 int zwave_exclude(char mac[8]);
 //int zwave_info(); move to zwave_iface
 int zwave_switch_onoff(char mac[8], char ep, int onoff);
+int zwave_remove_failed_node(const char *mac);
 
 stInventory_t* zwave_get_inventory();
 

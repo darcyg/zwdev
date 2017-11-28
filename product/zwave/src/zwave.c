@@ -229,7 +229,7 @@ stInventory_t* zwave_get_inventory() {
 int zwave_include() {
 	log_debug("[%d]", __LINE__);
 
-	system_led_blink("zigbee", 500, 500);
+	system_led_blink("zwled", 500, 500);
 	stAddNodeToNetwork_t antn;
 	int ret = zwave_api_ZWaveAddNodeToNetwork(&antn);
 
@@ -256,17 +256,17 @@ int zwave_include() {
 		zwave_api_SerialApiGetInitData(&inv->initdata);
 		zwave_util_sync_dev();
 	}
-	system_led_off("zigbee");
+	system_led_off("zwled");
 
 	return ret;
 }
 int zwave_exclude(char mac[8]) {
 	log_debug("[%d]", __LINE__);
 
-	system_led_blink("zigbee", 500, 500);
+	system_led_blink("zwled", 500, 500);
 	stZWaveDevice_t *zd = device_get_by_extaddr(mac);
 	if (zd == NULL) {
-		system_led_off("zigbee");
+		system_led_off("zwled");
 		return 0;
 	}
 
@@ -275,7 +275,26 @@ int zwave_exclude(char mac[8]) {
 	zwave_api_SerialApiGetInitData(&ze.inventory.initdata);
 	zwave_util_sync_dev();
 
-	system_led_off("zigbee");
+	system_led_off("zwled");
+	return ret;
+}
+
+int zwave_remove_failed_node(const char *mac) {
+	log_debug("[%d]", __LINE__);
+	
+	stZWaveDevice_t *zd = device_get_by_extaddr(mac);
+	if (zd == NULL) {
+		return -1;
+	}
+
+	if (!zwave_api_ZWaveIsFailedNode(zd->bNodeID)) {
+		return 0;
+	}
+
+	int ret = zwave_api_ZWaveRemoveFailedNodeId(zd->bNodeID);
+	zwave_api_SerialApiGetInitData(&ze.inventory.initdata);
+	zwave_util_sync_dev();
+
 	return ret;
 }
 
@@ -425,7 +444,7 @@ int zwave_async_data(stDataFrame_t *dfr) {
 
 	}
 
-	system_led_shot("zigbee");
+	system_led_shot("zwled");
 	return 0;
 }
 

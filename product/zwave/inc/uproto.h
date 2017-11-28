@@ -11,9 +11,10 @@
 #include <libubus.h>
 #include <jansson.h>
 
-#define UPROTO_EVENT_ID_LISTEN "DS.GREENPOWER"
+//#define UPROTO_EVENT_ID_LISTEN "DS.GREENPOWER"
+#define UPROTO_EVENT_ID_LISTEN "DS.ZWAVE"
 #define UPROTO_EVENT_ID_REPORT "DS.GATEWAY"
-#define UPROTO_ME								"GREENPOWER"
+#define UPROTO_ME								"ZWAVE"
 
 enum emUprotoError{
 	CODE_SUCCESS									= 0,			// 成功

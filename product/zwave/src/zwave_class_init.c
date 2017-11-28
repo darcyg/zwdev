@@ -27,10 +27,11 @@ static int switch_all_init(stZWaveDevice_t *zd, stZWaveClass_t *class);
 static int protection_init(stZWaveDevice_t *zd, stZWaveClass_t *class);
 static int configure_init(stZWaveDevice_t *zd, stZWaveClass_t *class);
 
-static stClassCommandFuncs_t _zwave_class_init_funcs[] = {
-	[0x73] = {0x73, powerlevel_init},
-	[0x25] = {0x25, switch_binary_init},
-	[0x5e] = {0x5e, zwaveplus_info_init},
+static stClassCommandFuncs_t _zwave_class_init_funcs[256] = {
+	//[0x73] = {0x73, powerlevel_init},
+	//[0x25] = {0x25, switch_binary_init},
+	//[0x5e] = {0x5e, zwaveplus_info_init},
+
 	[0x85] = {0x85, association_init},
 	[0x59] = {0x59, association_grp_info_init},
 	[0x86] = {0x86, version_init},
@@ -39,6 +40,7 @@ static stClassCommandFuncs_t _zwave_class_init_funcs[] = {
 	[0x80] = {0x80, battery_init},
 	[0x84] = {0x84, wakeup_init},
 	[0x71] = {0x71, notify_alarm_init},
+
 	[0x26] = {0x26, switch_multi_init},
 	[0x27] = {0x27, switch_all_init},
 	[0x75] = {0x75, protection_init},
@@ -345,7 +347,7 @@ static int wakeup_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 	int outlen;
 	char command = 0x04;
 	//int wui = 15 * 60;
-	int wui = 1 * 15;
+	int wui = 15*60;
 	char inparam[4] = {(wui>>16)&0xff, (wui>>8)&0xff,(wui>>0)&0xff, 0x01};
 	int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, inparam, sizeof(inparam), 0, outparam, &outlen);
 	if (ret != 0) {

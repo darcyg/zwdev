@@ -65,6 +65,11 @@ json_t *	zwave_iface_info() {
 	return jret;
 }
 
+int				zwave_iface_remove_failed_node(const char *mac) {
+	log_info("[%s] %d", __func__, __LINE__);
+	return  zwave_remove_failed_node((char *)mac);
+}
+
 int zwave_iface_test() {
 	log_info("[%s] %d", __func__, __LINE__);
 	zwave_test();

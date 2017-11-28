@@ -34,7 +34,7 @@ static int rpt_mod_device_list(const char *uuid, const char *cmdmac,  const char
 static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static int rpt_new_device_added(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static int rpt_device_deleted(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
-static int set_find_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int set_mod_add_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 
 static int set_switch_onoff(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static int rpt_switch_onoff(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
@@ -44,18 +44,22 @@ static int rpt_device_status(const char *uuid, const char *cmdmac,  const char *
 static int get_zwave_info(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static int rpt_zwave_info(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 
+
+static int rpt_zone_status(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+
 static stUprotoAttrCmd_t uattrcmds[] = {
 	/* mod */
 	{"mod.device_list",						get_mod_device_list,	NULL,									rpt_mod_device_list},
 	{"mod.del_device",						NULL,									set_mod_del_device,		NULL},
 	{"mod.new_device_added",			NULL,									NULL,									rpt_new_device_added},
-	{"mod.find_device",						NULL,									set_find_device,			NULL},
+	{"mod.add_device",						NULL,									set_mod_add_device,		NULL},
 	{"device.status",							NULL,									NULL,									rpt_device_status},
 	{"mod.device_deleted",				NULL,									NULL,									rpt_device_deleted},
 	{"mod.zwave_info",						get_zwave_info,				NULL,									rpt_zwave_info},
 
 	/* switch */
 	{"device.switch.onoff",				NULL,									set_switch_onoff,			rpt_switch_onoff},
+	{"device.zone_status",				NULL,									NULL,									rpt_zone_status},
 };
 
 //Receive/////////////////////////////////////////////////////////////////////////////
@@ -211,6 +215,12 @@ static int uproto_report_umsg(const char *submac, const char *attr, json_t *jret
 	json_object_set_new(jdata, "attribute", json_string(attr));
 	//char submac[32];				
 	json_object_set_new(jdata, "mac", json_string(submac));
+
+	int ep = -1; json_get_int(jret, "ep", &ep);
+	if (json_object_del(jret, "ep") == 0) {
+		json_object_set_new(jdata, "ep", json_integer(ep));
+	}
+
 	json_object_set_new(jdata, "value", jret);
 	json_object_set_new(jumsg, "data", jdata);
 
@@ -351,7 +361,7 @@ static int rpt_device_deleted(const char *uuid, const char *cmdmac,  const char 
 
 	return 0;
 }
-static int set_find_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+static int set_mod_add_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
 	log_info("[%s]", __func__);
 
 	int ret = zwave_iface_include();
@@ -402,6 +412,12 @@ static int rpt_switch_onoff(const char *uuid, const char *cmdmac,  const char *a
 	return 0;
 }
 
+static int rpt_zone_status(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("[%s]", __func__);
+	uproto_report_umsg(cmdmac, attr, value);
+	return 0;
+}
+
 //rpt interface///////////////////////////////////////////////////////////////////////////////////////
 int uproto_rpt_register_dusun(const char *extaddr) {
 	log_info("[%s]", __func__);
@@ -426,6 +442,8 @@ int uproto_rpt_register_dusun(const char *extaddr) {
 
 	_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", device_make_macstr(zd), "mod.new_device_added", jret);
 
+	char mac[32];             system_mac_get(mac);
+	_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", mac, "mod.device_list", NULL);
 	return 0;
 }
 
@@ -438,6 +456,9 @@ int uproto_rpt_unregister_dusun(const char *extaddr) {
 	json_object_set_new(jret, "mac", json_string(sbuf));
 
 	_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", sbuf, "mod.device_deleted", jret);
+
+	char mac[32];             system_mac_get(mac);
+	_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", mac, "mod.device_list", NULL);
 	return 0;
 }
 
@@ -477,8 +498,8 @@ int uproto_rpt_cmd_dusun(const char *extaddr, unsigned char ep, unsigned char cl
 		return 0;
 	}
 
-	if ((clsid == 0x25 && cmdid == 0x03) || (clsid == 0x20 && cmdid == 0x03)) {
-		json_t *jret = json_object();
+	if ((clsid == 0x25 && cmdid == 0x03) || (clsid == 0x20 && cmdid == 0x03)) { /* switch onoff */
+		json_t *jret = json_object(); 
 		char sbuf[32];
 		sprintf(sbuf, "%d", !!buf[0]);
 		json_object_set_new(jret, "value", json_string(sbuf));
@@ -486,8 +507,46 @@ int uproto_rpt_cmd_dusun(const char *extaddr, unsigned char ep, unsigned char cl
 		json_object_set_new(jret, "ep", json_string(sbuf));
 
 		_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", device_make_macstr(zd), "device.switch.onoff", jret);
+	} else if ((clsid&0xff) == 0x71 && (cmdid&0xff) == 0x05) { /* security event rpt */
+		if (len == 8) {
+			char notification_type		= buf[4]&0xff;
+			char notification_event	= buf[5]&0xff;
+			char paramlen						= buf[6]&0xff;
+			char param								= buf[7]&0xff;
+			if (notification_type == 0x07 && notification_event == 0x08) {
+				json_t *jret = json_object(); 
+
+				char sbuf[32];
+				sprintf(sbuf, "%d", !!param);
+				json_object_set_new(jret, "value", json_string(sbuf));
+				
+				json_object_set_new(jret, "ep", json_integer(ep&0xff));
+
+				json_object_set_new(jret, "zone", json_string("pir"));
+
+				_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", device_make_macstr(zd), "device.zone_status", jret);
+			} else {
+				log_warn("not support class(%02X) cmd(%02X)  notification(%02X), event(%02x)\n", 
+							clsid&0xff, cmdid&0xff, notification_type&0xff, notification_event&0xff);
+			}
+		} else if ((clsid&0xff) == 0x80 && (cmdid&0xff) == 0x03) { /* battery event rpt */
+			//char bl = buf[4]&0xff;
+
+			json_t *jret = json_object(); 
+
+			json_object_set_new(jret, "mac", json_string(device_make_macstr(zd)));
+			json_object_set_new(jret, "type", json_string(device_make_typestr(zd)));
+			json_object_set_new(jret, "version", json_string(device_make_versionstr(zd)));
+			json_object_set_new(jret, "model", json_string(device_make_versionstr(zd)));
+			json_object_set_new(jret, "online", json_integer(device_get_online(zd)));
+			json_object_set_new(jret, "battery", json_integer(device_get_battery(zd)));
+
+			_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", device_make_macstr(zd), "device.status", jret);
+		} else {
+			log_warn("class(%02X) cmd(%02X) data too short\n", clsid, cmdid);
+		}
 	} else {
-		log_warn("not support class(%02X) cmd(%02X\n", clsid, cmdid);
+		log_warn("not support class(%02X) cmd(%02X)\n", clsid, cmdid);
 	}
 
 	return 0;

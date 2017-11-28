@@ -5,10 +5,12 @@
 #include <stdlib.h>
 #include <utypes.h>
 
-#define MAJOR    0
+#define MAJOR    1
 #define MINOR    0
-#define PATCH    0
+#define PATCH    1
 #define RELEASE  1
+#define DATE	__DATE__
+#define TIME  __TIME__
 #define VERSION() (RELEASE | (PATCH << 8) | (MINOR << 16) | (MAJOR << 24))
 #define VERSION_STR() ("V"##MAJOR##"."##MINOR##"."##PATCH##"."##RELEASE)
 

@@ -26,6 +26,7 @@
 #define LED_ERR					"errled"
 #define LED_PWR					"pwrled"
 #define LED_ZIGBEE			"zigbee"
+#define LED_ZWAVE				"zwled"
 
 /* 
  * led stuff 

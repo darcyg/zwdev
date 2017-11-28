@@ -25,6 +25,8 @@ void do_cmd_viewall(char *argv[], int argc);
 void do_cmd_include(char *argv[], int argc);
 void do_cmd_exclude(char *argv[], int argc);
 void do_cmd_switch_onoff(char *argv[], int argc);
+void do_cmd_remove(char *argv[], int argc);
+void do_cmd_version(char *argv[], int argc);
 
 static stCmd_t cmds[] = {
 	{"exit", do_cmd_exit, "exit the programe!"},
@@ -36,6 +38,8 @@ static stCmd_t cmds[] = {
 	{"help", do_cmd_help, "help info"},
 	{"test", do_cmd_test, "test ..."},
 	{"viewall", do_cmd_viewall, "view all zwave devices"},
+	{"remove", do_cmd_remove, "remove failed node id"},
+	{"version", do_cmd_version, "display version"},
 };
 
 static stCmdEnv_t ce;
@@ -196,5 +200,18 @@ void do_cmd_test(char *argv[], int argc) {
 
 void do_cmd_viewall(char *argv[], int argc) {
 	zwave_iface_viewall();
+}
+
+void do_cmd_remove(char *argv[], int argc) {
+	if (argc != 2) {
+		log_debug("remove must has one argment as <mac>");
+		return;
+	}
+	char mac[8];
+	hex_parse((u8*)mac, sizeof(mac), argv[1], 0);
+	zwave_iface_remove_failed_node(mac);
+}
+void do_cmd_version(char *argv[], int argc) {
+	log_debug("Version:%d.%d.%d, DateTime:%s %s", MAJOR, MINOR, PATCH, TIME, DATE);
 }
 

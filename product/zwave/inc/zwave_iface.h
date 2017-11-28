@@ -8,6 +8,7 @@ json_t *	zwave_iface_list();
 int				zwave_iface_include();
 int				zwave_iface_exclude(const char *mac);
 json_t *	zwave_iface_info();
+int				zwave_iface_remove_failed_node(const char *mac);
 
 int zwave_iface_test();
 int zwave_iface_viewall();

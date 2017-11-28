@@ -52,6 +52,7 @@ extern stZWaveCache_t zc;
 int parse_args(int argc, char *argv[]);
 int usage();
 int write_pid();
+void write_version(const char *verfile);
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char *argv[]) {
@@ -68,6 +69,9 @@ int main(int argc, char *argv[]) {
 		log_err("zwdevd has startted!");
 		return -2;
 	}
+
+
+	write_version("/etc/config/dusun/zwdev/version");
 
 	run_main();
 
@@ -96,10 +100,13 @@ void run_main() {
 
 	uproto_init(&th, &fet);
 
-	ds_init("/etc/config/dusun/zwave/zwave.db");
+	ds_init("/etc/config/dusun/zwdev/zwdev.db");
 	ds_load_alldevs(zc.devs);
 
-	zwave_init(&th, &fet, uart_dev, uart_buad);
+	if (zwave_init(&th, &fet, uart_dev, uart_buad) != 0) {
+		log_err("[%s] [%d] can't init zwave module", __func__, __LINE__);
+		return;
+	}
 
 	timer_set(&th, &tr, 10);
 	log_info("[%s] %d : goto main loop", __func__, __LINE__);
@@ -204,4 +211,16 @@ int write_pid() {
 	}
 	
 	return 0;
+}
+
+void write_version(const char *verfile) {
+	FILE *fp = fopen(verfile, "w");
+	if (fp == NULL) {
+		return;
+	}
+
+	char buf[256];
+	sprintf(buf, "Version:%d.%d.%d, DateTime:%s %s\n", MAJOR, MINOR, PATCH, TIME, DATE);
+	fwrite(buf, strlen(buf), 1, fp);
+	fclose(fp);
 }

@@ -426,7 +426,7 @@ int zwave_api_ZWaveAddNodeToNetwork(stAddNodeToNetwork_t *antn) {
 
 
 	/*newdev added */
-	ret = zwave_frame_wait_frame(&dfr, 5000, CmdZWaveAddNodeToNetwork);
+	ret = zwave_frame_wait_frame(&dfr, 10000, CmdZWaveAddNodeToNetwork);
 	if (ret != APIERR_NONE) {
 		log_debug("[%d] : can't wait response newdev added data: %d",  __LINE__, ret);
 		if (ret == APIERR_FRAME_RECV_TOU) {
@@ -539,7 +539,7 @@ int zwave_api_ZWaveRemoveNodeFromNetwork() {
 
 
 	/*remove response 1 */
-	ret = zwave_frame_wait_frame(&dfr, 5000, CmdZWaveRemoveNodeFromNetwork);
+	ret = zwave_frame_wait_frame(&dfr, 10000, CmdZWaveRemoveNodeFromNetwork);
 	if (ret != APIERR_NONE) {
 		log_debug("[%d] : can't wait response 1 data: %d",  __LINE__, ret);
 		if (ret == APIERR_FRAME_RECV_TOU) {
@@ -577,6 +577,70 @@ int zwave_api_ZWaveRemoveNodeFromNetwork() {
 
 	/* comp */
 	zwave_api_ZWaveRemoveNodeFromNetwork_complete();
+	return 0;
+}
+
+
+int zwave_api_ZWaveIsFailedNode(char id) {
+	int ret = 0;
+	stDataFrame_t *dfs = NULL;
+
+	stIsFailedNodeIn_t ifni = {id};
+	dfs = frame_make(CmdZWaveIsFailedNode, (void *)&ifni, 1);
+
+	ret = zwave_frame_send_with_ack(dfs, 1000);
+	FREE(dfs); dfs = NULL;
+	if (ret != APIERR_NONE) {
+		log_debug("[%d] : may be no ack : %d",  __LINE__, ret);
+		return -1;
+	}
+
+	/* ret */
+	stDataFrame_t *dfr = NULL;
+	ret = zwave_frame_wait_frame(&dfr, 1000, CmdZWaveIsFailedNode);
+	if (ret != APIERR_NONE) {
+		log_debug("[%d] : can't wait ret data: %d",  __LINE__, ret);
+		return -2;
+	}
+
+	return !!dfr->payload[0];
+}
+
+int zwave_api_ZWaveRemoveFailedNodeId(char id) {
+	int ret = 0;
+	stDataFrame_t *dfs = NULL;
+	char funcID = geneFuncID();
+
+	stRemoveFailedNodeIn_t rfni = {id, funcID};
+	dfs = frame_make(CmdZWaveRemoveFailedNodeId, (void *)&rfni, 2);
+
+	ret = zwave_frame_send_with_ack(dfs, 1000);
+	FREE(dfs); dfs = NULL;
+	if (ret != APIERR_NONE) {
+		log_debug("[%d] : may be no ack : %d",  __LINE__, ret);
+		return -1;
+	}
+
+	/* cmd ack */
+	stDataFrame_t *dfr = NULL;
+	ret = zwave_frame_wait_frame(&dfr, 1000, CmdZWaveRemoveFailedNodeId);
+	if (ret != APIERR_NONE) {
+		log_debug("[%d] : can't wait cmd ack: %d",  __LINE__, ret);
+		return -2;
+	}
+	if (dfr->payload[0] != 0x00) {
+		log_debug("[%d] : cmd ack failed %02x",  __LINE__, dfr->payload[0]&0xff);
+		return -3;
+	}
+
+	/* remove result */
+	dfr = NULL;
+	ret = zwave_frame_wait_frame(&dfr, 1000, CmdZWaveRemoveFailedNodeId);
+	if (ret != APIERR_NONE) {
+		log_debug("[%d] : can't wait cmd result: %d",  __LINE__, ret);
+		return -4;
+	}
+
 	return 0;
 }
 

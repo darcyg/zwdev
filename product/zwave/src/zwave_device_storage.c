@@ -6,7 +6,7 @@
 #include "zwave_device_storage.h"
 
 static stDsHeader_t *g_dh = NULL;
-static char *g_path = "/etc/config/dusun/alink/devices.db";
+static char *g_path = "/etc/config/dusun/zwdev/zwdev.db";
 
 
 static int ds_create_dir(const char *path) {
