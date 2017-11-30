@@ -446,7 +446,8 @@ int zwave_async_data(stDataFrame_t *dfr) {
 				char notification_type		= data[4]&0xff;
 				char notification_event	= data[5]&0xff;
 				char paramlen						= data[6]&0xff;
-				char param								= data[7]&0xff;
+				char param								= data[7]&0x7f;
+				log_debug("param is %02X", param&0xff);
 				if (notification_type == 0x07 && notification_event == 0x08) {
 					stZWaveClass_t	 *zcls_batt = device_get_class(zd, 0, 0x80);
 					if (zcls_batt != NULL) {
@@ -457,7 +458,7 @@ int zwave_async_data(stDataFrame_t *dfr) {
 							char buf_batt[5];
 							memcpy(buf_batt, data, 4);
 							buf_batt[4] = param;
-							zwave_iface_report_cmd(zd->mac, ep, classid, cmdid, buf_batt, sizeof(buf_batt));
+							zwave_iface_report_cmd(zd->mac, ep, 0x80, 0x03, buf_batt, sizeof(buf_batt));
 						}
 					}
 				}

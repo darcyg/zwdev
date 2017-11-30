@@ -508,39 +508,48 @@ int uproto_rpt_cmd_dusun(const char *extaddr, unsigned char ep, unsigned char cl
 
 		_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", device_make_macstr(zd), "device.switch.onoff", jret);
 	} else if ((clsid&0xff) == 0x71 && (cmdid&0xff) == 0x05) { /* security event rpt */
-		if (len == 8) {
-			char notification_type		= buf[4]&0xff;
-			char notification_event	= buf[5]&0xff;
+		char notification_type		= buf[4]&0xff;
+		char notification_event	= buf[5]&0xff;
+		if (notification_type == 0x07 && notification_event == 0x08) {
 			char paramlen						= buf[6]&0xff;
-			char param								= buf[7]&0xff;
-			if (notification_type == 0x07 && notification_event == 0x08) {
+			if (paramlen == 1) {
+				char param								= buf[7]&0xff;
+
 				json_t *jret = json_object(); 
 				char sbuf[32];
 				sprintf(sbuf, "%d", !!(param&0x80));
+
 				json_object_set_new(jret, "value", json_string(sbuf));
 				json_object_set_new(jret, "ep", json_integer(ep&0xff));
 				json_object_set_new(jret, "zone", json_string("pir"));
 				_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", device_make_macstr(zd), "device.zone_status", jret);
 			} else {
+				json_t *jret = json_object(); 
+				char sbuf[32];
+				sprintf(sbuf, "%d", 1);
+
+				json_object_set_new(jret, "value", json_string(sbuf));
+				json_object_set_new(jret, "ep", json_integer(ep&0xff));
+				json_object_set_new(jret, "zone", json_string("pir"));
+				_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", device_make_macstr(zd), "device.zone_status", jret);
+			}
+		} else {
 				log_warn("not support class(%02X) cmd(%02X)  notification(%02X), event(%02x)\n", 
 							clsid&0xff, cmdid&0xff, notification_type&0xff, notification_event&0xff);
-			}
-		} else if ((clsid&0xff) == 0x80 && (cmdid&0xff) == 0x03) { /* battery event rpt */
+		}
+	} else if ((clsid&0xff) == 0x80 && (cmdid&0xff) == 0x03) { /* battery event rpt */
 			//char bl = buf[4]&0xff;
 
-			json_t *jret = json_object(); 
+		json_t *jret = json_object(); 
 
-			json_object_set_new(jret, "mac", json_string(device_make_macstr(zd)));
-			json_object_set_new(jret, "type", json_string(device_make_typestr(zd)));
-			json_object_set_new(jret, "version", json_string(device_make_versionstr(zd)));
-			json_object_set_new(jret, "model", json_string(device_make_versionstr(zd)));
-			json_object_set_new(jret, "online", json_integer(device_get_online(zd)));
-			json_object_set_new(jret, "battery", json_integer(device_get_battery(zd)));
+		json_object_set_new(jret, "mac", json_string(device_make_macstr(zd)));
+		json_object_set_new(jret, "type", json_string(device_make_typestr(zd)));
+		json_object_set_new(jret, "version", json_string(device_make_versionstr(zd)));
+		json_object_set_new(jret, "model", json_string(device_make_versionstr(zd)));
+		json_object_set_new(jret, "online", json_integer(device_get_online(zd)));
+		json_object_set_new(jret, "battery", json_integer(device_get_battery(zd)));
 
-			_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", device_make_macstr(zd), "device.status", jret);
-		} else {
-			log_warn("class(%02X) cmd(%02X) data too short\n", clsid, cmdid);
-		}
+		_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", device_make_macstr(zd), "device.status", jret);
 	} else {
 		log_warn("not support class(%02X) cmd(%02X)\n", clsid, cmdid);
 	}
