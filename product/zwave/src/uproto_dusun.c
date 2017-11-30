@@ -515,15 +515,11 @@ int uproto_rpt_cmd_dusun(const char *extaddr, unsigned char ep, unsigned char cl
 			char param								= buf[7]&0xff;
 			if (notification_type == 0x07 && notification_event == 0x08) {
 				json_t *jret = json_object(); 
-
 				char sbuf[32];
-				sprintf(sbuf, "%d", !!param);
+				sprintf(sbuf, "%d", !!(param&0x80));
 				json_object_set_new(jret, "value", json_string(sbuf));
-				
 				json_object_set_new(jret, "ep", json_integer(ep&0xff));
-
 				json_object_set_new(jret, "zone", json_string("pir"));
-
 				_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", device_make_macstr(zd), "device.zone_status", jret);
 			} else {
 				log_warn("not support class(%02X) cmd(%02X)  notification(%02X), event(%02x)\n", 

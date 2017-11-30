@@ -282,7 +282,7 @@ int zwave_exclude(char mac[8]) {
 int zwave_remove_failed_node(const char *mac) {
 	log_debug("[%d]", __LINE__);
 	
-	stZWaveDevice_t *zd = device_get_by_extaddr(mac);
+	stZWaveDevice_t *zd = device_get_by_extaddr((char*)mac);
 	if (zd == NULL) {
 		return -1;
 	}
@@ -408,7 +408,6 @@ int zwave_async_data(stDataFrame_t *dfr) {
 		return  0;
 	}
 
-
 	device_update_cmds_data(zcmd, data, len);
 	ds_update_cmd_data(zcmd);
 	{
@@ -437,9 +436,33 @@ int zwave_async_data(stDataFrame_t *dfr) {
 			data = &dfr->payload[5+4];
 			len = dfr->payload[2] - 2 - 4;
 			//device_update_cmds_data(zcmd, data, len);
-		} else {
 		}
+
 		zwave_iface_report_cmd(zd->mac, ep, classid, cmdid, data, len);
+
+		/* 电池电量和motion一起上报 */
+		if  ((classid&0xff) == 0x71  && (cmdid&0xff) == 0x05) {
+			if (len == 8) {
+				char notification_type		= data[4]&0xff;
+				char notification_event	= data[5]&0xff;
+				char paramlen						= data[6]&0xff;
+				char param								= data[7]&0xff;
+				if (notification_type == 0x07 && notification_event == 0x08) {
+					stZWaveClass_t	 *zcls_batt = device_get_class(zd, 0, 0x80);
+					if (zcls_batt != NULL) {
+						stZWaveCommand_t *zcmd_batt = device_get_cmd(zcls_batt, 0x03);
+						if (zcmd_batt != NULL) {
+							device_update_cmds_data(zcmd_batt, &param, sizeof(param));
+							ds_update_cmd_data(zcmd_batt);
+							char buf_batt[5];
+							memcpy(buf_batt, data, 4);
+							buf_batt[4] = param;
+							zwave_iface_report_cmd(zd->mac, ep, classid, cmdid, buf_batt, sizeof(buf_batt));
+						}
+					}
+				}
+			}
+		}
 	#endif
 
 	}
