@@ -260,6 +260,20 @@ stZWClass_t zcc_ccs[] = {
 			{0x05, "ins_rpt", 'r', 0, ""},
 		},
 	},
+
+	{0x30, 1, "Sensor Binary", 2, {
+			{0x02, "snr_get", 'r', 0, ""},
+			{0x03, "snr_rpt", 'r', 0, ""},
+		},
+	},
+		
+	{0x30, 2, "Sensor Binary", 4, {
+			{0x01, "rpt_snr_get", 'g', 0, ""},
+			{0x02, "snr_get",			'g', 0, ""},
+			{0x03, "snr_rpt",			'r', 0, ""},
+			{0x04, "rpt_snr_rpt", 'r', 0, ""},
+		},
+	},
 };
 
 stZWClass_t *zcc_get_class(char classid, int version) {
