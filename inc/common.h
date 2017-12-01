@@ -7,7 +7,7 @@
 
 #define MAJOR    1
 #define MINOR    0
-#define PATCH    3
+#define PATCH    4
 #define RELEASE  1
 #define DATE	__DATE__
 #define TIME  __TIME__
