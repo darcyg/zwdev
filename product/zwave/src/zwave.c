@@ -406,6 +406,9 @@ int zwave_async_data(stDataFrame_t *dfr) {
 	if (zcmd == NULL) {
 		log_warn("no such cmd : %02X", cmdid&0xff);
 		return  0;
+	} else {
+		zwave_iface_report_cmd(zd->mac, ep, classid, cmdid, data, len);
+		return 0;
 	}
 
 	device_update_cmds_data(zcmd, data, len);
