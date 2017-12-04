@@ -36,6 +36,7 @@ json_t *	zwave_iface_list() {
 		json_object_set_new(jdev, "battery", json_integer(device_get_battery(zd)));
 		json_object_set_new(jdev, "online", json_integer(device_get_online(zd)));
 		json_object_set_new(jdev, "model", json_string(device_make_modelstr(zd)));
+		json_object_set_new(jdev, "type", json_string(device_make_typestr(zd)));
 	}
 
 	return jdevs;
