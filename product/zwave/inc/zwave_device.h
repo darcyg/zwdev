@@ -93,6 +93,7 @@ const char *device_make_typestr(stZWaveDevice_t *zd);
 const char *device_make_versionstr(stZWaveDevice_t *zd);
 char device_get_nodeid_by_mac(const char *mac);
 
+const char *device_sensor_binary_zone_typestr(int i);
 
 
 void device_view_all();

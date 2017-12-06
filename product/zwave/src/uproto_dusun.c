@@ -551,6 +551,7 @@ int uproto_rpt_cmd_dusun(const char *extaddr, unsigned char ep, unsigned char cl
 
 		_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", device_make_macstr(zd), "device.status", jret);
 	} else if ((clsid&0xff) == 0x30 && (cmdid&0xff) == 0x03) {
+		/*
 		static char *snr_type[] = {
 			"reserved", 
 			"general",
@@ -568,9 +569,12 @@ int uproto_rpt_cmd_dusun(const char *extaddr, unsigned char ep, unsigned char cl
 			"glass",
 			"first",
 		};
+		*/
 		int value = buf[0]&0xff;
 		int zone  = buf[1]&0xff;
+		/*
 		zone = zone % (sizeof(snr_type)/sizeof(snr_type[0]));
+		*/
 
 		char sbuf[32];
 		sprintf(sbuf, "%d", !!value);
@@ -578,7 +582,8 @@ int uproto_rpt_cmd_dusun(const char *extaddr, unsigned char ep, unsigned char cl
 		json_t *jret = json_object(); 
 		json_object_set_new(jret, "value", json_string(sbuf));
 		json_object_set_new(jret, "ep", json_integer(ep&0xff));
-		json_object_set_new(jret, "zone", json_string(snr_type[zone]));
+		//json_object_set_new(jret, "zone", json_string(snr_type[zone]));
+		json_object_set_new(jret, "zone", device_sensor_binary_zonestr(zone));
 		_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", device_make_macstr(zd), "device.zone_status", jret);
 	} else {
 		log_warn("not support class(%02X) cmd(%02X)\n", clsid, cmdid);

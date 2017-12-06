@@ -344,6 +344,50 @@ int device_is_lowpower(stZWaveDevice_t *zd) {
 	}
 	return 0;
 }
+
+const char *device_sensor_binary_zonestr(int i) {
+	static char *snr_zone_type[] = {
+			"reserved", 
+			"general",
+			"smoke",
+			"co",
+			"co2",
+			"heat",
+			"water",
+			"freeze",
+			"tamper",
+			"aux",
+			"doorwin",
+			"tilt",
+			"pir",	 //motion
+			"glass",
+			"first",
+		};
+		i = i % (sizeof(snr_zone_type)/sizeof(snr_zone_type[0]));
+		return snr_zone_type[i];
+}
+const char *device_sensor_binary_typestr(int i) {
+	static char *snr_type[] = {
+			"unknow", 
+			"unknow",
+			"unknow",
+			"unknow",
+			"unknow",
+			"unknow",
+			"unknow",
+			"unknow",
+			"unknow",
+			"unknow",
+			"unknow",
+			"unknow",
+			"1209",	 //motion
+			"unknow",
+			"unknow",
+		};
+		i = i % (sizeof(snr_type)/sizeof(snr_type[0]));
+		return snr_type[i];
+}
+
 const char *device_make_typestr(stZWaveDevice_t *zd) {
 	stZWaveClass_t *class = device_get_class(zd, 0, 0x25);
 	if (class != NULL) {
@@ -353,6 +397,15 @@ const char *device_make_typestr(stZWaveDevice_t *zd) {
 	class = device_get_class(zd, 0, 0x71);
 	if (class != NULL) {
 		return "1209";
+	}
+
+	class = device_get_class(zd, 0, 0x30);
+	if (class != NULL) {
+			stZWaveCommand_t *cmd = device_get_cmd(class, 0x04);
+			if (cmd != NULL) {
+				return device_sensor_binary_typestr(cmd->data[0]&0xff);
+
+			}
 	}
 
 	return "unkonw";

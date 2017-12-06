@@ -26,6 +26,7 @@ static int switch_multi_init(stZWaveDevice_t *zd, stZWaveClass_t *class);
 static int switch_all_init(stZWaveDevice_t *zd, stZWaveClass_t *class);
 static int protection_init(stZWaveDevice_t *zd, stZWaveClass_t *class);
 static int configure_init(stZWaveDevice_t *zd, stZWaveClass_t *class);
+static int sensor_binary_init(stZWaveDevice_t *zd, stZWaveClass_t *class);
 
 static stClassCommandFuncs_t _zwave_class_init_funcs[256] = {
 	//[0x73] = {0x73, powerlevel_init},
@@ -45,6 +46,7 @@ static stClassCommandFuncs_t _zwave_class_init_funcs[256] = {
 	[0x27] = {0x27, switch_all_init},
 	[0x75] = {0x75, protection_init},
 	[0x70] = {0x70, configure_init},
+	[0x30] = {0x30, sensor_binary_init},
 };
 
 int zwave_class_init_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
@@ -713,5 +715,56 @@ static int protection_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 }
 static int configure_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
 	return 0;
+}
+
+
+static int sensor_binary_init(stZWaveDevice_t *zd, stZWaveClass_t *class) {
+	log_info("[%d]", __LINE__);
+
+	char outparam[128];
+	int outlen;
+	char command = 0x02;
+	int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0, 1, outparam, &outlen);
+	if (ret != 0) {
+		log_err("[%d] exec class command error: %d", __LINE__, ret);
+		return -1;
+	}
+
+
+	/* rxStatus | sourceNode | len */
+	/* class | command | value */
+	/* 72        05      5(v1) |  7(v2）+*/
+	char cmdid = outparam[4]&0xff;
+	stZWaveCommand_t *cmd = device_get_cmd(class, cmdid);
+	if (cmd != NULL) {
+		device_update_cmds_data(cmd, &outparam[5], outparam[2] - 2);
+	} else {
+		log_warn("not support command : %02X", cmdid&0xff);
+	}
+
+	if (class->version == 2) {
+		char outparam[128];
+		int outlen;
+		char command = 0x01;
+		//char inparam[] = {0x01};
+		int ret = zwave_api_util_cc(zd->bNodeID, 0, class->classid,  command, NULL, 0, 1, outparam, &outlen);
+		if (ret != 0) {
+			log_err("[%d] exec class command error: %d", __LINE__, ret);
+			return -2;
+		}
+
+		/* rxStatus | sourceNode | len */
+		/* class | command | value */
+		/* 72       07      5(v1) |  7(v2）+*/
+		char cmdid = outparam[4]&0xff;
+		stZWaveCommand_t *cmd = device_get_cmd(class, cmdid);
+		if (cmd != NULL) {
+			device_update_cmds_data(cmd, &outparam[5], outparam[2] - 2);
+		} else {
+			log_warn("not support command : %02X", cmdid&0xff);
+		}
+	}
+	return 0;
+
 }
 
