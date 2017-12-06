@@ -153,12 +153,12 @@ void do_cmd_include(char *argv[], int argc) {
 	}
 }
 void do_cmd_exclude(char *argv[], int argc) {
-	if (argc != 2) {
-		log_debug("exclude must has one argment as <mac>");
-		return;
-	}
 	char mac[8];
-	hex_parse((u8*)mac, sizeof(mac), argv[1], 0);
+	if (argc == 1) {
+		memset(mac, 0, sizeof(mac));
+	} else {
+		hex_parse((u8*)mac, sizeof(mac), argv[1], 0);
+	}
 	zwave_iface_exclude(mac);
 }
 

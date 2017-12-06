@@ -48,7 +48,7 @@ int				zwave_iface_include() {
 	return zwave_include();
 }
 int				zwave_iface_exclude(const char *mac) {
-	log_info("[%s] %d, mac:%s", __func__, __LINE__, mac);
+	log_info("[%s] %d", __func__, __LINE__);
 	
 	return zwave_exclude((char *)mac);
 }

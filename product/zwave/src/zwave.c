@@ -264,11 +264,8 @@ int zwave_exclude(char mac[8]) {
 	log_debug("[%d]", __LINE__);
 
 	system_led_blink("zwled", 500, 500);
-	stZWaveDevice_t *zd = device_get_by_extaddr(mac);
-	if (zd == NULL) {
-		system_led_off("zwled");
-		return 0;
-	}
+
+	//stZWaveDevice_t *zd = device_get_by_extaddr(mac);
 
 	int ret = zwave_api_ZWaveRemoveNodeFromNetwork();
 

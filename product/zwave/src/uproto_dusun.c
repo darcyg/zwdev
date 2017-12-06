@@ -47,6 +47,9 @@ static int rpt_zwave_info(const char *uuid, const char *cmdmac,  const char *att
 
 static int rpt_zone_status(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 
+static int get_app_version(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int rpt_app_version(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+
 static stUprotoAttrCmd_t uattrcmds[] = {
 	/* mod */
 	{"mod.device_list",						get_mod_device_list,	NULL,									rpt_mod_device_list},
@@ -60,6 +63,9 @@ static stUprotoAttrCmd_t uattrcmds[] = {
 	/* switch */
 	{"device.switch.onoff",				NULL,									set_switch_onoff,			rpt_switch_onoff},
 	{"device.zone_status",				NULL,									NULL,									rpt_zone_status},
+
+	/* version */
+	{"app.version",								get_app_version,		NULL,										rpt_app_version},
 };
 
 //Receive/////////////////////////////////////////////////////////////////////////////
@@ -330,14 +336,30 @@ static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char 
 	
 	const char *macstr		= json_get_string(value, "mac");
 	const char *typestr  = json_get_string(value, "type");
+#if 0
 	if (macstr == NULL || typestr == NULL) {
 		log_warn("error arguments (mac/type null?)!");
 		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -2;
 	}
-
 	char mac[32];
 	hex_parse((u8*)mac, sizeof(mac), macstr, 0);
+#else
+	if (macstr == NULL) {
+		macstr = "";
+	}
+	if(typestr == NULL) {
+		typestr = "";
+	}
+
+	char mac[32];
+	if (strcmp(macstr, "") == 0) {
+		memset(mac, 0, sizeof(mac));
+	} else {
+		hex_parse((u8*)mac, sizeof(mac), macstr, 0);
+	}
+	#endif
+
 	int ret = zwave_iface_exclude(mac);
 
 	if (ret != 0) ret = CODE_TIMEOUT;
@@ -417,6 +439,33 @@ static int rpt_zone_status(const char *uuid, const char *cmdmac,  const char *at
 	uproto_report_umsg(cmdmac, attr, value);
 	return 0;
 }
+
+static int get_app_version(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("[%s]", __func__);
+
+	//_uproto_handler_cmd(from, to, ctype, mac,dtime, uuid, command,cmdmac,attr,value)
+	_uproto_handler_cmd("", "", "", "", 0, uuid, "reportAttribute", cmdmac, "app.version", NULL);
+
+	uproto_response_ucmd(uuid, 0);
+	return 0;
+}
+static int rpt_app_version(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("[%s]", __func__);
+
+	json_t *jret = json_object();
+
+	char buf[128];
+	sprintf(buf, "V%d.%d.%d", MAJOR, MINOR, PATCH);
+	json_object_set_new(jret, "value", json_string(buf));
+
+	char submac[32];
+	system_mac_get(submac);
+	uproto_report_umsg(submac, attr, jret);
+
+	return 0;
+}
+
+
 
 //rpt interface///////////////////////////////////////////////////////////////////////////////////////
 int uproto_rpt_register_dusun(const char *extaddr) {
@@ -583,7 +632,7 @@ int uproto_rpt_cmd_dusun(const char *extaddr, unsigned char ep, unsigned char cl
 		json_object_set_new(jret, "value", json_string(sbuf));
 		json_object_set_new(jret, "ep", json_integer(ep&0xff));
 		//json_object_set_new(jret, "zone", json_string(snr_type[zone]));
-		json_object_set_new(jret, "zone", device_sensor_binary_zonestr(zone));
+		json_object_set_new(jret, "zone", json_string(device_sensor_binary_zonestr(zone)));
 		_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", device_make_macstr(zd), "device.zone_status", jret);
 	} else {
 		log_warn("not support class(%02X) cmd(%02X)\n", clsid, cmdid);
