@@ -360,7 +360,7 @@ const char *device_make_typestr(stZWaveDevice_t *zd) {
 const char *device_make_versionstr(stZWaveDevice_t *zd) {
 	stZWaveClass_t *class = device_get_class(zd, 0, 0x86);
 	if (class != NULL) {
-		stZWaveCommand_t *cmd = device_get_cmd(class, 0x07);
+		stZWaveCommand_t *cmd = device_get_cmd(class, 0x12);
 		if (cmd != NULL) {
 			char *buf = cmd->data;
 			static char version[32];
