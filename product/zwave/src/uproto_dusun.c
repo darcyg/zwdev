@@ -436,7 +436,7 @@ int uproto_rpt_register_dusun(const char *extaddr) {
 	json_object_set_new(jret, "mac", json_string(device_make_macstr(zd)));
 	json_object_set_new(jret, "type", json_string(device_make_typestr(zd)));
 	json_object_set_new(jret, "version", json_string(device_make_versionstr(zd)));
-	json_object_set_new(jret, "model", json_string(device_make_versionstr(zd)));
+	json_object_set_new(jret, "model", json_string(device_make_modelstr(zd)));
 	json_object_set_new(jret, "online", json_integer(device_get_online(zd)));
 	json_object_set_new(jret, "battery", json_integer(device_get_battery(zd)));
 
@@ -477,7 +477,7 @@ int uproto_rpt_status_dusun(const char *extaddr) {
 	json_object_set_new(jret, "mac", json_string(device_make_macstr(zd)));
 	json_object_set_new(jret, "type", json_string(device_make_typestr(zd)));
 	json_object_set_new(jret, "version", json_string(device_make_versionstr(zd)));
-	json_object_set_new(jret, "model", json_string(device_make_versionstr(zd)));
+	json_object_set_new(jret, "model", json_string(device_make_modelstr(zd)));
 	json_object_set_new(jret, "online", json_integer(device_get_online(zd)));
 	json_object_set_new(jret, "battery", json_integer(device_get_battery(zd)));
 
@@ -545,7 +545,7 @@ int uproto_rpt_cmd_dusun(const char *extaddr, unsigned char ep, unsigned char cl
 		json_object_set_new(jret, "mac", json_string(device_make_macstr(zd)));
 		json_object_set_new(jret, "type", json_string(device_make_typestr(zd)));
 		json_object_set_new(jret, "version", json_string(device_make_versionstr(zd)));
-		json_object_set_new(jret, "model", json_string(device_make_versionstr(zd)));
+		json_object_set_new(jret, "model", json_string(device_make_modelstr(zd)));
 		json_object_set_new(jret, "online", json_integer(device_get_online(zd)));
 		json_object_set_new(jret, "battery", json_integer(device_get_battery(zd)));
 
