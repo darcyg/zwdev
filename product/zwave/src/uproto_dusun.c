@@ -47,9 +47,6 @@ static int rpt_zwave_info(const char *uuid, const char *cmdmac,  const char *att
 
 static int rpt_zone_status(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 
-static int get_app_version(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
-static int rpt_app_version(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
-
 static stUprotoAttrCmd_t uattrcmds[] = {
 	/* mod */
 	{"mod.device_list",						get_mod_device_list,	NULL,									rpt_mod_device_list},
@@ -63,9 +60,6 @@ static stUprotoAttrCmd_t uattrcmds[] = {
 	/* switch */
 	{"device.switch.onoff",				NULL,									set_switch_onoff,			rpt_switch_onoff},
 	{"device.zone_status",				NULL,									NULL,									rpt_zone_status},
-
-	/* version */
-	{"app.version",								get_app_version,		NULL,										rpt_app_version},
 };
 
 //Receive/////////////////////////////////////////////////////////////////////////////
@@ -437,31 +431,6 @@ static int rpt_switch_onoff(const char *uuid, const char *cmdmac,  const char *a
 static int rpt_zone_status(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
 	log_info("[%s]", __func__);
 	uproto_report_umsg(cmdmac, attr, value);
-	return 0;
-}
-
-static int get_app_version(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
-	log_info("[%s]", __func__);
-
-	//_uproto_handler_cmd(from, to, ctype, mac,dtime, uuid, command,cmdmac,attr,value)
-	_uproto_handler_cmd("", "", "", "", 0, uuid, "reportAttribute", cmdmac, "app.version", NULL);
-
-	uproto_response_ucmd(uuid, 0);
-	return 0;
-}
-static int rpt_app_version(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
-	log_info("[%s]", __func__);
-
-	json_t *jret = json_object();
-
-	char buf[128];
-	sprintf(buf, "V%d.%d.%d", MAJOR, MINOR, PATCH);
-	json_object_set_new(jret, "value", json_string(buf));
-
-	char submac[32];
-	system_mac_get(submac);
-	uproto_report_umsg(submac, attr, jret);
-
 	return 0;
 }
 

@@ -63,6 +63,9 @@ json_t *	zwave_iface_info() {
 	json_object_set_new(jret, "HomeID", json_string(sbuf));
 	sprintf(sbuf, "%02X", inv->id.NodeID);
 	json_object_set_new(jret, "NodeID", json_string(sbuf));
+	sprintf(sbuf, "V%d.%d.%d", MAJOR, MINOR, PATCH);
+	json_object_set_new(jret, "version", json_string(sbuf));
+
 
 	return jret;
 }
