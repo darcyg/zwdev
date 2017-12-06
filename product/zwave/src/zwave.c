@@ -284,11 +284,21 @@ int zwave_remove_failed_node(const char *mac) {
 		return -1;
 	}
 
-	if (!zwave_api_ZWaveIsFailedNode(zd->bNodeID)) {
-		return 0;
+	stNodeInfo_t ni;
+	zwave_api_ZWaveRequestNodeInfo(zd->bNodeID, &ni);
+
+	int ret = zwave_api_ZWaveIsFailedNode(zd->bNodeID);
+	if (ret < 0) {
+		log_warn("api call failed!");
+		return -2;
 	}
 
-	int ret = zwave_api_ZWaveRemoveFailedNodeId(zd->bNodeID);
+	if (ret == 0) {
+		log_warn("not %02X is not a failed node!", zd->bNodeID&0xff);
+		return -3; /* not failed node */
+	}
+
+	ret = zwave_api_ZWaveRemoveFailedNodeId(zd->bNodeID);
 	zwave_api_SerialApiGetInitData(&ze.inventory.initdata);
 	zwave_util_sync_dev();
 

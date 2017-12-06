@@ -32,6 +32,7 @@ static stUprotoCmd_t ucmds[] = {
 static int get_mod_device_list(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static int rpt_mod_device_list(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int set_mod_remove_failed_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static int rpt_new_device_added(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static int rpt_device_deleted(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static int set_mod_add_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
@@ -51,6 +52,7 @@ static stUprotoAttrCmd_t uattrcmds[] = {
 	/* mod */
 	{"mod.device_list",						get_mod_device_list,	NULL,									rpt_mod_device_list},
 	{"mod.del_device",						NULL,									set_mod_del_device,		NULL},
+	{"mod.remove_failed_device",	NULL,									set_mod_remove_failed_device,		NULL},
 	{"mod.new_device_added",			NULL,									NULL,									rpt_new_device_added},
 	{"mod.add_device",						NULL,									set_mod_add_device,		NULL},
 	{"device.status",							NULL,									NULL,									rpt_device_status},
@@ -360,6 +362,31 @@ static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char 
 	uproto_response_ucmd(uuid, ret);
 
 	return 0;
+}
+
+
+static int set_mod_remove_failed_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("[%s]", __func__);
+
+	if (value == NULL) {
+		log_warn("error arguments!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
+		return -1;
+	}
+	
+	const char *macstr		= json_get_string(value, "mac");
+	if (macstr == NULL) {
+		log_warn("error arguments (mac/type null?)!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
+		return -2;
+	}
+	char mac[32];
+	hex_parse((u8*)mac, sizeof(mac), macstr, 0);
+
+	int ret = zwave_iface_remove_failed_node(mac);
+
+	if (ret != 0) ret = CODE_TIMEOUT;
+	uproto_response_ucmd(uuid, ret);
 }
 
 static int rpt_new_device_added(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
