@@ -361,6 +361,9 @@ static int set_mod_del_device(const char *uuid, const char *cmdmac,  const char 
 	if (ret != 0) ret = CODE_TIMEOUT;
 	uproto_response_ucmd(uuid, ret);
 
+	char gwmac[32];             system_mac_get(gwmac);
+	_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", gwmac, "mod.device_list", NULL);
+
 	return 0;
 }
 
@@ -387,6 +390,9 @@ static int set_mod_remove_failed_device(const char *uuid, const char *cmdmac,  c
 
 	if (ret != 0) ret = CODE_TIMEOUT;
 	uproto_response_ucmd(uuid, ret);
+
+	char gwmac[32];             system_mac_get(gwmac);
+	_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", gwmac, "mod.device_list", NULL);
 }
 
 static int rpt_new_device_added(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
