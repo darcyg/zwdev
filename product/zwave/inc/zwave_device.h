@@ -2,7 +2,7 @@
 #define __ZWAVE_DEVICE_H_
 
 #define MAX_CMD_DATA_LEN		32
-#define MAX_DEV_NUM					10
+#define MAX_DEV_NUM					50
 
 /* when a command has been received, wo query a command table and decied if it can be store in the command data part, 
  * if yes, we only store the data to the data pointer

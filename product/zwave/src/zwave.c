@@ -243,7 +243,7 @@ int zwave_include() {
 
 		stZWaveDevice_t *zd = device_get_by_nodeid(id&0xff);
 		if (zd != NULL) {
-			zd->online = 15*60;
+			zd->online = 45*60;
 
 			zwave_util_class_init(zd);
 
@@ -398,7 +398,7 @@ int zwave_async_data(stDataFrame_t *dfr) {
 	}
 
 	int online_old = zd->online;
-	zd->online = 15 * 60;;
+	zd->online = 45 * 60;;
 	if (online_old <= 0) {
 		zwave_util_rpt_status(zd);
 	}
