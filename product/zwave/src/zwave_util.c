@@ -201,20 +201,10 @@ int system_led_shot(char * led)
 	return 0;
 }
 
-int system_upgrade_firmware(const char *url, const char *keep) {
-	log_info("upgrade firmware ....");
-	if (strcmp(keep, "1") == 0) {
-		system("touch /tmp/__keepsetting");
-	}
-	system("touch /tmp/__upgrade_firmware");
-	return 0;
-}
-
-int system_upgrade_zwdevd(const char *url, const char *keep) {
-	log_info("upgrade zwdevd ....");
-	if (strcmp(keep, "1") == 0) {
-		system("touch /tmp/__keepsetting");
-	}
-	system("touch /tmp/__upgrade_zwdevd");
+int system_upgrade(const char *target, const char *url, const char *keep) {
+	log_info("upgrade %s ....", target);
+	char cmd[512];
+	sprintf("/usr/bin/updemo.sh %s %s %s > /dev/null &", target, url, keep);
+	system(cmd);
 	return 0;
 }

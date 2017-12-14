@@ -489,16 +489,7 @@ static int set_gw_upgrade(const char *uuid, const char *cmdmac,  const char *att
 		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
 		return -2;
 	}
-	int ret = 0;
-	if (strcmp(target, "firmware") == 0) {
-		ret = system_upgrade_firmware(url, keepsetting);
-	} else if (strcmp(target, "zwdevd") == 0) {
-		ret = system_upgrade_zwdevd(url, keepsetting);
-	} else {
-		log_warn("not support upgrade target: [%s]", target);
-		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
-		return -3;
-	}
+	int	ret = system_upgrade(target, url, keepsetting);
 
 	if (ret != 0) ret = CODE_TIMEOUT;
 	uproto_response_ucmd(uuid, ret);
