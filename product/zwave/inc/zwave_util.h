@@ -44,4 +44,6 @@ int system_led_shot(char * led);
 
 
 
+int system_upgrade_firmware(const char *url, const char *keep);
+int system_upgrade_zwdevd(const char *url, const char *keep);
 #endif

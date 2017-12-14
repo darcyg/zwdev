@@ -48,7 +48,10 @@ static int rpt_zwave_info(const char *uuid, const char *cmdmac,  const char *att
 
 static int rpt_zone_status(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 
+
+static int set_gw_upgrade(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static stUprotoAttrCmd_t uattrcmds[] = {
+	{"gw.upgrade",								NULL,									set_gw_upgrade,				NULL},
 	/* mod */
 	{"mod.device_list",						get_mod_device_list,	NULL,									rpt_mod_device_list},
 	{"mod.del_device",						NULL,									set_mod_del_device,		NULL},
@@ -393,6 +396,7 @@ static int set_mod_remove_failed_device(const char *uuid, const char *cmdmac,  c
 
 	char gwmac[32];             system_mac_get(gwmac);
 	_uproto_handler_cmd("", "", "", "", 0, "", "reportAttribute", gwmac, "mod.device_list", NULL);
+	return 0;
 }
 
 static int rpt_new_device_added(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
@@ -468,6 +472,39 @@ static int rpt_zone_status(const char *uuid, const char *cmdmac,  const char *at
 }
 
 
+static int set_gw_upgrade(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("[%s]", __func__);
+
+	if (value == NULL) {
+		log_warn("error arguments!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
+		return -1;
+	}
+	
+	const char *target			= json_get_string(value, "target");
+	const char *url					= json_get_string(value, "url");
+	const char *keepsetting	= json_get_string(value, "keepsetting");
+	if (target == NULL || url == NULL || keepsetting == NULL) {
+		log_warn("error arguments (target/keepsetting/url null?)!");
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
+		return -2;
+	}
+	int ret = 0;
+	if (strcmp(target, "firmware") == 0) {
+		ret = system_upgrade_firmware(url, keepsetting);
+	} else if (strcmp(target, "zwdevd") == 0) {
+		ret = system_upgrade_zwdevd(url, keepsetting);
+	} else {
+		log_warn("not support upgrade target: [%s]", target);
+		uproto_response_ucmd(uuid, CODE_WRONG_FORMAT);
+		return -3;
+	}
+
+	if (ret != 0) ret = CODE_TIMEOUT;
+	uproto_response_ucmd(uuid, ret);
+
+	return 0;
+}
 
 //rpt interface///////////////////////////////////////////////////////////////////////////////////////
 int uproto_rpt_register_dusun(const char *extaddr) {
