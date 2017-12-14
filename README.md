@@ -44,6 +44,15 @@
 			* zwave device will not be ack very quicklly
 		- Todo:
 
+	v1.0.15_zwave_beta2(2017/8/21)
+		- Functions:
+			* include/exclude/list/netinfo zwave device
+			* support pir(0x71/0x30)
+		- Changes:
+			* add uproto upgrade firmware&zwdevd proto
+		- Problem:
+			*
+		- Todo:
 	
 
 # Use:  
@@ -52,3 +61,7 @@
 
 # !!!:
   1. dsi0024'dts must enable uart1.
+
+# proto:  
+	TODO  
+
