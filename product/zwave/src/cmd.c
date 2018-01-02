@@ -100,6 +100,17 @@ void cmd_in(void *arg, int fd) {
 		buf[size-1] = 0;
 		size--;
 	}
+	char *p = buf;
+	while (*p == ' ') {
+		*p++;
+		size--;
+	}
+	if (size > 0) {
+		memcpy(buf, p, size);
+	} else {
+		buf[0] = 0;
+		size = 0;
+	}
 
 	if (strcmp(buf, "") != 0) {
 		log_debug("console input:[%s]", buf);
