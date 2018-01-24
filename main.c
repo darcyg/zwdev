@@ -108,6 +108,8 @@ void run_main() {
 		return;
 	}
 
+	web_init();
+
 	timer_set(&th, &tr, 10);
 	log_info("[%s] %d : goto main loop", __func__, __LINE__);
 	while (1) {

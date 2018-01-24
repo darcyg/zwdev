@@ -23,7 +23,7 @@ MKDIR		?= mkdir -p
 
 
 
-TARGET_CFLAGS 		+= -Wall -g -O2 -I$(ROOTDIR)/inc -I$(ROOTDIR)/inc/ayla -I$(ROOTDIR)/platform -I$(ROOTDIR)/product/zwave/inc  $(CROSS_CFLAGS)
+TARGET_CFLAGS 		+= -Wall -g -O2 -I$(ROOTDIR)/inc -I$(ROOTDIR)/inc/ayla -I$(ROOTDIR)/platform -I$(ROOTDIR)/product/zwave/inc  $(CROSS_CFLAGS) -I$(ROOTDIR)/src/libhttpd-2.0/
 
 TARGET_CXXFLAGS 	+= $(TARGET_CFLAGS) -std=c++0x
 

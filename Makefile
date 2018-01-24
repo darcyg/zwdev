@@ -50,6 +50,14 @@ srcs							+= $(ROOTDIR)/product/zwave/src/cmd.c
 srcs							+= $(ROOTDIR)/product/zwave/src/uproto.c
 srcs							+= $(ROOTDIR)/product/zwave/src/uproto_dusun.c
 
+srcs							+= $(ROOTDIR)/src/libhttpd-2.0/api.c
+srcs							+= $(ROOTDIR)/src/libhttpd-2.0/ember.c
+srcs							+= $(ROOTDIR)/src/libhttpd-2.0/ip_acl.c
+srcs							+= $(ROOTDIR)/src/libhttpd-2.0/protocol.c
+srcs							+= $(ROOTDIR)/src/libhttpd-2.0/version.c
+srcs							+= $(ROOTDIR)/product/zwave/src/web.c
+
+
 srcs							+= $(ROOTDIR)/src/lockqueue.c
 srcs							+= $(ROOTDIR)/src/mutex.c
 srcs							+= $(ROOTDIR)/src/cond.c
