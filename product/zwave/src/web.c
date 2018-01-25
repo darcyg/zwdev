@@ -142,50 +142,82 @@ int  web_getfd() {
 	return -1;
 }
 ////////////////////////////////////////////////////////////////
+extern stZWaveCache_t zc;
 static void render_devices_list(httpd *server, httpReq *req) {
 	httpdPrintf(server, req, (char *)
-		"						<table>\n"
+		"						<div>\n"
+		"						<table  border=\"1\" bordercolor=\"#a0c6e5\" style=\"border-collapse:collapse;\">\n"
 		"							<tr>\n"
 		"								<th>MAC Address</th>\n"
 		"								<th>Device Type</th>\n"
 		"								<th>Device Battery</th>\n"
+		"								<th>Firmware Version</th>\n"
 		"								<th>Pir Status</th>\n"
 		"							</tr>\n");
 
-	json_t *jdevs = zwave_iface_list();
-	if (jdevs != NULL) {
-		size_t i;
-		json_t *v = NULL;
-		json_array_foreach(jdevs, i, v) {
-			const char *mac = json_get_string(v, "mac");
-			int battery = 0;  json_get_int(v, "battery", &battery);
-			const char *version = json_get_string(v, "version");
-			const char *type = json_get_string(v, "type");
-			httpdPrintf(server, req, (char *)
+	int i = 0;
+	int cnt = sizeof(zc.devs)/sizeof(zc.devs[0]);
+	for (i = 0; i < cnt; i++) {
+		stZWaveDevice_t *zd = &zc.devs[i];
+		if (zd->used == 0) {
+			continue;
+		}
+
+		httpdPrintf(server, req, (char *)
 				"<tr>\n"
+				"<td>%s</td>\n"
 				"<td>%s</td>\n"
 				"<td>%d</td>\n"
 				"<td>%s</td>\n"
-				"<td>%s</td>\n"
-				"</tr>\n", mac, battery, version, type);
-		}
-		json_decref(jdevs);
+				"<td>%d</td>\n"
+				"</tr>\n", 
+				device_make_macstr(zd),
+				device_make_typestr(zd),
+				device_get_battery(zd),
+				device_make_versionstr(zd),
+				device_get_pir_status(zd)
+				);
 	}
 
 	httpdPrintf(server, req, (char *)
+		"						</div>\n"
 		"						</table>\n");
 }
 
 static void render_buttons(httpd *server, httpReq *req) {
 	httpdPrintf(server, req, (char *)
-		"<button>Include</button>\n"
-		"<button>Exclude</button>\n"
+		"<button id=\"include\">Include</button>\n"
+		"<button id=\"exclude\">Exclude</button>\n"
 	);
 }
 
+static void render_header(httpd *server, httpReq *req) {
+	httpdPrintf(server, req, (char *)
+		"<html>\n"\
+		"	<head>\n"\
+		"		<meta charset=\"UTF-8\">\n"
+		"		<title>Pir Test</title>\n"
+		"		<script language=\"JavaScript\" src=\"js/jquery-3.2.1.min.js\">\n"\
+		"		</script>\n"\
+		"		<script language=\"JavaScript\" src=\"js/dr.js\">\n"\
+		"		</script>\n"\
+		"	</head>\n"\
+		"	<body><div id=\"body\">\n"\
+	);
+}
+static void render_footer(httpd *server, httpReq *req) {
+	httpdPrintf(server, req, (char *)
+		"	</div></body>\n"\
+		"</html>\n"
+	);
+}
+
+
 static void center_func(httpd *server, httpReq *req) {
-	render_devices_list(server, req);
+	render_header(server, req);
 	render_buttons(server, req);
+	render_devices_list(server, req);
+	render_footer(server, req);
 }
 static void include_func(httpd *server, httpReq *req) {
 	zwave_iface_include();

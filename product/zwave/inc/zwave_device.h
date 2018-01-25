@@ -96,6 +96,8 @@ char device_get_nodeid_by_mac(const char *mac);
 const char *device_sensor_binary_zone_typestr(int i);
 const char *device_sensor_binary_zonestr(int i);
 
+int device_get_pir_status(stZWaveDevice_t *zd);
+
 
 void device_view_all();
 

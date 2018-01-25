@@ -330,6 +330,37 @@ int device_get_battery(stZWaveDevice_t *zd) {
 	}
 	return 100;
 }
+
+int device_get_pir_status(stZWaveDevice_t *zd) {
+	stZWaveClass_t *class = device_get_class(zd, 0, 0x71);
+	if (class == NULL) {
+		return 0;
+	}
+	stZWaveCommand_t *cmd = device_get_cmd(class, 0x05);
+	if (cmd == NULL) {
+		return 0;
+	}
+
+	char *buf = cmd->data;
+	int len = cmd->len;
+	if (buf == NULL || len == 0) {
+		return 0;
+	}
+
+	char notification_type	= buf[4]&0xff;
+	char notification_event	= buf[5]&0xff;
+	if (notification_type == 0x07 && notification_event == 0x08) {
+		char paramlen						= buf[6]&0xff;
+		if (paramlen == 1) {
+			char param								= buf[7]&0xff;
+			return !!(param&0x80);
+		} else {
+			return 1;
+		}
+	} 
+
+	return 0;
+}
 int device_get_online(stZWaveDevice_t *zd) {
 	int online = zd->online;
 	return !!online;

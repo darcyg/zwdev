@@ -108,7 +108,7 @@ void run_main() {
 		return;
 	}
 
-	web_init();
+	web_init(&th, &fet, "0.0.0.0", 9999, "/www");
 
 	timer_set(&th, &tr, 10);
 	log_info("[%s] %d : goto main loop", __func__, __LINE__);
